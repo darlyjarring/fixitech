@@ -254,7 +254,7 @@
                 };
 
                 const docRef = await db.collection('facturas').add(data); // Guarda la factura con el nuevo número
-                alert(`Factura ${invoiceNumber} guardada con éxito (ID interno: ${docRef.id}).`);
+                alert(`Factura ${invoiceNumber} guardada con éxito.`);
                 
                 generarPDF(data, invoiceNumber); // Pasa el número de factura formateado al PDF
                 limpiarFormulario(); // Limpiar formulario después de guardar
