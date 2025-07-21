@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Galería Fixitech</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+  <h1 class="text-2xl font-bold mb-4">🖼️ Subida de Imágenes</h1>
+  <input type="file" id="imgUpload" class="mb-4"/>
+  <div id="preview" class="grid sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+  <script src="firebase.js"></script>
+  <script>
+    const storage = firebase.storage();
+    const input = document.getElementById('imgUpload');
+    const preview = document.getElementById('preview');
+
+    input.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      const ref = storage.ref('galeria/' + file.name);
+      await ref.put(file);
+      const url = await ref.getDownloadURL();
+      const img = document.createElement('img');
+      img.src = url;
+      img.className = 'w-full h-48 object-cover rounded shadow';
+      preview.appendChild(img);
+    });
+  </script>
+</body>
+</html>

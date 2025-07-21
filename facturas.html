@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Facturación - Fixitech</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+  <h1 class="text-2xl font-bold mb-4">📋 Registro de Trabajos / Facturación</h1>
+  <form id="facturaForm" class="grid gap-4 max-w-xl bg-white p-4 rounded shadow">
+    <input type="text" id="cliente" placeholder="Cliente" class="p-2 border rounded" required/>
+    <input type="text" id="servicio" placeholder="Servicio realizado" class="p-2 border rounded" required/>
+    <input type="number" id="cantidad" placeholder="Cantidad" class="p-2 border rounded" required/>
+    <input type="number" id="precio" placeholder="Precio unitario" class="p-2 border rounded" required/>
+    <input type="date" id="fechaIngreso" class="p-2 border rounded" required/>
+    <input type="date" id="fechaEntrega" class="p-2 border rounded" required/>
+    <select id="estado" class="p-2 border rounded">
+      <option value="En espera">En espera</option>
+      <option value="Entregado">Entregado</option>
+      <option value="Facturado">Facturado</option>
+    </select>
+    <button type="submit" class="bg-teal-600 text-white px-4 py-2 rounded">Guardar</button>
+  </form>
+
+  <div id="facturas" class="mt-8 grid gap-4"></div>
+
+  <script src="firebase.js"></script>
+  <script>
+    const db = firebase.firestore();
+    const form = document.getElementById('facturaForm');
+    const contenedor = document.getElementById('facturas');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = {
+        cliente: form.cliente.value,
+        servicio: form.servicio.value,
+        cantidad: +form.cantidad.value,
+        precio: +form.precio.value,
+        fechaIngreso: form.fechaIngreso.value,
+        fechaEntrega: form.fechaEntrega.value,
+        estado: form.estado.value,
+        total: +form.precio.value * +form.cantidad.value,
+        timestamp: new Date()
+      };
+      await db.collection('facturas').add(data);
+      form.reset();
+      cargarFacturas();
+    });
+
+    async function cargarFacturas() {
+      contenedor.innerHTML = '';
+      const snap = await db.collection('facturas').orderBy('timestamp', 'desc').get();
+      snap.forEach(doc => {
+        const f = doc.data();
+        const div = document.createElement('div');
+        div.className = 'bg-white p-4 rounded shadow';
+        div.innerHTML = `
+          <h3 class="font-bold">${f.cliente}</h3>
+          <p>${f.servicio} - ${f.cantidad} x $${f.precio} = <strong>$${f.total}</strong></p>
+          <p>Estado: ${f.estado}</p>
+          <p>Ingreso: ${f.fechaIngreso} / Entrega: ${f.fechaEntrega}</p>
+          <button onclick="generarPDF(${JSON.stringify(f).replace(/"/g, '&quot;')})" class="mt-2 bg-blue-500 text-white px-2 py-1 rounded">📄 Generar PDF</button>
+        `;
+        contenedor.appendChild(div);
+      });
+    }
+
+    function generarPDF(f) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text(`Factura - Fixitech`, 10, 10);
+      doc.text(`Cliente: ${f.cliente}`, 10, 20);
+      doc.text(`Servicio: ${f.servicio}`, 10, 30);
+      doc.text(`Cantidad: ${f.cantidad}`, 10, 40);
+      doc.text(`Precio: $${f.precio}`, 10, 50);
+      doc.text(`Total: $${f.total}`, 10, 60);
+      doc.text(`Fecha Ingreso: ${f.fechaIngreso}`, 10, 70);
+      doc.text(`Fecha Entrega: ${f.fechaEntrega}`, 10, 80);
+      doc.text(`Estado: ${f.estado}`, 10, 90);
+      doc.save(`Factura_${f.cliente}.pdf`);
+    }
+
+    cargarFacturas();
+  </script>
+</body>
+</html>
