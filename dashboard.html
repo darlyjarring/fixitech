@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Panel - Fixitech</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <header class="bg-teal-700 text-white p-4 flex justify-between items-center">
+    <h1 class="text-xl font-bold">Panel de Administración - Fixitech</h1>
+    <button onclick="logout()" class="bg-red-500 px-4 py-1 rounded">Salir</button>
+  </header>
+  <main class="p-4">
+    <h2 class="text-xl font-semibold mb-4">Bienvenido al panel</h2>
+    <p>Aquí podrás gestionar clientes, trabajos y facturas.</p>
+    <ul class="mt-6 space-y-3">
+      <li><a href="#" class="text-teal-700 underline">📋 Panel de Facturación (próximo archivo)</a></li>
+      <li><a href="#" class="text-teal-700 underline">🖼️ Subida de imágenes (próximo archivo)</a></li>
+    </ul>
+  </main>
+  <script>
+    function logout() {
+      localStorage.removeItem('usuario');
+      window.location.href = 'login.html';
+    }
+
+    if (!localStorage.getItem('usuario')) {
+      window.location.href = 'login.html';
+    }
+  </script>
+</body>
+</html>
