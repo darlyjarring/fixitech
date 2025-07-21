@@ -1,262 +1,558 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Nueva Venta - Fixitech</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Nueva Venta - Fixitech</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body class="bg-gray-50 font-sans">
 
-  <!-- Barra de navegación -->
-  <header class="bg-cyan-800 text-white p-4 flex justify-between items-center shadow">
-    <h1 class="text-xl font-bold">Fixitech - Nueva Venta</h1>
-    <nav class="space-x-4 text-sm">
-      <a href="#" class="hover:underline">Inicio</a>
-      <a href="#" class="hover:underline">Clientes</a>
-      <a href="#" class="hover:underline">Facturación</a>
-      <a href="#" class="hover:underline">Galería</a>
-    </nav>
-  </header>
+    <header class="bg-cyan-800 text-white p-4 flex justify-between items-center shadow">
+        <h1 class="text-xl font-bold">Fixitech - Nueva Venta</h1>
+        <nav class="space-x-4 text-sm">
+            <a href="#" class="hover:underline">Inicio</a>
+            <a href="#" class="hover:underline">Clientes</a>
+            <a href="#" class="hover:underline">Facturación</a>
+            <a href="#" class="hover:underline">Galería</a>
+        </nav>
+    </header>
 
-  <!-- Formulario de Cliente y Venta -->
-  <div class="max-w-6xl mx-auto mt-6 bg-white p-6 rounded shadow">
-    <div class="grid md:grid-cols-4 gap-4 mb-4">
-    <label for="cliente">Cédula o Nombre:</label>
-    <input type="text" id="cliente" placeholder="Cédula o Nombre" class="p-2 border rounded w-full" />
-    <!-- Teléfono y dirección -->
-    <input type="text" id="telefono" placeholder="Teléfono" class="p-2 border rounded w-full" />
-    <input type="text" id="direccion" placeholder="Dirección" class="p-2 border rounded w-full" />
+    <div class="max-w-6xl mx-auto mt-6 bg-white p-6 rounded shadow">
+        <h2 class="font-semibold text-lg mb-4">Datos del Cliente y Factura</h2>
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div>
+                <label for="cliente" class="block text-sm font-medium text-gray-700">Cédula o Nombre:</label>
+                <input type="text" id="cliente" placeholder="Cédula o Nombre del Cliente" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+            <div>
+                <label for="telefono" class="block text-sm font-medium text-gray-700">Teléfono:</label>
+                <input type="text" id="telefono" placeholder="Teléfono" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+            <div>
+                <label for="direccion" class="block text-sm font-medium text-gray-700">Dirección:</label>
+                <input type="text" id="direccion" placeholder="Dirección" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+            <div class="flex items-end">
+                <button onclick="nuevoCliente()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md w-full transition duration-150 ease-in-out">➕ Nuevo Cliente</button>
+            </div>
+        </div>
 
-      <button onclick="nuevoCliente()" class="bg-green-600 text-white px-4 py-2 rounded w-full">➕ Nuevo Cliente</button>
-      <button onclick="guardarFactura()" class="bg-blue-600 text-white px-4 py-2 rounded w-full">💾 Guardar Factura</button>
-      <button onclick="mostrarFactura()" class="bg-purple-600 text-white px-4 py-2 rounded w-full">🖨 Imprimir Vista</button>
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div>
+                <label for="fechaIngreso" class="block text-sm font-medium text-gray-700">Fecha de Ingreso:</label>
+                <input type="date" id="fechaIngreso" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+            <div>
+                <label for="fechaEntrega" class="block text-sm font-medium text-gray-700">Fecha de Entrega:</label>
+                <input type="date" id="fechaEntrega" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+            <div>
+                <label for="estado" class="block text-sm font-medium text-gray-700">Estado del Pedido:</label>
+                <select id="estado" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500">
+                    <option value="En espera">En espera</option>
+                    <option value="Entregado">Entregado</option>
+                    <option value="Facturado">Facturado</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button onclick="guardarFactura()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md w-full transition duration-150 ease-in-out">💾 Guardar Factura</button>
+            </div>
+        </div>
 
+        <h2 class="font-semibold mt-6 mb-3 text-lg">Agregar Ítems a la Factura</h2>
+        <div class="grid md:grid-cols-4 gap-4 mb-4">
+            <div>
+                <label for="descripcion" class="sr-only">Descripción</label>
+                <input type="text" id="descripcion" placeholder="Descripción del Artículo/Servicio" class="p-2 border border-gray-300 rounded-md w-full focus:ring-teal-500 focus:border-teal-500" />
+            </div>
+            <div>
+                <label for="cantidad" class="sr-only">Cantidad</label>
+                <input type="number" id="cantidad" placeholder="Cantidad" class="p-2 border border-gray-300 rounded-md w-full focus:ring-teal-500 focus:border-teal-500" min="1" value="1" />
+            </div>
+            <div>
+                <label for="precio" class="sr-only">Precio Unitario</label>
+                <input type="number" id="precio" placeholder="Precio Unitario" class="p-2 border border-gray-300 rounded-md w-full focus:ring-teal-500 focus:border-teal-500" min="0" step="0.01" />
+            </div>
+            <div class="flex items-end">
+                <button onclick="agregarItem()" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-md w-full transition duration-150 ease-in-out">+ Agregar Ítem</button>
+            </div>
+        </div>
 
+        <div class="overflow-x-auto mb-6">
+            <table class="min-w-full text-sm text-left border border-gray-300 rounded-md overflow-hidden">
+                <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
+                    <tr>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 tracking-wider">Descripción</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-center tracking-wider">Cantidad</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-right tracking-wider">Precio Unitario</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-right tracking-wider">Subtotal</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-center tracking-wider">Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaItems" class="bg-white divide-y divide-gray-200">
+                    </tbody>
+                <tfoot>
+                    <tr class="bg-gray-50 font-semibold">
+                        <td colspan="3" class="text-right px-3 py-2 border-t border-gray-200 text-gray-800">Total:</td>
+                        <td class="px-3 py-2 border-t border-gray-200 text-right text-gray-800" id="total">$0.00</td>
+                        <td class="border-t border-gray-200"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="flex justify-end space-x-4">
+            <button onclick="mostrarFactura()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-md transition duration-150 ease-in-out">🖨 Imprimir / Ver Factura</button>
+            <button onclick="limpiarFormulario()" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-md transition duration-150 ease-in-out">🔄 Limpiar Formulario</button>
+        </div>
     </div>
 
-    <div class="grid md:grid-cols-4 gap-4 mb-4">
-      <input type="date" id="fechaIngreso" class="p-2 border rounded w-full" />
-      <input type="date" id="fechaEntrega" class="p-2 border rounded w-full" />
-      <select id="estado" class="p-2 border rounded w-full">
-        <option value="En espera">En espera</option>
-        <option value="Entregado">Entregado</option>
-        <option value="Facturado">Facturado</option>
-      </select>
-      <p class="p-2 font-semibold bg-gray-100 rounded text-center">Estado del Pedido</p>
-    </div>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
+    <script src="firebase.js"></script>
+    <script>
+        const db = firebase.firestore();
+        let items = [];
 
-    <!-- Agregar Ítems -->
-    <h2 class="font-semibold mt-6 mb-2 text-lg">Agregar Ítems</h2>
-    <div class="grid md:grid-cols-4 gap-4 mb-4">
-      <input type="text" id="descripcion" placeholder="Descripción" class="p-2 border rounded w-full" />
-      <input type="number" id="cantidad" placeholder="Cantidad" class="p-2 border rounded w-full" />
-      <input type="number" id="precio" placeholder="Precio Unitario" class="p-2 border rounded w-full" />
-      <button onclick="agregarItem()" class="bg-teal-600 text-white px-4 py-2 rounded w-full">+ Agregar</button>
-    </div>
+        // Inicializar las fechas a la fecha actual
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('fechaIngreso').value = today;
+            document.getElementById('fechaEntrega').value = today; // O puedes dejarla vacía para que el usuario la seleccione
+        });
 
-    <!-- Tabla de ítems -->
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-sm text-left border border-gray-300">
-        <thead class="bg-gray-200 text-gray-700">
-          <tr>
-            <th class="px-3 py-2 border">Descripción</th>
-            <th class="px-3 py-2 border">Cantidad</th>
-            <th class="px-3 py-2 border">Precio</th>
-            <th class="px-3 py-2 border">Subtotal</th>
-            <th class="px-3 py-2 border">Acción</th>
-          </tr>
-        </thead>
-        <tbody id="tablaItems" class="bg-white"></tbody>
-        <tfoot>
-          <tr class="bg-gray-100 font-semibold">
-            <td colspan="3" class="text-right px-3 py-2 border">Total:</td>
-            <td class="px-3 py-2 border" id="total">$0.00</td>
-            <td class="border"></td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-  </div>
+        function agregarItem() {
+            const descripcionInput = document.getElementById('descripcion');
+            const cantidadInput = document.getElementById('cantidad');
+            const precioInput = document.getElementById('precio');
 
-  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
-  <script src="firebase.js"></script>
-  <script>
-    const db = firebase.firestore();
-    let items = [];
+            const descripcion = descripcionInput.value.trim();
+            const cantidad = parseInt(cantidadInput.value);
+            const precio = parseFloat(precioInput.value);
 
-    function agregarItem() {
-      const descripcion = document.getElementById('descripcion').value;
-      const cantidad = parseInt(document.getElementById('cantidad').value);
-      const precio = parseFloat(document.getElementById('precio').value);
-      if (!descripcion || !cantidad || !precio) return alert('Campos incompletos');
+            if (!descripcion || isNaN(cantidad) || cantidad <= 0 || isNaN(precio) || precio < 0) {
+                alert('Por favor, ingresa una descripción válida, una cantidad positiva y un precio unitario no negativo.');
+                return;
+            }
 
-      const subtotal = cantidad * precio;
-      items.push({ descripcion, cantidad, precio, subtotal });
-      document.getElementById('descripcion').value = '';
-      document.getElementById('cantidad').value = '';
-      document.getElementById('precio').value = '';
-      actualizarTabla();
-    }
+            const subtotal = cantidad * precio;
+            items.push({ descripcion, cantidad, precio, subtotal });
 
-    function actualizarTabla() {
-      const tabla = document.getElementById('tablaItems');
-      const totalEl = document.getElementById('total');
-      tabla.innerHTML = '';
-      let total = 0;
-      items.forEach((item, index) => {
-        total += item.subtotal;
-        tabla.innerHTML += `
-          <tr>
-            <td class="px-3 py-2 border">${item.descripcion}</td>
-            <td class="px-3 py-2 border">${item.cantidad}</td>
-            <td class="px-3 py-2 border">$${item.precio}</td>
-            <td class="px-3 py-2 border">$${item.subtotal.toFixed(2)}</td>
-            <td class="px-3 py-2 border"><button onclick="eliminarItem(${index})" class="text-red-600">✖</button></td>
-          </tr>
-        `;
-      });
-      totalEl.textContent = `$${total.toFixed(2)}`;
-    }
+            // Limpiar campos después de agregar
+            descripcionInput.value = '';
+            cantidadInput.value = '1'; // Resetear a 1
+            precioInput.value = '';
+            descripcionInput.focus(); // Enfocar la descripción para agregar otro ítem rápidamente
 
-    function eliminarItem(index) {
-      items.splice(index, 1);
-      actualizarTabla();
-    }
+            actualizarTabla();
+        }
 
-    async function guardarFactura() {
-      const cliente = document.getElementById('cliente').value;
-      const telefono = document.getElementById('telefono').value;
-      const direccion = document.getElementById('direccion').value;
-      const fechaIngreso = document.getElementById('fechaIngreso').value;
-      const fechaEntrega = document.getElementById('fechaEntrega').value;
-      const estado = document.getElementById('estado').value;
-      const total = items.reduce((sum, item) => sum + item.subtotal, 0);
-      if (!cliente || items.length === 0) return alert('Faltan datos del cliente o ítems');
+        function actualizarTabla() {
+            const tabla = document.getElementById('tablaItems');
+            const totalEl = document.getElementById('total');
+            tabla.innerHTML = '';
+            let total = 0;
 
-      const data = {
-        cliente, telefono, direccion, fechaIngreso, fechaEntrega, estado, items, total, timestamp: new Date()
-      };
-      await db.collection('facturas').add(data);
-      alert('Factura guardada');
-      generarPDF(data);
-      items = [];
-      actualizarTabla();
-    }
-  
-    function generarPDF(data) {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      let y = 10;
-      doc.setFontSize(12);
-      doc.text("Factura - Fixitech", 10, y);
-      y += 10;
-      doc.text(`Cliente: ${data.cliente}`, 10, y);
-      y += 6;
-      doc.text(`Teléfono: ${data.telefono}`, 10, y);
-      y += 6;
-      doc.text(`Dirección: ${data.direccion}`, 10, y);
-      y += 6;
-      doc.text(`Fecha Ingreso: ${data.fechaIngreso}`, 10, y);
-      y += 6;
-      doc.text(`Fecha Entrega: ${data.fechaEntrega}`, 10, y);
-      y += 10;
+            if (items.length === 0) {
+                tabla.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No hay ítems agregados aún.</td></tr>`;
+                totalEl.textContent = `$0.00`;
+                return;
+            }
 
-      doc.text("Detalle:", 10, y);
-      y += 8;
-      data.items.forEach(i => {
-        doc.text(`- ${i.cantidad} x ${i.descripcion} @ $${i.precio} = $${i.subtotal.toFixed(2)}`, 10, y);
-        y += 6;
-      });
-      y += 4;
-      doc.text(`Total: $${data.total.toFixed(2)}`, 10, y);
-      y += 6;
-      doc.text(`Estado: ${data.estado}`, 10, y + 4);
-      doc.save(`Factura_${data.cliente}.pdf`);
-    }
+            items.forEach((item, index) => {
+                total += item.subtotal;
+                tabla.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${item.descripcion}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">${item.cantidad}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.precio.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.subtotal.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button onclick="eliminarItem(${index})" class="text-red-600 hover:text-red-800 transition duration-150 ease-in-out" title="Eliminar Ítem">✖</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            totalEl.textContent = `$${total.toFixed(2)}`;
+        }
 
+        function eliminarItem(index) {
+            if (confirm('¿Estás seguro de que quieres eliminar este ítem?')) {
+                items.splice(index, 1);
+                actualizarTabla();
+            }
+        }
 
-     async function buscarClientePorCedula() {
-      const cedula = document.getElementById('cliente').value;
-      if (cedula.length < 6) return;
-      const doc = await db.collection('clientes').doc(cedula).get();
-      if (doc.exists) {
-        const data = doc.data();
-        document.getElementById('telefono').value = data.telefono;
-        document.getElementById('direccion').value = data.direccion;
-      }
-    }
-    
-    async function nuevoCliente() {
-      const cedula = document.getElementById('cliente').value;
-      const telefono = document.getElementById('telefono').value;
-      const direccion = document.getElementById('direccion').value;
-      if (!cedula || !telefono || !direccion) return alert("Faltan datos del cliente");
-      await db.collection('clientes').doc(cedula).set({ telefono, direccion });
-      alert("Cliente registrado correctamente");
-    }
-    
-    document.getElementById('cliente').addEventListener('input', buscarClientePorCedula);
+        async function guardarFactura() {
+            const cliente = document.getElementById('cliente').value.trim();
+            const telefono = document.getElementById('telefono').value.trim();
+            const direccion = document.getElementById('direccion').value.trim();
+            const fechaIngreso = document.getElementById('fechaIngreso').value;
+            const fechaEntrega = document.getElementById('fechaEntrega').value;
+            const estado = document.getElementById('estado').value;
+            const total = items.reduce((sum, item) => sum + item.subtotal, 0);
 
+            if (!cliente || !telefono || !direccion || !fechaIngreso || !fechaEntrega) {
+                alert('Por favor, completa todos los datos del cliente y las fechas.');
+                return;
+            }
+            if (items.length === 0) {
+                alert('La factura debe contener al menos un ítem.');
+                return;
+            }
 
-    function mostrarFactura() {
-      const cliente = document.getElementById('cliente').value;
-      const telefono = document.getElementById('telefono').value;
-      const direccion = document.getElementById('direccion').value;
-      const fechaIngreso = document.getElementById('fechaIngreso').value;
-      const fechaEntrega = document.getElementById('fechaEntrega').value;
-      const estado = document.getElementById('estado').value;
-    
-      let html = `
-        <html>
-        <head><title>Factura Fixitech</title>
-        <style>
-          body { font-family: sans-serif; padding: 20px; }
-          h2 { color: #0f766e; }
-          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-          th, td { border: 1px solid #ccc; padding: 8px; }
-          th { background-color: #f0f0f0; }
-        </style>
-        </head>
-        <body>
-          <h2>Factura - Fixitech</h2>
-          <p><strong>Cliente:</strong> ${cliente}</p>
-          <p><strong>Teléfono:</strong> ${telefono}</p>
-          <p><strong>Dirección:</strong> ${direccion}</p>
-          <p><strong>Fecha Ingreso:</strong> ${fechaIngreso}</p>
-          <p><strong>Fecha Entrega:</strong> ${fechaEntrega}</p>
-          <p><strong>Estado:</strong> ${estado}</p>
-    
-          <table>
-            <thead>
-              <tr><th>Descripción</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>
-            </thead>
-            <tbody>
-      `;
-    
-      let total = 0;
-      items.forEach(item => {
-        html += `<tr>
-          <td>${item.descripcion}</td>
-          <td>${item.cantidad}</td>
-          <td>$${item.precio.toFixed(2)}</td>
-          <td>$${item.subtotal.toFixed(2)}</td>
-        </tr>`;
-        total += item.subtotal;
-      });
-    
-      html += `</tbody></table><h3>Total: $${total.toFixed(2)}</h3></body></html>`;
-    
-      const nuevaVentana = window.open('', '', 'width=800,height=600');
-      nuevaVentana.document.write(html);
-      nuevaVentana.document.close();
-      nuevaVentana.focus();
-      nuevaVentana.print();
-    }
+            // Validar fechas
+            if (new Date(fechaIngreso) > new Date(fechaEntrega)) {
+                alert('La fecha de entrega no puede ser anterior a la fecha de ingreso.');
+                return;
+            }
 
+            const data = {
+                cliente,
+                telefono,
+                direccion,
+                fechaIngreso,
+                fechaEntrega,
+                estado,
+                items,
+                total: parseFloat(total.toFixed(2)), // Asegurar que el total se guarda con 2 decimales
+                timestamp: firebase.firestore.FieldValue.serverTimestamp() // Fecha y hora del servidor para consistencia
+            };
 
-</script>
+            try {
+                const docRef = await db.collection('facturas').add(data);
+                alert(`Factura ${docRef.id} guardada con éxito.`);
+                generarPDF(data, docRef.id); // Generar PDF con ID de factura
+                limpiarFormulario(); // Limpiar formulario después de guardar
+            } catch (error) {
+                console.error("Error al guardar la factura: ", error);
+                alert("Hubo un error al guardar la factura. Por favor, inténtalo de nuevo.");
+            }
+        }
+
+        function generarPDF(data, facturaId) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let y = 15;
+            const margin = 15;
+            const lineHeight = 7;
+
+            // Header
+            doc.setFontSize(18);
+            doc.setTextColor(52, 152, 219); // Blue
+            doc.text("Factura - Fixitech", margin, y);
+            y += lineHeight * 2;
+
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0); // Black
+
+            // Invoice ID
+            doc.setFontSize(12);
+            doc.text(`Factura #${facturaId || 'N/A'}`, doc.internal.pageSize.width - margin, 15, null, null, 'right');
+            doc.setFontSize(10);
+            y += lineHeight;
+
+            // Client Information
+            doc.setFont("helvetica", "bold");
+            doc.text("Datos del Cliente:", margin, y);
+            doc.setFont("helvetica", "normal");
+            y += lineHeight;
+            doc.text(`Cliente: ${data.cliente}`, margin, y);
+            y += lineHeight;
+            doc.text(`Teléfono: ${data.telefono}`, margin, y);
+            y += lineHeight;
+            doc.text(`Dirección: ${data.direccion}`, margin, y);
+            y += lineHeight;
+            doc.text(`Fecha de Ingreso: ${data.fechaIngreso}`, margin, y);
+            y += lineHeight;
+            doc.text(`Fecha de Entrega: ${data.fechaEntrega}`, margin, y);
+            y += lineHeight * 2;
+
+            // Items Table
+            doc.setFont("helvetica", "bold");
+            doc.text("Detalle de los Servicios/Productos:", margin, y);
+            y += lineHeight;
+
+            const tableHeaders = [["Descripción", "Cantidad", "Precio Unitario", "Subtotal"]];
+            const tableData = data.items.map(item => [
+                item.descripcion,
+                item.cantidad.toString(),
+                `$${item.precio.toFixed(2)}`,
+                `$${item.subtotal.toFixed(2)}`
+            ]);
+
+            doc.autoTable({
+                startY: y,
+                head: tableHeaders,
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [23, 162, 184], textColor: [255, 255, 255], fontStyle: 'bold' }, // Teal
+                styles: { fontSize: 9, cellPadding: 2, overflow: 'linebreak' },
+                columnStyles: {
+                    0: { cellWidth: 80 }, // Description
+                    1: { cellWidth: 25, halign: 'center' }, // Quantity
+                    2: { cellWidth: 35, halign: 'right' }, // Price
+                    3: { cellWidth: 35, halign: 'right' }  // Subtotal
+                },
+                didDrawPage: function (data) {
+                    // Footer
+                    let str = "Página " + doc.internal.getNumberOfPages();
+                    doc.setFontSize(10);
+                    doc.text(str, doc.internal.pageSize.width - margin, doc.internal.pageSize.height - 10);
+                }
+            });
+
+            y = doc.autoTable.previous.finalY + lineHeight;
+
+            // Total and Status
+            doc.setFont("helvetica", "bold");
+            doc.text(`Total: $${data.total.toFixed(2)}`, doc.internal.pageSize.width - margin, y, null, null, 'right');
+            y += lineHeight;
+            doc.text(`Estado del Pedido: ${data.estado}`, margin, y);
+
+            // Footer / Notes
+            y += lineHeight * 2;
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text("Gracias por preferir Fixitech. Para cualquier consulta, contáctenos.", margin, y);
+
+            doc.save(`Factura_Fixitech_${facturaId || data.cliente}.pdf`);
+        }
+
+        async function buscarClientePorCedula() {
+            const clienteInput = document.getElementById('cliente');
+            const cedula = clienteInput.value.trim();
+
+            // Solo buscar si la longitud es razonable para una cédula o nombre corto
+            if (cedula.length < 3) {
+                document.getElementById('telefono').value = '';
+                document.getElementById('direccion').value = '';
+                return;
+            }
+
+            try {
+                // Asumiendo que el campo 'cliente' puede ser cédula o nombre
+                // Primero intentamos buscar por ID (que sería la cédula)
+                const doc = await db.collection('clientes').doc(cedula).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    document.getElementById('telefono').value = data.telefono || '';
+                    document.getElementById('direccion').value = data.direccion || '';
+                    // Podrías mostrar el nombre completo si solo ingresaron la cédula
+                    if (data.nombre) {
+                        clienteInput.value = data.nombre; // O un mensaje de que se encontró el cliente
+                    }
+                    console.log("Cliente encontrado por cédula:", data);
+                    return;
+                }
+
+                // Si no se encuentra por cédula, intentamos buscar por nombre (si aplica)
+                // Esta búsqueda por nombre requerirá un índice en Firestore para campos que no son ID
+                const querySnapshot = await db.collection('clientes')
+                    .where('nombre', '==', cedula) // Asumiendo que guardas un campo 'nombre'
+                    .limit(1)
+                    .get();
+
+                if (!querySnapshot.empty) {
+                    const doc = querySnapshot.docs[0];
+                    const data = doc.data();
+                    document.getElementById('telefono').value = data.telefono || '';
+                    document.getElementById('direccion').value = data.direccion || '';
+                    clienteInput.value = data.nombre || cedula; // Rellenar con el nombre encontrado
+                    console.log("Cliente encontrado por nombre:", data);
+                } else {
+                    // Si no se encuentra, limpiar los campos por si había datos anteriores
+                    document.getElementById('telefono').value = '';
+                    document.getElementById('direccion').value = '';
+                    console.log("Cliente no encontrado.");
+                }
+            } catch (error) {
+                console.error("Error al buscar cliente:", error);
+                alert("Hubo un error al buscar el cliente. Por favor, inténtalo de nuevo.");
+            }
+        }
+
+        async function nuevoCliente() {
+            const clienteInput = document.getElementById('cliente');
+            const telefonoInput = document.getElementById('telefono');
+            const direccionInput = document.getElementById('direccion');
+
+            const nombreOrCedula = clienteInput.value.trim(); // Podría ser cédula o nombre
+            const telefono = telefonoInput.value.trim();
+            const direccion = direccionInput.value.trim();
+
+            if (!nombreOrCedula || !telefono || !direccion) {
+                alert("Por favor, completa la Cédula/Nombre, Teléfono y Dirección para registrar un nuevo cliente.");
+                return;
+            }
+
+            try {
+                // Usaremos la cédula como ID del documento en Firestore si es un número, o un ID autogenerado si es un nombre
+                const isNumeric = /^\d+$/.test(nombreOrCedula); // Verifica si es solo números (posible cédula)
+                let docId = nombreOrCedula;
+                let clientData = { telefono, direccion };
+
+                if (isNumeric) {
+                    // Si es una cédula, intenta usarla como ID del documento
+                    await db.collection('clientes').doc(docId).set(clientData, { merge: true }); // Usar merge para actualizar si ya existe
+                } else {
+                    // Si es un nombre, Firestore generará un ID automáticamente
+                    clientData.nombre = nombreOrCedula; // Guardamos el nombre explícitamente
+                    const newDocRef = await db.collection('clientes').add(clientData);
+                    docId = newDocRef.id; // Obtenemos el ID autogenerado
+                    alert(`Cliente "${nombreOrCedula}" registrado con ID: ${docId}`);
+                }
+                alert("Cliente registrado/actualizado correctamente.");
+            } catch (error) {
+                console.error("Error al registrar cliente:", error);
+                alert("Hubo un error al registrar el cliente. Por favor, inténtalo de nuevo.");
+            }
+        }
+
+        document.getElementById('cliente').addEventListener('input', buscarClientePorCedula);
+
+        function mostrarFactura() {
+            const cliente = document.getElementById('cliente').value;
+            const telefono = document.getElementById('telefono').value;
+            const direccion = document.getElementById('direccion').value;
+            const fechaIngreso = document.getElementById('fechaIngreso').value;
+            const fechaEntrega = document.getElementById('fechaEntrega').value;
+            const estado = document.getElementById('estado').value;
+
+            if (!cliente || !telefono || !direccion || items.length === 0) {
+                alert('Por favor, completa los datos del cliente y agrega al menos un ítem antes de imprimir la vista.');
+                return;
+            }
+
+            let html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                <title>Previsualización de Factura</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; color: #333; }
+                    .invoice-container { max-width: 800px; margin: 0 auto; border: 1px solid #eee; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+                    h2 { text-align: center; color: #0f766e; margin-bottom: 25px; }
+                    .header-info, .client-info { display: flex; justify-content: space-between; margin-bottom: 20px; }
+                    .client-info div, .header-info div { flex: 1; margin-right: 20px; }
+                    .client-info div:last-child, .header-info div:last-child { margin-right: 0; }
+                    p { margin: 5px 0; line-height: 1.5; }
+                    strong { color: #555; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 25px; }
+                    th, td { border: 1px solid #ddd; padding: 12px 8px; text-align: left; }
+                    th { background-color: #f8f8f8; color: #666; font-weight: 600; }
+                    tfoot tr.total-row td { background-color: #f0f0f0; font-weight: bold; text-align: right; }
+                    .text-right { text-align: right; }
+                    .text-center { text-align: center; }
+                    .footer { text-align: center; margin-top: 40px; font-size: 0.9em; color: #777; }
+                    @media print {
+                        body { margin: 0; padding: 0; }
+                        .invoice-container { box-shadow: none; border: none; }
+                    }
+                </style>
+                </head>
+                <body>
+                    <div class="invoice-container">
+                        <h2>Factura de Venta - Fixitech</h2>
+
+                        <div class="header-info">
+                            <div>
+                                <p><strong>Número de Factura:</strong> [Generado al guardar]</p>
+                                <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString()}</p>
+                            </div>
+                            <div class="text-right">
+                                <p><strong>Fixitech</strong></p>
+                                <p>Su dirección aquí</p>
+                                <p>Su teléfono aquí</p>
+                                <p>Su email aquí</p>
+                            </div>
+                        </div>
+
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+
+                        <div class="client-info">
+                            <div>
+                                <p><strong>Cliente:</strong> ${cliente}</p>
+                                <p><strong>Teléfono:</strong> ${telefono}</p>
+                                <p><strong>Dirección:</strong> ${direccion}</p>
+                            </div>
+                            <div>
+                                <p><strong>Fecha de Ingreso:</strong> ${fechaIngreso}</p>
+                                <p><strong>Fecha de Entrega:</strong> ${fechaEntrega}</p>
+                                <p><strong>Estado del Pedido:</strong> ${estado}</p>
+                            </div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Descripción</th>
+                                    <th class="text-center">Cant.</th>
+                                    <th class="text-right">P. Unitario</th>
+                                    <th class="text-right">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+
+            let total = 0;
+            items.forEach(item => {
+                html += `<tr>
+                    <td>${item.descripcion}</td>
+                    <td class="text-center">${item.cantidad}</td>
+                    <td class="text-right">$${item.precio.toFixed(2)}</td>
+                    <td class="text-right">$${item.subtotal.toFixed(2)}</td>
+                </tr>`;
+                total += item.subtotal;
+            });
+
+            html += `
+                            </tbody>
+                            <tfoot>
+                                <tr class="total-row">
+                                    <td colspan="3">Total:</td>
+                                    <td class="text-right">$${total.toFixed(2)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <div class="footer">
+                            <p>¡Gracias por su preferencia!</p>
+                            <p>Este documento no tiene validez tributaria a menos que se especifique lo contrario.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            const nuevaVentana = window.open('', '', 'width=900,height=700,scrollbars=yes');
+            nuevaVentana.document.write(html);
+            nuevaVentana.document.close();
+            nuevaVentana.focus();
+            // nuevaVentana.print(); // Descomentar si quieres que se imprima automáticamente
+        }
+
+        function limpiarFormulario() {
+            document.getElementById('cliente').value = '';
+            document.getElementById('telefono').value = '';
+            document.getElementById('direccion').value = '';
+            document.getElementById('descripcion').value = '';
+            document.getElementById('cantidad').value = '1';
+            document.getElementById('precio').value = '';
+            document.getElementById('estado').value = 'En espera';
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('fechaIngreso').value = today;
+            document.getElementById('fechaEntrega').value = today;
+            items = [];
+            actualizarTabla();
+            document.getElementById('cliente').focus(); // Enfocar el primer campo para una nueva entrada
+        }
+
+        // Llamar a actualizarTabla al cargar para mostrar "No hay ítems..."
+        document.addEventListener('DOMContentLoaded', actualizarTabla);
+
+    </script>
 </body>
 </html>
