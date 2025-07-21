@@ -1002,9 +1002,7 @@
                     <div class="btn-actions">
                         <button class="btn-print" onclick='window.opener.generarPDF(${JSON.stringify(facturaData)}, "${facturaData.numeroFactura || facturaData.id}")'>Imprimir PDF</button>
                         <button class="btn-edit" onclick='window.opener.editarFacturaExistente(${JSON.stringify(facturaData)}); window.close();'>Editar Factura</button>
-                        <button class="btn-return" onclick="marcarComoDevuelto('${facturaData.id}', '${facturaData.numeroFactura || facturaData.id}')">
-    Procesar Devolución
-</button>
+                    
 
                         <button class="btn-return" onclick='
     if (!window.opener || !window.opener.procesarDevolucion) {
