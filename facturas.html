@@ -258,7 +258,7 @@
 
      async function buscarClientePorCedula() {
     const cedula = document.getElementById('cliente').value;
-    if (cedula.length < 4) return;
+    if (cedula.length < 30) return;
     const doc = await db.collection('clientes').doc(cedula).get();
     if (doc.exists) {
       const data = doc.data();
