@@ -1003,12 +1003,12 @@
                         <button class="btn-print" onclick='window.opener.generarPDF(${JSON.stringify(facturaData)}, "${facturaData.numeroFactura || facturaData.id}")'>Imprimir PDF</button>
                         <button class="btn-edit" onclick='window.opener.editarFacturaExistente(${JSON.stringify(facturaData)}); window.close();'>Editar Factura</button>
                         <button class="btn-return" onclick='
-                            if (!window.opener || !window.opener.procesarDevolucion) {
-                                alert("No se puede procesar la devolución porque no se encontró la ventana principal o su función.");
-                            } else {
-                                if (window.opener.procesarDevolucion(...)) window.close();
-                            }
-                            '>Procesar Devolución</button>
+    if (!window.opener || !window.opener.procesarDevolucion) {
+        alert("No se puede procesar la devolución porque no se encontró la ventana principal o su función.");
+    } else {
+        if (window.opener.procesarDevolucion(${JSON.stringify(facturaData)})) window.close();
+    }
+'>Procesar Devolución</button>
                         <button class="btn-close" onclick="window.close()">Cerrar</button>
                     </div>
                 </div>
