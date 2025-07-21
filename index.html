@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fixitech - Servicio Técnico</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="logo.png" />
+</head>
+<body class="bg-gray-100 text-gray-900">
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-cyan-700 to-teal-600 p-4 shadow-lg flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <img src="logo.png" alt="Fixitech logo" class="w-12 h-12 rounded-full" />
+      <h1 class="text-white text-2xl font-bold">Fixitech</h1>
+    </div>
+    <a href="https://wa.me/593961187862" target="_blank" class="bg-white text-teal-700 px-4 py-2 rounded shadow hover:bg-gray-100">Contáctanos</a>
+  </header>
+
+  <!-- Servicios -->
+  <section class="p-6 max-w-6xl mx-auto">
+    <h2 class="text-2xl font-bold mb-4 border-b pb-2">Nuestros Servicios</h2>
+    <ul class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <li class="bg-white p-4 rounded shadow">Reparación de computadoras</li>
+      <li class="bg-white p-4 rounded shadow">Mantenimiento y reparación de impresoras</li>
+      <li class="bg-white p-4 rounded shadow">Instalación de sistemas operativos y programas</li>
+      <li class="bg-white p-4 rounded shadow">Cambio de pantallas (teléfonos y laptops)</li>
+      <li class="bg-white p-4 rounded shadow">Creación de páginas web</li>
+      <li class="bg-white p-4 rounded shadow">Elaboración de certificados, hojas de vida y recomendaciones</li>
+      <li class="bg-white p-4 rounded shadow">Venta de tintas y hojas para impresoras</li>
+      <li class="bg-white p-4 rounded shadow">Gestión de turnos IESS y ATM (revisiones, licencias)</li>
+    </ul>
+  </section>
+
+  <!-- Galería -->
+  <section class="p-6 max-w-6xl mx-auto">
+    <h2 class="text-2xl font-bold mb-4 border-b pb-2">Galería de Trabajos</h2>
+    <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4" id="galeria">
+      <!-- Las imágenes se cargarán desde Firebase aquí -->
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white p-4 text-center">
+    <p>Fixitech &copy; 2025 | Guayaquil, Ecuador | Tel: 0961187862</p>
+  </footer>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-storage-compat.js"></script>
+  <script>
+    // TODO: Reemplaza con tu configuración
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_DOMINIO.firebaseapp.com",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_BUCKET.appspot.com",
+      messagingSenderId: "ID_MENSAJES",
+      appId: "TU_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const storage = firebase.storage();
+
+    const galeria = document.getElementById('galeria');
+    const mostrarImagenes = async () => {
+      const lista = await storage.ref("galeria").listAll();
+      lista.items.forEach(async item => {
+        const url = await item.getDownloadURL();
+        const img = document.createElement('img');
+        img.src = url;
+        img.className = "w-full h-48 object-cover rounded shadow";
+        galeria.appendChild(img);
+      });
+    }
+
+    mostrarImagenes();
+  </script>
+</body>
+</html>
