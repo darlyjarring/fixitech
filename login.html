@@ -14,7 +14,10 @@
     <button onclick="login()" class="w-full bg-teal-600 text-white py-2 rounded hover:bg-teal-700">Ingresar</button>
     <p id="error" class="text-red-600 mt-4 text-center hidden">Credenciales incorrectas</p>
   </div>
-  <script src="firebase.js"></script>
+<!-- Firebase SDKs necesarios -->
+<script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
+<script src="firebase.js"></script>
   <script>
     async function login() {
       const usuario = document.getElementById('usuario').value;
