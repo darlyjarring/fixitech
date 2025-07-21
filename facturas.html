@@ -1097,6 +1097,16 @@ async function marcarComoDevuelto(facturaId, numeroFactura) {
         alert("No se pudo marcar la factura como devuelta. Intenta nuevamente.");
     }
 }
+    function mostrarMensaje(texto, color = 'bg-green-600') {
+    const mensaje = document.createElement('div');
+    mensaje.textContent = texto;
+    mensaje.className = `fixed top-5 right-5 ${color} text-white px-4 py-2 rounded shadow-lg z-50`;
+    document.body.appendChild(mensaje);
+    setTimeout(() => mensaje.remove(), 3000);
+}
+
+    mostrarMensaje(`✅ Factura #${facturaData.numeroFactura || facturaData.id} marcada como DEVUELTA`);
+
     
 </script>
 </body>
