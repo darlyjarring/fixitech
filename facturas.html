@@ -826,7 +826,8 @@
                     <td class="px-3 py-2 border-b border-gray-200">${factura.estado}</td>
                     <td class="px-3 py-2 border-b border-gray-200">${fechaIngreso}</td>
                     <td class="px-3 py-2 border-b border-gray-200 text-center">
-                        <button onclick='verDetalleFactura(${JSON.stringify(factura)})' class="bg-blue-200 text-blue-800 px-2 py-1 rounded text-xs hover:bg-blue-300 transition duration-150 ease-in-out mr-1">Ver Detalles</button>
+                       <button onclick='verDetalleFactura(${JSON.stringify(factura)})' class="...">Ver Detalles</button>
+<button onclick='procesarDevolucion(${JSON.stringify(factura)})' class="bg-red-200 text-red-800 px-2 py-1 rounded text-xs hover:bg-red-300 transition duration-150 ease-in-out">Devolver</button>
                         <button onclick='generarPDF(${JSON.stringify(factura)}, "${factura.numeroFactura || factura.id}")' class="bg-teal-200 text-teal-800 px-2 py-1 rounded text-xs hover:bg-teal-300 transition duration-150 ease-in-out">Reimprimir</button>
                     </td>
                 </tr>
@@ -1049,29 +1050,28 @@
 
     // --- Función básica para procesar una devolución (cambio de estado) ---
     // Ahora devuelve true/false para que la ventana que la llamó sepa si debe cerrarse
-    async function procesarDevolucion(facturaData) {
-        // Asegurarse de que la ventana principal tiene el foco antes del confirm
-        window.focus(); 
 
-        if (!confirm(`¿Estás seguro de que quieres marcar la factura #${facturaData.numeroFactura || facturaData.id} como "Devuelta"? Esto solo cambia el estado.`)) {
-            return false; // El usuario canceló la operación
-        }
-
-        try {
-            // Actualizar el estado de la factura en Firestore
-            await db.collection('facturas').doc(facturaData.id).update({
-                estado: 'Devuelto',
-                fechaDevolucion: new Date().toISOString().split('T')[0] // Opcional: añadir una fecha de devolución
-            });
-            alert(`Factura #${facturaData.numeroFactura || facturaData.id} marcada como "Devuelto".`);
-            cargarFacturas(); // Recargar la lista para reflejar el cambio de estado
-            return true; // Éxito en la operación
-        } catch (error) {
-            console.error("Error al procesar devolución: ", error);
-            alert("Hubo un error al marcar la factura como devuelta. Detalles: " + error.message);
-            return false; // Error en la operación
-        }
+async function procesarDevolucion(facturaData) {
+    if (!confirm(`¿Estás seguro de marcar la factura #${facturaData.numeroFactura || facturaData.id} como DEVUELTA?`)) {
+        return; // el usuario canceló
     }
+
+    try {
+        await db.collection('facturas').doc(facturaData.id).update({
+            estado: 'Devuelto',
+            fechaDevolucion: new Date().toISOString().split('T')[0]
+        });
+
+        // Confirmación visual
+        alert(`✅ Factura #${facturaData.numeroFactura || facturaData.id} marcada como DEVUELTA.`);
+        cargarFacturas(); // recarga la lista
+    } catch (error) {
+        console.error("Error al marcar como devuelta:", error);
+        alert("❌ No se pudo devolver la factura. Intenta nuevamente.");
+    }
+}
+
+    
 async function marcarComoDevuelto(facturaId, numeroFactura) {
     if (!confirm("¿Estás seguro de marcar esta factura como devuelta?")) return;
 
