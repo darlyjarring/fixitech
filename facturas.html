@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" /> 
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Nueva Venta - Fixitech</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -121,7 +121,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('fechaIngreso').value = today;
-            document.getElementById('fechaEntrega').value = today; // O puedes dejarla vacía para que el usuario la seleccione
+            document.getElementById('fechaEntrega').value = today;
+            actualizarTabla(); // Mostrar "No hay ítems..." al cargar
         });
 
         function agregarItem() {
@@ -143,9 +144,9 @@
 
             // Limpiar campos después de agregar
             descripcionInput.value = '';
-            cantidadInput.value = '1'; // Resetear a 1
+            cantidadInput.value = '1';
             precioInput.value = '';
-            descripcionInput.focus(); // Enfocar la descripción para agregar otro ítem rápidamente
+            descripcionInput.focus();
 
             actualizarTabla();
         }
@@ -186,6 +187,17 @@
             }
         }
 
+        // Función auxiliar para formatear el número de factura
+        function formatInvoiceNumber(number) {
+            // Obtener el año actual (ej. 2025)
+            const year = new Date().getFullYear(); 
+            // Rellenar con ceros a la izquierda hasta 6 dígitos (ej. 000001)
+            const paddedNumber = String(number).padStart(6, '0');
+            // Combinar el formato deseado (ej. 00000125)
+            // Si quieres el año completo, usa `${paddedNumber}${year}`
+            return `${paddedNumber}${year.toString().substring(2)}`; 
+        }
+
         async function guardarFactura() {
             const cliente = document.getElementById('cliente').value.trim();
             const telefono = document.getElementById('telefono').value.trim();
@@ -203,38 +215,57 @@
                 alert('La factura debe contener al menos un ítem.');
                 return;
             }
-
-            // Validar fechas
             if (new Date(fechaIngreso) > new Date(fechaEntrega)) {
                 alert('La fecha de entrega no puede ser anterior a la fecha de ingreso.');
                 return;
             }
 
-            const data = {
-                cliente,
-                telefono,
-                direccion,
-                fechaIngreso,
-                fechaEntrega,
-                estado,
-                items,
-                total: parseFloat(total.toFixed(2)), // Asegurar que el total se guarda con 2 decimales
-                timestamp: firebase.firestore.FieldValue.serverTimestamp() // Fecha y hora del servidor para consistencia
-            };
+            let invoiceNumber = ''; // Variable para almacenar el número de factura generado
 
             try {
+                // INICIO DE LA TRANSACCIÓN PARA GENERAR EL NÚMERO DE FACTURA
+                await db.runTransaction(async (transaction) => {
+                    const counterRef = db.collection('contadores').doc('facturas');
+                    const counterDoc = await transaction.get(counterRef);
 
-                const docRef = await db.collection('facturas').add(data);
-                alert(`Factura ${docRef.id} guardada con éxito.`);
-                generarPDF(data, docRef.id); // Generar PDF con ID de factura
+                    let currentNumber = 0;
+                    if (counterDoc.exists) {
+                        currentNumber = counterDoc.data().ultimoNumero || 0;
+                    }
+
+                    const newNumber = currentNumber + 1;
+                    transaction.update(counterRef, { ultimoNumero: newNumber }); // Actualiza el contador
+
+                    invoiceNumber = formatInvoiceNumber(newNumber); // Formatea el número
+                });
+                // FIN DE LA TRANSACCIÓN
+
+                const data = {
+                    numeroFactura: invoiceNumber, // ¡Añadimos el número de factura formateado!
+                    cliente,
+                    telefono,
+                    direccion,
+                    fechaIngreso,
+                    fechaEntrega,
+                    estado,
+                    items,
+                    total: parseFloat(total.toFixed(2)),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                const docRef = await db.collection('facturas').add(data); // Guarda la factura con el nuevo número
+                alert(`Factura ${invoiceNumber} guardada con éxito (ID interno: ${docRef.id}).`);
+                
+                generarPDF(data, invoiceNumber); // Pasa el número de factura formateado al PDF
                 limpiarFormulario(); // Limpiar formulario después de guardar
+
             } catch (error) {
                 console.error("Error al guardar la factura: ", error);
-                alert("Hubo un error al guardar la factura. Por favor, inténtalo de nuevo.");
+                alert("Hubo un error al guardar la factura. Por favor, inténtalo de nuevo. Detalles: " + error.message);
             }
         }
 
-        function generarPDF(data, facturaId) {
+        function generarPDF(data, facturaNum) { // Cambiado 'facturaId' a 'facturaNum' para claridad
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             let y = 15;
@@ -250,13 +281,12 @@
             doc.setFontSize(10);
             doc.setTextColor(0, 0, 0); // Black
 
-            // Invoice ID
+            // Invoice Number (usamos el número formateado)
             doc.setFontSize(12);
-
-           // Mostrar el ID de la factura
-            doc.text(`Factura #${facturaId || 'N/A'}`, doc.internal.pageSize.width - margin, 15, null, null, 'right');
+            doc.text(`Factura #${facturaNum || 'N/A'}`, doc.internal.pageSize.width - margin, 15, null, null, 'right');
             doc.setFontSize(10);
             y += lineHeight;
+
             // Client Information
             doc.setFont("helvetica", "bold");
             doc.text("Datos del Cliente:", margin, y);
@@ -321,14 +351,13 @@
             doc.setTextColor(150);
             doc.text("Gracias por preferir Fixitech. Para cualquier consulta, contáctenos.", margin, y);
 
-            doc.save(`Factura_Fixitech_${facturaId || data.cliente}.pdf`);
+            doc.save(`Factura_Fixitech_${facturaNum}.pdf`); // Usar el número de factura en el nombre del archivo
         }
 
         async function buscarClientePorCedula() {
             const clienteInput = document.getElementById('cliente');
             const cedula = clienteInput.value.trim();
 
-            // Solo buscar si la longitud es razonable para una cédula o nombre corto
             if (cedula.length < 3) {
                 document.getElementById('telefono').value = '';
                 document.getElementById('direccion').value = '';
@@ -336,25 +365,20 @@
             }
 
             try {
-                // Asumiendo que el campo 'cliente' puede ser cédula o nombre
-                // Primero intentamos buscar por ID (que sería la cédula)
                 const doc = await db.collection('clientes').doc(cedula).get();
                 if (doc.exists) {
                     const data = doc.data();
                     document.getElementById('telefono').value = data.telefono || '';
                     document.getElementById('direccion').value = data.direccion || '';
-                    // Podrías mostrar el nombre completo si solo ingresaron la cédula
-                    if (data.nombre) {
-                        clienteInput.value = data.nombre; // O un mensaje de que se encontró el cliente
+                    if (data.nombre && !/^\d+$/.test(clienteInput.value)) { // Si ingresó cédula numérica, no cambiar el valor del input
+                        clienteInput.value = data.nombre;
                     }
                     console.log("Cliente encontrado por cédula:", data);
                     return;
                 }
 
-                // Si no se encuentra por cédula, intentamos buscar por nombre (si aplica)
-                // Esta búsqueda por nombre requerirá un índice en Firestore para campos que no son ID
                 const querySnapshot = await db.collection('clientes')
-                    .where('nombre', '==', cedula) // Asumiendo que guardas un campo 'nombre'
+                    .where('nombre', '==', cedula)
                     .limit(1)
                     .get();
 
@@ -363,10 +387,9 @@
                     const data = doc.data();
                     document.getElementById('telefono').value = data.telefono || '';
                     document.getElementById('direccion').value = data.direccion || '';
-                    clienteInput.value = data.nombre || cedula; // Rellenar con el nombre encontrado
+                    clienteInput.value = data.nombre || cedula;
                     console.log("Cliente encontrado por nombre:", data);
                 } else {
-                    // Si no se encuentra, limpiar los campos por si había datos anteriores
                     document.getElementById('telefono').value = '';
                     document.getElementById('direccion').value = '';
                     console.log("Cliente no encontrado.");
@@ -377,62 +400,56 @@
             }
         }
 
-    async function nuevoCliente() {
-    const clienteInput = document.getElementById('cliente');
-    const telefonoInput = document.getElementById('telefono');
-    const direccionInput = document.getElementById('direccion');
+        async function nuevoCliente() {
+            const clienteInput = document.getElementById('cliente');
+            const telefonoInput = document.getElementById('telefono');
+            const direccionInput = document.getElementById('direccion');
 
-    const nombreOrCedula = clienteInput.value.trim();
-    const telefono = telefonoInput.value.trim();
-    const direccion = direccionInput.value.trim();
+            const nombreOrCedula = clienteInput.value.trim();
+            const telefono = telefonoInput.value.trim();
+            const direccion = direccionInput.value.trim();
 
-    if (!nombreOrCedula || !telefono || !direccion) {
-        alert("Por favor, completa la Cédula/Nombre, Teléfono y Dirección para registrar un nuevo cliente.");
-        return;
-    }
-
-    try {
-        const isNumeric = /^\d+$/.test(nombreOrCedula); // Verifica si es solo números (posible cédula)
-        let docId = nombreOrCedula;
-        let clientData = { telefono, direccion };
-
-        if (isNumeric) {
-            // Si es una cédula, intentamos usarla como ID del documento
-            const docRef = db.collection('clientes').doc(docId);
-            const doc = await docRef.get();
-
-            if (doc.exists) {
-                // Si la cédula ya existe, actualizamos los datos existentes
-                await docRef.set(clientData, { merge: true });
-                alert(`Cliente con cédula ${docId} actualizado correctamente.`);
-            } else {
-                // Si la cédula no existe, creamos el nuevo cliente
-                await docRef.set(clientData);
-                alert(`Cliente con cédula ${docId} registrado correctamente.`);
-            }
-        } else {
-            // Si es un nombre, buscamos si ya existe un cliente con ese nombre
-            // Necesitarás un índice en Firestore para el campo 'nombre' para que esto sea eficiente.
-            const existingClientQuery = await db.collection('clientes')
-                .where('nombre', '==', nombreOrCedula)
-                .limit(1)
-                .get();
-
-            if (!existingClientQuery.empty) {
-                alert(`Error: Ya existe un cliente registrado con el nombre "${nombreOrCedula}". Por favor, usa un nombre único o la cédula.`);
+            if (!nombreOrCedula || !telefono || !direccion) {
+                alert("Por favor, completa la Cédula/Nombre, Teléfono y Dirección para registrar un nuevo cliente.");
                 return;
             }
 
-            // Si el nombre no existe, agregamos un nuevo cliente con ID autogenerado
-            clientData.nombre = nombreOrCedula; // Guardamos el nombre explícitamente
-            const newDocRef = await db.collection('clientes').add(clientData);
-            alert(`Cliente "${nombreOrCedula}" registrado con ID: ${newDocRef.id}`);
+            try {
+                const isNumeric = /^\d+$/.test(nombreOrCedula);
+                let docId = nombreOrCedula;
+                let clientData = { telefono, direccion };
+
+                if (isNumeric) {
+                    const docRef = db.collection('clientes').doc(docId);
+                    const doc = await docRef.get();
+
+                    if (doc.exists) {
+                        await docRef.set(clientData, { merge: true });
+                        alert(`Cliente con cédula ${docId} actualizado correctamente.`);
+                    } else {
+                        await docRef.set(clientData);
+                        alert(`Cliente con cédula ${docId} registrado correctamente.`);
+                    }
+                } else {
+                    const existingClientQuery = await db.collection('clientes')
+                        .where('nombre', '==', nombreOrCedula)
+                        .limit(1)
+                        .get();
+
+                    if (!existingClientQuery.empty) {
+                        alert(`Error: Ya existe un cliente registrado con el nombre "${nombreOrCedula}". Por favor, usa un nombre único o la cédula.`);
+                        return;
+                    }
+
+                    clientData.nombre = nombreOrCedula;
+                    const newDocRef = await db.collection('clientes').add(clientData);
+                    alert(`Cliente "${nombreOrCedula}" registrado con ID: ${newDocRef.id}`);
+                }
+            } catch (error) {
+                console.error("Error al registrar cliente:", error);
+                alert("Hubo un error al registrar el cliente. Por favor, inténtalo de nuevo.");
+            }
         }
-    } catch (error) {
-        console.error("Error al registrar cliente:", error);
-        alert("Hubo un error al registrar el cliente. Por favor, inténtalo de nuevo.");
-    }
-}
 
         document.getElementById('cliente').addEventListener('input', buscarClientePorCedula);
 
@@ -482,8 +499,8 @@
 
                         <div class="header-info">
                             <div>
-                                <p><strong>Número de Factura:</strong> [Generado al guardar]</p>
-                                <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString()}</p>
+                                <p><strong>Número de Factura:</strong> [Se asignará al guardar]</p>
+                                <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
                             </div>
                             <div class="text-right">
                                 <p><strong>Fixitech</strong></p>
@@ -570,11 +587,8 @@
             document.getElementById('fechaEntrega').value = today;
             items = [];
             actualizarTabla();
-            document.getElementById('cliente').focus(); // Enfocar el primer campo para una nueva entrada
+            document.getElementById('cliente').focus();
         }
-
-        // Llamar a actualizarTabla al cargar para mostrar "No hay ítems..."
-        document.addEventListener('DOMContentLoaded', actualizarTabla);
 
     </script>
 </body>
