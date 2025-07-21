@@ -1002,6 +1002,10 @@
                     <div class="btn-actions">
                         <button class="btn-print" onclick='window.opener.generarPDF(${JSON.stringify(facturaData)}, "${facturaData.numeroFactura || facturaData.id}")'>Imprimir PDF</button>
                         <button class="btn-edit" onclick='window.opener.editarFacturaExistente(${JSON.stringify(facturaData)}); window.close();'>Editar Factura</button>
+                        <button class="btn-return" onclick="marcarComoDevuelto('${facturaData.id}', '${facturaData.numeroFactura || facturaData.id}')">
+    Procesar Devolución
+</button>
+
                         <button class="btn-return" onclick='
     if (!window.opener || !window.opener.procesarDevolucion) {
         alert("No se puede procesar la devolución porque no se encontró la ventana principal o su función.");
@@ -1070,7 +1074,32 @@
             return false; // Error en la operación
         }
     }
+async function marcarComoDevuelto(facturaId, numeroFactura) {
+    if (!confirm("¿Estás seguro de marcar esta factura como devuelta?")) return;
 
+    try {
+        const firebaseConfig = {
+            // Asegúrate de copiar tu configuración original aquí o importar el archivo si es posible
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        await db.collection('facturas').doc(facturaId).update({
+            estado: 'Devuelto',
+            fechaDevolucion: new Date().toISOString().split('T')[0]
+        });
+
+        alert(`Factura #${numeroFactura} marcada como devuelta.`);
+        window.close();
+    } catch (error) {
+        console.error("Error al marcar como devuelta:", error);
+        alert("No se pudo marcar la factura como devuelta. Intenta nuevamente.");
+    }
+}
+    
 </script>
 </body>
 </html>
