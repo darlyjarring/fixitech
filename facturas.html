@@ -223,6 +223,7 @@
             };
 
             try {
+
                 const docRef = await db.collection('facturas').add(data);
                 alert(`Factura ${docRef.id} guardada con éxito.`);
                 generarPDF(data, docRef.id); // Generar PDF con ID de factura
@@ -251,10 +252,11 @@
 
             // Invoice ID
             doc.setFontSize(12);
+
+           // Mostrar el ID de la factura
             doc.text(`Factura #${facturaId || 'N/A'}`, doc.internal.pageSize.width - margin, 15, null, null, 'right');
             doc.setFontSize(10);
             y += lineHeight;
-
             // Client Information
             doc.setFont("helvetica", "bold");
             doc.text("Datos del Cliente:", margin, y);
@@ -375,42 +377,62 @@
             }
         }
 
-        async function nuevoCliente() {
-            const clienteInput = document.getElementById('cliente');
-            const telefonoInput = document.getElementById('telefono');
-            const direccionInput = document.getElementById('direccion');
+    async function nuevoCliente() {
+    const clienteInput = document.getElementById('cliente');
+    const telefonoInput = document.getElementById('telefono');
+    const direccionInput = document.getElementById('direccion');
 
-            const nombreOrCedula = clienteInput.value.trim(); // Podría ser cédula o nombre
-            const telefono = telefonoInput.value.trim();
-            const direccion = direccionInput.value.trim();
+    const nombreOrCedula = clienteInput.value.trim();
+    const telefono = telefonoInput.value.trim();
+    const direccion = direccionInput.value.trim();
 
-            if (!nombreOrCedula || !telefono || !direccion) {
-                alert("Por favor, completa la Cédula/Nombre, Teléfono y Dirección para registrar un nuevo cliente.");
+    if (!nombreOrCedula || !telefono || !direccion) {
+        alert("Por favor, completa la Cédula/Nombre, Teléfono y Dirección para registrar un nuevo cliente.");
+        return;
+    }
+
+    try {
+        const isNumeric = /^\d+$/.test(nombreOrCedula); // Verifica si es solo números (posible cédula)
+        let docId = nombreOrCedula;
+        let clientData = { telefono, direccion };
+
+        if (isNumeric) {
+            // Si es una cédula, intentamos usarla como ID del documento
+            const docRef = db.collection('clientes').doc(docId);
+            const doc = await docRef.get();
+
+            if (doc.exists) {
+                // Si la cédula ya existe, actualizamos los datos existentes
+                await docRef.set(clientData, { merge: true });
+                alert(`Cliente con cédula ${docId} actualizado correctamente.`);
+            } else {
+                // Si la cédula no existe, creamos el nuevo cliente
+                await docRef.set(clientData);
+                alert(`Cliente con cédula ${docId} registrado correctamente.`);
+            }
+        } else {
+            // Si es un nombre, buscamos si ya existe un cliente con ese nombre
+            // Necesitarás un índice en Firestore para el campo 'nombre' para que esto sea eficiente.
+            const existingClientQuery = await db.collection('clientes')
+                .where('nombre', '==', nombreOrCedula)
+                .limit(1)
+                .get();
+
+            if (!existingClientQuery.empty) {
+                alert(`Error: Ya existe un cliente registrado con el nombre "${nombreOrCedula}". Por favor, usa un nombre único o la cédula.`);
                 return;
             }
 
-            try {
-                // Usaremos la cédula como ID del documento en Firestore si es un número, o un ID autogenerado si es un nombre
-                const isNumeric = /^\d+$/.test(nombreOrCedula); // Verifica si es solo números (posible cédula)
-                let docId = nombreOrCedula;
-                let clientData = { telefono, direccion };
-
-                if (isNumeric) {
-                    // Si es una cédula, intenta usarla como ID del documento
-                    await db.collection('clientes').doc(docId).set(clientData, { merge: true }); // Usar merge para actualizar si ya existe
-                } else {
-                    // Si es un nombre, Firestore generará un ID automáticamente
-                    clientData.nombre = nombreOrCedula; // Guardamos el nombre explícitamente
-                    const newDocRef = await db.collection('clientes').add(clientData);
-                    docId = newDocRef.id; // Obtenemos el ID autogenerado
-                    alert(`Cliente "${nombreOrCedula}" registrado con ID: ${docId}`);
-                }
-                alert("Cliente registrado/actualizado correctamente.");
-            } catch (error) {
-                console.error("Error al registrar cliente:", error);
-                alert("Hubo un error al registrar el cliente. Por favor, inténtalo de nuevo.");
-            }
+            // Si el nombre no existe, agregamos un nuevo cliente con ID autogenerado
+            clientData.nombre = nombreOrCedula; // Guardamos el nombre explícitamente
+            const newDocRef = await db.collection('clientes').add(clientData);
+            alert(`Cliente "${nombreOrCedula}" registrado con ID: ${newDocRef.id}`);
         }
+    } catch (error) {
+        console.error("Error al registrar cliente:", error);
+        alert("Hubo un error al registrar el cliente. Por favor, inténtalo de nuevo.");
+    }
+}
 
         document.getElementById('cliente').addEventListener('input', buscarClientePorCedula);
 
