@@ -3,25 +3,110 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Nueva Venta - Fixitech</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Gestión de Ventas - Fixitech</title> <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* Estilos básicos para la ventana emergente de detalle de factura */
+        .popup-invoice-container {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            color: #333;
+            max-width: 800px;
+            margin: 20px auto;
+            border: 1px solid #eee;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            background-color: #fff;
+        }
+        .popup-invoice-container h2 {
+            text-align: center;
+            color: #0f766e;
+            margin-bottom: 25px;
+        }
+        .popup-invoice-container .info-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            flex-wrap: wrap; /* Permite que los elementos se envuelvan en pantallas pequeñas */
+        }
+        .popup-invoice-container .info-section > div {
+            flex: 1;
+            min-width: 280px; /* Asegura un ancho mínimo para cada columna */
+            margin-right: 20px;
+            margin-bottom: 10px;
+        }
+        .popup-invoice-container .info-section > div:last-child {
+            margin-right: 0;
+        }
+        .popup-invoice-container p {
+            margin: 5px 0;
+            line-height: 1.4;
+        }
+        .popup-invoice-container strong {
+            color: #555;
+        }
+        .popup-invoice-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .popup-invoice-container th,
+        .popup-invoice-container td {
+            border: 1px solid #ddd;
+            padding: 10px 8px;
+            text-align: left;
+        }
+        .popup-invoice-container th {
+            background-color: #f8f8f8;
+            color: #666;
+            font-weight: 600;
+        }
+        .popup-invoice-container tfoot tr.total-row td {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: right;
+        }
+        .popup-invoice-container .text-right {
+            text-align: right;
+        }
+        .popup-invoice-container .text-center {
+            text-align: center;
+        }
+        .popup-invoice-container .btn-actions {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .popup-invoice-container .btn-actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .popup-invoice-container .btn-actions .btn-print {
+            background-color: #0f766e; /* Teal */
+            color: white;
+            margin-right: 10px;
+        }
+        .popup-invoice-container .btn-actions .btn-close {
+            background-color: #6b7280; /* Gray */
+            color: white;
+        }
+    </style>
 </head>
 <body class="bg-gray-50 font-sans">
 
     <header class="bg-cyan-800 text-white p-4 flex justify-between items-center shadow">
-        <h1 class="text-xl font-bold">Fixitech - Nueva Venta</h1>
+        <h1 class="text-xl font-bold">Fixitech - Gestión de Ventas</h1>
         <nav class="space-x-4 text-sm">
             <a href="#" class="hover:underline">Inicio</a>
             <a href="#" class="hover:underline">Clientes</a>
-            <a href="#" class="hover:underline">Facturación</a>
-            <a href="#" class="hover:underline">Galería</a>
+            <a href="#" class="hover:underline">Nueva Venta</a> <a href="#gestionFacturas" class="hover:underline">Gestión de Facturas</a> <a href="#" class="hover:underline">Galería</a>
         </nav>
     </header>
 
     <div class="max-w-6xl mx-auto mt-6 bg-white p-6 rounded shadow">
-        <h2 class="font-semibold text-lg mb-4">Datos del Cliente y Factura</h2>
+        <h2 class="font-semibold text-lg mb-4">Datos del Cliente y Nueva Factura</h2>
         <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
                 <label for="cliente" class="block text-sm font-medium text-gray-700">Cédula o Nombre:</label>
@@ -105,8 +190,44 @@
         </div>
 
         <div class="flex justify-end space-x-4">
-            <button onclick="mostrarFactura()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-md transition duration-150 ease-in-out">🖨 Imprimir / Ver Factura</button>
+            <button onclick="mostrarFactura()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-md transition duration-150 ease-in-out">🖨 Imprimir / Ver Previsualización</button>
             <button onclick="limpiarFormulario()" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-md transition duration-150 ease-in-out">🔄 Limpiar Formulario</button>
+        </div>
+    </div>
+
+    <div id="gestionFacturas" class="max-w-6xl mx-auto mt-8 bg-white p-6 rounded shadow">
+        <h2 class="font-semibold text-lg mb-4">Gestión y Consulta de Facturas</h2>
+
+        <div class="grid md:grid-cols-3 gap-4 mb-4">
+            <div>
+                <label for="filtroCliente" class="block text-sm font-medium text-gray-700">Filtrar por Cliente:</label>
+                <input type="text" id="filtroCliente" placeholder="Nombre o Cédula del Cliente" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" onkeyup="filtrarFacturas()" />
+            </div>
+             <div>
+                <label for="filtroNumeroFactura" class="block text-sm font-medium text-gray-700">Filtrar por N° Factura:</label>
+                <input type="text" id="filtroNumeroFactura" placeholder="Ej: 00000125" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" onkeyup="filtrarFacturas()" />
+            </div>
+            <div class="flex items-end">
+                <button onclick="cargarFacturas()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md w-full transition duration-150 ease-in-out">Actualizar Lista</button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm text-left border border-gray-300 rounded-md overflow-hidden">
+                <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
+                    <tr>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 tracking-wider">N° Factura</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 tracking-wider">Cliente</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-right tracking-wider">Total</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 tracking-wider">Estado</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 tracking-wider">Fecha Ing.</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-center tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="listaFacturasTableBody" class="bg-white divide-y divide-gray-200">
+                    <tr><td colspan="6" class="text-center py-4 text-gray-500">Cargando facturas...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -116,13 +237,15 @@
     <script>
         const db = firebase.firestore();
         let items = [];
+        let todasLasFacturas = []; // Para almacenar todas las facturas cargadas y permitir filtros
 
-        // Inicializar las fechas a la fecha actual
+        // Inicializar las fechas a la fecha actual y cargar facturas al cargar la página
         document.addEventListener('DOMContentLoaded', () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('fechaIngreso').value = today;
             document.getElementById('fechaEntrega').value = today;
-            actualizarTabla(); // Mostrar "No hay ítems..." al cargar
+            actualizarTabla(); // Para el formulario de nueva factura (mostrar "No hay ítems...")
+            cargarFacturas(); // Cargar facturas existentes al inicio
         });
 
         function agregarItem() {
@@ -189,13 +312,9 @@
 
         // Función auxiliar para formatear el número de factura
         function formatInvoiceNumber(number) {
-            // Obtener el año actual (ej. 2025)
-            const year = new Date().getFullYear(); 
-            // Rellenar con ceros a la izquierda hasta 6 dígitos (ej. 000001)
+            const year = new Date().getFullYear();
             const paddedNumber = String(number).padStart(6, '0');
-            // Combinar el formato deseado (ej. 00000125)
-            // Si quieres el año completo, usa `${paddedNumber}${year}`
-            return `${paddedNumber}${year.toString().substring(2)}`; 
+            return `${paddedNumber}${year.toString().substring(2)}`;
         }
 
         async function guardarFactura() {
@@ -234,14 +353,14 @@
                     }
 
                     const newNumber = currentNumber + 1;
-                    transaction.update(counterRef, { ultimoNumero: newNumber }); // Actualiza el contador
+                    transaction.update(counterRef, { ultimoNumero: newNumber });
 
-                    invoiceNumber = formatInvoiceNumber(newNumber); // Formatea el número
+                    invoiceNumber = formatInvoiceNumber(newNumber);
                 });
                 // FIN DE LA TRANSACCIÓN
 
                 const data = {
-                    numeroFactura: invoiceNumber, // ¡Añadimos el número de factura formateado!
+                    numeroFactura: invoiceNumber,
                     cliente,
                     telefono,
                     direccion,
@@ -253,11 +372,12 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
-                const docRef = await db.collection('facturas').add(data); // Guarda la factura con el nuevo número
+                const docRef = await db.collection('facturas').add(data);
                 alert(`Factura ${invoiceNumber} guardada con éxito.`);
-                
-                generarPDF(data, invoiceNumber); // Pasa el número de factura formateado al PDF
-                limpiarFormulario(); // Limpiar formulario después de guardar
+
+                generarPDF(data, invoiceNumber);
+                limpiarFormulario();
+                cargarFacturas(); // Recargar la lista de facturas después de guardar una nueva
 
             } catch (error) {
                 console.error("Error al guardar la factura: ", error);
@@ -265,29 +385,26 @@
             }
         }
 
-        function generarPDF(data, facturaNum) { // Cambiado 'facturaId' a 'facturaNum' para claridad
+        function generarPDF(data, facturaNum) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             let y = 15;
             const margin = 15;
             const lineHeight = 7;
 
-            // Header
             doc.setFontSize(18);
-            doc.setTextColor(52, 152, 219); // Blue
+            doc.setTextColor(52, 152, 219);
             doc.text("Factura - Fixitech", margin, y);
             y += lineHeight * 2;
 
             doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0); // Black
+            doc.setTextColor(0, 0, 0);
 
-            // Invoice Number (usamos el número formateado)
             doc.setFontSize(12);
             doc.text(`Factura #${facturaNum || 'N/A'}`, doc.internal.pageSize.width - margin, 15, null, null, 'right');
             doc.setFontSize(10);
             y += lineHeight;
 
-            // Client Information
             doc.setFont("helvetica", "bold");
             doc.text("Datos del Cliente:", margin, y);
             doc.setFont("helvetica", "normal");
@@ -303,7 +420,6 @@
             doc.text(`Fecha de Entrega: ${data.fechaEntrega}`, margin, y);
             y += lineHeight * 2;
 
-            // Items Table
             doc.setFont("helvetica", "bold");
             doc.text("Detalle de los Servicios/Productos:", margin, y);
             y += lineHeight;
@@ -321,16 +437,15 @@
                 head: tableHeaders,
                 body: tableData,
                 theme: 'striped',
-                headStyles: { fillColor: [23, 162, 184], textColor: [255, 255, 255], fontStyle: 'bold' }, // Teal
+                headStyles: { fillColor: [23, 162, 184], textColor: [255, 255, 255], fontStyle: 'bold' },
                 styles: { fontSize: 9, cellPadding: 2, overflow: 'linebreak' },
                 columnStyles: {
-                    0: { cellWidth: 80 }, // Description
-                    1: { cellWidth: 25, halign: 'center' }, // Quantity
-                    2: { cellWidth: 35, halign: 'right' }, // Price
-                    3: { cellWidth: 35, halign: 'right' }  // Subtotal
+                    0: { cellWidth: 80 },
+                    1: { cellWidth: 25, halign: 'center' },
+                    2: { cellWidth: 35, halign: 'right' },
+                    3: { cellWidth: 35, halign: 'right' }
                 },
                 didDrawPage: function (data) {
-                    // Footer
                     let str = "Página " + doc.internal.getNumberOfPages();
                     doc.setFontSize(10);
                     doc.text(str, doc.internal.pageSize.width - margin, doc.internal.pageSize.height - 10);
@@ -339,28 +454,28 @@
 
             y = doc.autoTable.previous.finalY + lineHeight;
 
-            // Total and Status
             doc.setFont("helvetica", "bold");
             doc.text(`Total: $${data.total.toFixed(2)}`, doc.internal.pageSize.width - margin, y, null, null, 'right');
             y += lineHeight;
             doc.text(`Estado del Pedido: ${data.estado}`, margin, y);
 
-            // Footer / Notes
             y += lineHeight * 2;
             doc.setFontSize(8);
             doc.setTextColor(150);
             doc.text("Gracias por preferir Fixitech. Para cualquier consulta, contáctenos.", margin, y);
 
-            doc.save(`Factura_Fixitech_${facturaNum}.pdf`); // Usar el número de factura en el nombre del archivo
+            doc.save(`Factura_Fixitech_${facturaNum}.pdf`);
         }
 
         async function buscarClientePorCedula() {
             const clienteInput = document.getElementById('cliente');
+            const telefonoInput = document.getElementById('telefono');
+            const direccionInput = document.getElementById('direccion');
             const cedula = clienteInput.value.trim();
 
             if (cedula.length < 3) {
-                document.getElementById('telefono').value = '';
-                document.getElementById('direccion').value = '';
+                telefonoInput.value = '';
+                direccionInput.value = '';
                 return;
             }
 
@@ -368,10 +483,10 @@
                 const doc = await db.collection('clientes').doc(cedula).get();
                 if (doc.exists) {
                     const data = doc.data();
-                    document.getElementById('telefono').value = data.telefono || '';
-                    document.getElementById('direccion').value = data.direccion || '';
-                    if (data.nombre && !/^\d+$/.test(clienteInput.value)) { // Si ingresó cédula numérica, no cambiar el valor del input
-                        clienteInput.value = data.nombre;
+                    telefonoInput.value = data.telefono || '';
+                    direccionInput.value = data.direccion || '';
+                    if (data.nombre && !/^\d+$/.test(clienteInput.value)) {
+                        clienteInput.value = data.nombre; // Cambia el input a nombre si se encontró por cédula y tiene nombre
                     }
                     console.log("Cliente encontrado por cédula:", data);
                     return;
@@ -385,13 +500,13 @@
                 if (!querySnapshot.empty) {
                     const doc = querySnapshot.docs[0];
                     const data = doc.data();
-                    document.getElementById('telefono').value = data.telefono || '';
-                    document.getElementById('direccion').value = data.direccion || '';
+                    telefonoInput.value = data.telefono || '';
+                    direccionInput.value = data.direccion || '';
                     clienteInput.value = data.nombre || cedula;
                     console.log("Cliente encontrado por nombre:", data);
                 } else {
-                    document.getElementById('telefono').value = '';
-                    document.getElementById('direccion').value = '';
+                    telefonoInput.value = '';
+                    direccionInput.value = '';
                     console.log("Cliente no encontrado.");
                 }
             } catch (error) {
@@ -499,7 +614,7 @@
 
                         <div class="header-info">
                             <div>
-                                <p><strong>Número de Factura:</strong> [Se asignará al guardar]</p>
+                                <p><strong>Número de Factura:</strong> [Generado al guardar]</p>
                                 <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
                             </div>
                             <div class="text-right">
@@ -571,7 +686,6 @@
             nuevaVentana.document.write(html);
             nuevaVentana.document.close();
             nuevaVentana.focus();
-            // nuevaVentana.print(); // Descomentar si quieres que se imprima automáticamente
         }
 
         function limpiarFormulario() {
@@ -588,6 +702,139 @@
             items = [];
             actualizarTabla();
             document.getElementById('cliente').focus();
+        }
+
+        // --- Nuevas funciones para Gestión de Facturas ---
+
+        async function cargarFacturas() {
+            const tablaBody = document.getElementById('listaFacturasTableBody');
+            tablaBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">Cargando facturas...</td></tr>`;
+            try {
+                const snapshot = await db.collection('facturas').orderBy('timestamp', 'desc').get();
+                todasLasFacturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                filtrarFacturas(); // Muestra todas las facturas al cargar inicialmente
+            } catch (error) {
+                console.error("Error al cargar facturas: ", error);
+                tablaBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-500">Error al cargar facturas.</td></tr>`;
+            }
+        }
+
+        function filtrarFacturas() {
+            const filtroCliente = document.getElementById('filtroCliente').value.toLowerCase().trim();
+            const filtroNumeroFactura = document.getElementById('filtroNumeroFactura').value.toLowerCase().trim();
+
+            const facturasFiltradas = todasLasFacturas.filter(factura => {
+                const matchCliente = factura.cliente.toLowerCase().includes(filtroCliente);
+                const matchNumero = factura.numeroFactura && factura.numeroFactura.toLowerCase().includes(filtroNumeroFactura);
+                return matchCliente && matchNumero;
+            });
+
+            actualizarTablaFacturas(facturasFiltradas);
+        }
+
+        function actualizarTablaFacturas(facturasToDisplay) {
+            const tablaBody = document.getElementById('listaFacturasTableBody');
+            tablaBody.innerHTML = '';
+
+            if (facturasToDisplay.length === 0) {
+                tablaBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">No hay facturas que coincidan con los filtros.</td></tr>`;
+                return;
+            }
+
+            facturasToDisplay.forEach(factura => {
+                const fechaIngreso = factura.fechaIngreso || 'N/A';
+                // const fechaEntrega = factura.fechaEntrega || 'N/A'; // No se usa en la tabla de listado, pero está disponible
+                const total = factura.total ? `$${factura.total.toFixed(2)}` : '$0.00';
+
+                tablaBody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${factura.numeroFactura || factura.id}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${factura.cliente}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">${total}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${factura.estado}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${fechaIngreso}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button onclick='verDetalleFactura(${JSON.stringify(factura)})' class="bg-blue-200 text-blue-800 px-2 py-1 rounded text-xs hover:bg-blue-300 transition duration-150 ease-in-out mr-1">Ver Detalles</button>
+                            <button onclick='generarPDF(${JSON.stringify(factura)}, "${factura.numeroFactura || factura.id}")' class="bg-teal-200 text-teal-800 px-2 py-1 rounded text-xs hover:bg-teal-300 transition duration-150 ease-in-out">Reimprimir</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function verDetalleFactura(facturaData) {
+            let itemsHtml = facturaData.items.map(item => `
+                <tr>
+                    <td>${item.descripcion}</td>
+                    <td class="text-center">${item.cantidad}</td>
+                    <td class="text-right">$${item.precio.toFixed(2)}</td>
+                    <td class="text-right">$${item.subtotal.toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            const popupContent = `
+                <div class="popup-invoice-container">
+                    <h2>Detalles de Factura #${facturaData.numeroFactura || facturaData.id}</h2>
+
+                    <div class="info-section">
+                        <div>
+                            <p><strong>Número de Factura:</strong> ${facturaData.numeroFactura || 'N/A'}</p>
+                            <p><strong>Fecha de Emisión:</strong> ${facturaData.timestamp ? new Date(facturaData.timestamp.toDate()).toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}</p>
+                        </div>
+                        <div class="text-right">
+                            <p><strong>Fixitech</strong></p>
+                            <p>Su dirección aquí</p>
+                            <p>Su teléfono aquí</p>
+                            <p>Su email aquí</p>
+                        </div>
+                    </div>
+
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+
+                    <div class="info-section">
+                        <div>
+                            <p><strong>Cliente:</strong> ${facturaData.cliente}</p>
+                            <p><strong>Teléfono:</strong> ${facturaData.telefono}</p>
+                            <p><strong>Dirección:</strong> ${facturaData.direccion}</p>
+                        </div>
+                        <div>
+                            <p><strong>Fecha de Ingreso:</strong> ${facturaData.fechaIngreso}</p>
+                            <p><strong>Fecha de Entrega:</strong> ${facturaData.fechaEntrega}</p>
+                            <p><strong>Estado del Pedido:</strong> ${facturaData.estado}</p>
+                        </div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Descripción</th>
+                                <th class="text-center">Cant.</th>
+                                <th class="text-right">P. Unitario</th>
+                                <th class="text-right">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                        </tbody>
+                        <tfoot>
+                            <tr class="total-row">
+                                <td colspan="3">Total:</td>
+                                <td class="text-right">$${facturaData.total ? facturaData.total.toFixed(2) : '0.00'}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <div class="btn-actions">
+                        <button class="btn-print" onclick='window.opener.generarPDF(${JSON.stringify(facturaData)}, "${facturaData.numeroFactura || facturaData.id}")'>Imprimir PDF</button>
+                        <button class="btn-close" onclick="window.close()">Cerrar</button>
+                    </div>
+                </div>
+            `;
+
+            const popupWindow = window.open('', '_blank', 'width=950,height=750,scrollbars=yes,resizable=yes');
+            popupWindow.document.write(popupContent);
+            popupWindow.document.close();
+            popupWindow.focus();
         }
 
     </script>
