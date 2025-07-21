@@ -681,7 +681,7 @@
                     <div class="header-info">
                         <div>
                             <p><strong>Número de Factura:</strong> [Generado al guardar]</p>
-                            <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
+                            <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
                         </div>
                         <div class="text-right">
                             <p><strong>Fixitech</strong></p>
@@ -1002,7 +1002,7 @@
                     <div class="btn-actions">
                         <button class="btn-print" onclick='window.opener.generarPDF(${JSON.stringify(facturaData)}, "${facturaData.numeroFactura || facturaData.id}")'>Imprimir PDF</button>
                         <button class="btn-edit" onclick='window.opener.editarFacturaExistente(${JSON.stringify(facturaData)}); window.close();'>Editar Factura</button>
-                        <button class="btn-return" onclick='window.opener.procesarDevolucion(${JSON.stringify(facturaData)}, window);'>Procesar Devolución</button>
+                        <button class="btn-return" onclick='window.opener.prepararDevolucion(${JSON.stringify(facturaData)}); window.close();'>Procesar Devolución</button>
                         <button class="btn-close" onclick="window.close()">Cerrar</button>
                     </div>
                 </div>
@@ -1039,9 +1039,16 @@
         window.scrollTo(0, 0); // Desplazarse al inicio del formulario
     }
 
+    // Nueva función para preparar la devolución y asegurar que la ventana principal tiene el foco
+    function prepararDevolucion(facturaData) {
+        // Asegurarse de que la ventana principal está activa antes de mostrar el confirm
+        window.focus(); 
+        procesarDevolucion(facturaData);
+    }
+
     // --- Función básica para procesar una devolución (cambio de estado) ---
-    // Acepta un parámetro 'popupWindow' para poder cerrar la ventana después del proceso
-    async function procesarDevolucion(facturaData, popupWindow = null) {
+    // Ya no necesita el parámetro popupWindow. La ventana se cerrará antes de llamar a esta función.
+    async function procesarDevolucion(facturaData) {
         if (!confirm(`¿Estás seguro de que quieres marcar la factura #${facturaData.numeroFactura || facturaData.id} como "Devuelta"? Esto solo cambia el estado.`)) {
             return;
         }
@@ -1055,18 +1062,12 @@
             alert(`Factura #${facturaData.numeroFactura || facturaData.id} marcada como "Devuelto".`);
             cargarFacturas(); // Recargar la lista para reflejar el cambio de estado
 
-            // Cerrar la ventana emergente SÓLO después de la alerta y la recarga
-            if (popupWindow) { 
-                popupWindow.close();
-            }
+            // La ventana emergente ya se cerró en el onclick de prepararDevolucion, así que no necesitamos cerrarla aquí.
 
         } catch (error) {
             console.error("Error al procesar devolución: ", error);
             alert("Hubo un error al marcar la factura como devuelta. Detalles: " + error.message);
-            // Asegurarse de cerrar la ventana incluso si hay un error
-            if (popupWindow) { 
-                popupWindow.close();
-            }
+            // La ventana emergente ya se cerró en el onclick de prepararDevolucion, así que no necesitamos cerrarla aquí.
         }
     }
 
