@@ -356,7 +356,7 @@
         return `${paddedNumber}${year.toString().substring(2)}`;
     }
 
-    async function guardarFactura() {
+   async function guardarFactura() {
         const cliente = document.getElementById('cliente').value.trim();
         const telefono = document.getElementById('telefono').value.trim();
         const direccion = document.getElementById('direccion').value.trim();
@@ -378,8 +378,8 @@
             return;
         }
 
-        let invoiceNumber = ''; // Variable para almacenar el número de factura generado
-        let docIdToSave = facturaEnEdicionId; // Será null para nueva, o el ID para edición
+        let invoiceNumber = ''; 
+        let docIdToSave = facturaEnEdicionId; 
 
         try {
             // Si es una factura nueva, generar el número vía transacción
@@ -402,6 +402,16 @@
                 invoiceNumber = todaLaInformacionFacturaEnEdicion.numeroFactura;
             }
 
+            // --- INICIO DE LA VERIFICACIÓN DEFENSIVA ADICIONAL ---
+            // Aseguramos que 'items' sea un array JavaScript nativo justo antes de guardarlo en Firestore
+            const sanitizedItems = Array.isArray(items) ? items.map(item => ({
+                descripcion: item.descripcion,
+                cantidad: item.cantidad,
+                precio: item.precio,
+                subtotal: item.subtotal
+            })) : [];
+            // --- FIN DE LA VERIFICACIÓN DEFENSIVA ADICIONAL ---
+
             const data = {
                 numeroFactura: invoiceNumber,
                 cliente,
@@ -410,16 +420,14 @@
                 fechaIngreso,
                 fechaEntrega,
                 estado,
-                items,
+                items: sanitizedItems, // USAMOS EL ARRAY SANITIZADO AQUÍ
                 total: parseFloat(total.toFixed(2)),
-                // El timestamp solo se actualiza si es una factura nueva.
-                // Si se edita, mantenemos el timestamp original (que ya será un Date de JS por la carga).
                 timestamp: facturaEnEdicionId ? todaLaInformacionFacturaEnEdicion.timestamp : firebase.firestore.FieldValue.serverTimestamp()
             };
 
             if (docIdToSave) {
                 // Actualizar documento existente
-                await db.collection('facturas').doc(docIdToSave).set(data); // `set` sin merge reemplaza todo
+                await db.collection('facturas').doc(docIdToSave).set(data); 
                 alert(`Factura ${invoiceNumber} actualizada con éxito.`);
             } else {
                 // Añadir nuevo documento
@@ -433,16 +441,15 @@
             document.getElementById('formFacturaTitle').textContent = 'Datos del Cliente y Nueva Factura';
             document.getElementById('guardarFacturaBtn').textContent = '💾 Guardar Factura';
 
-            generarPDF(data, invoiceNumber); // Siempre generar PDF al guardar/actualizar
-            limpiarFormulario(); // Limpiar el formulario
-            cargarFacturas(); // Recargar la lista de facturas
+            generarPDF(data, invoiceNumber); 
+            limpiarFormulario(); 
+            cargarFacturas(); 
 
         } catch (error) {
             console.error("Error al guardar/actualizar la factura: ", error);
             alert("Hubo un error al guardar/actualizar la factura. Por favor, inténtalo de nuevo. Detalles: " + error.message);
         }
     }
-
     function generarPDF(data, facturaNum) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
