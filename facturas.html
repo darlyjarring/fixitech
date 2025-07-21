@@ -26,7 +26,11 @@
 
   <div id="facturas" class="mt-8 grid gap-4"></div>
 
-  <script src="firebase.js"></script>
+      <!-- Firebase SDKs necesarios -->
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
+    <script src="firebase.js"></script>
+
   <script>
     const db = firebase.firestore();
     const form = document.getElementById('facturaForm');
