@@ -252,6 +252,43 @@
       nuevaVentana.print();
     }
 
+     async function buscarClientePorCedula() {
+    const cedula = document.getElementById('cliente').value;
+    if (cedula.length < 4) return;
+    const doc = await db.collection('clientes').doc(cedula).get();
+    if (doc.exists) {
+      const data = doc.data();
+      document.getElementById('telefono').value = data.telefono;
+      document.getElementById('direccion').value = data.direccion;
+    } else {
+      const nueva = window.open('', '', 'width=400,height=300');
+      nueva.document.write(`
+        <html><head><title>Nuevo Cliente</title></head>
+        <body style='font-family:sans-serif;padding:20px'>
+          <h3>Nuevo Cliente</h3>
+          <label>Teléfono:</label>
+          <input id='tel' style='width:100%;padding:5px;margin-bottom:10px'><br>
+          <label>Dirección:</label>
+          <input id='dir' style='width:100%;padding:5px;margin-bottom:10px'><br>
+          <button onclick='
+            const tel = document.getElementById("tel").value;
+            const dir = document.getElementById("dir").value;
+            window.opener.firebase.firestore().collection("clientes").doc("${cedula}").set({telefono: tel, direccion: dir}).then(() => {
+              window.opener.document.getElementById("telefono").value = tel;
+              window.opener.document.getElementById("direccion").value = dir;
+              alert("Cliente guardado correctamente");
+              window.close();
+            });
+          '>Guardar</button>
+        </body></html>
+      `);
+      nueva.document.close();
+    }
+  }
+
+  document.getElementById('cliente').addEventListener('blur', buscarClientePorCedula);
+
+ 
 </script>
 </body>
 </html>
