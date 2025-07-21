@@ -241,7 +241,7 @@
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+   <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
 <script src="firebase.js"></script>
 <script>
@@ -1020,7 +1020,8 @@
         document.getElementById('fechaEntrega').value = facturaData.fechaEntrega || '';
         document.getElementById('estado').value = facturaData.estado || 'En espera';
         
-        items = facturaData.items || [];
+        // CORRECCIÓN APLICADA AQUÍ: Asegurar que 'items' sea un array JavaScript nativo
+        items = Array.isArray(facturaData.items) ? facturaData.items.map(item => ({...item})) : [];
         actualizarTabla(); // Actualizar la tabla de ítems del formulario
 
         document.getElementById('formFacturaTitle').textContent = `Editando Factura #${facturaData.numeroFactura || facturaData.id}`;
