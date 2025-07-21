@@ -170,6 +170,29 @@
       doc.save(`Factura_${data.cliente}.pdf`);
     }
 
+
+     async function buscarClientePorCedula() {
+      const cedula = document.getElementById('cliente').value;
+      if (cedula.length < 6) return;
+      const doc = await db.collection('clientes').doc(cedula).get();
+      if (doc.exists) {
+        const data = doc.data();
+        document.getElementById('telefono').value = data.telefono;
+        document.getElementById('direccion').value = data.direccion;
+      }
+    }
+    
+    async function nuevoCliente() {
+      const cedula = document.getElementById('cliente').value;
+      const telefono = document.getElementById('telefono').value;
+      const direccion = document.getElementById('direccion').value;
+      if (!cedula || !telefono || !direccion) return alert("Faltan datos del cliente");
+      await db.collection('clientes').doc(cedula).set({ telefono, direccion });
+      alert("Cliente registrado correctamente");
+    }
+    
+    document.getElementById('cliente').addEventListener('input', buscarClientePorCedula);
+
 </script>
 </body>
 </html>
