@@ -356,7 +356,7 @@
         return `${paddedNumber}${year.toString().substring(2)}`;
     }
 
-   async function guardarFactura() {
+    async function guardarFactura() {
         const cliente = document.getElementById('cliente').value.trim();
         const telefono = document.getElementById('telefono').value.trim();
         const direccion = document.getElementById('direccion').value.trim();
@@ -450,6 +450,7 @@
             alert("Hubo un error al guardar/actualizar la factura. Por favor, inténtalo de nuevo. Detalles: " + error.message);
         }
     }
+
     function generarPDF(data, facturaNum) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -1001,7 +1002,7 @@
                     <div class="btn-actions">
                         <button class="btn-print" onclick='window.opener.generarPDF(${JSON.stringify(facturaData)}, "${facturaData.numeroFactura || facturaData.id}")'>Imprimir PDF</button>
                         <button class="btn-edit" onclick='window.opener.editarFacturaExistente(${JSON.stringify(facturaData)}); window.close();'>Editar Factura</button>
-                        <button class="btn-return" onclick='window.opener.procesarDevolucion(${JSON.stringify(facturaData)}); window.close();'>Procesar Devolución</button>
+                        <button class="btn-return" onclick='window.opener.procesarDevolucion(${JSON.stringify(facturaData)}, window);'>Procesar Devolución</button>
                         <button class="btn-close" onclick="window.close()">Cerrar</button>
                     </div>
                 </div>
@@ -1039,7 +1040,8 @@
     }
 
     // --- Función básica para procesar una devolución (cambio de estado) ---
-    async function procesarDevolucion(facturaData) {
+    // Acepta un parámetro 'popupWindow' para poder cerrar la ventana después del proceso
+    async function procesarDevolucion(facturaData, popupWindow = null) {
         if (!confirm(`¿Estás seguro de que quieres marcar la factura #${facturaData.numeroFactura || facturaData.id} como "Devuelta"? Esto solo cambia el estado.`)) {
             return;
         }
@@ -1052,9 +1054,19 @@
             });
             alert(`Factura #${facturaData.numeroFactura || facturaData.id} marcada como "Devuelto".`);
             cargarFacturas(); // Recargar la lista para reflejar el cambio de estado
+
+            // Cerrar la ventana emergente SÓLO después de la alerta y la recarga
+            if (popupWindow) { 
+                popupWindow.close();
+            }
+
         } catch (error) {
             console.error("Error al procesar devolución: ", error);
             alert("Hubo un error al marcar la factura como devuelta. Detalles: " + error.message);
+            // Asegurarse de cerrar la ventana incluso si hay un error
+            if (popupWindow) { 
+                popupWindow.close();
+            }
         }
     }
 
