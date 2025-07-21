@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Gestión de Ventas - Fixitech</title> <script src="https://cdn.tailwindcss.com"></script>
+    <title>Gestión de Ventas - Fixitech</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -82,11 +83,19 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 1em;
+            margin: 0 5px; /* Espacio entre botones */
         }
         .popup-invoice-container .btn-actions .btn-print {
             background-color: #0f766e; /* Teal */
             color: white;
-            margin-right: 10px;
+        }
+        .popup-invoice-container .btn-actions .btn-edit {
+            background-color: #2563eb; /* Blue */
+            color: white;
+        }
+        .popup-invoice-container .btn-actions .btn-return {
+            background-color: #dc2626; /* Red */
+            color: white;
         }
         .popup-invoice-container .btn-actions .btn-close {
             background-color: #6b7280; /* Gray */
@@ -99,14 +108,15 @@
     <header class="bg-cyan-800 text-white p-4 flex justify-between items-center shadow">
         <h1 class="text-xl font-bold">Fixitech - Gestión de Ventas</h1>
         <nav class="space-x-4 text-sm">
-            <a href="#" class="hover:underline">Inicio</a>
+            <a href="#" onclick="mostrarSeccion('nuevaVentaSection')" class="hover:underline">Nueva Venta</a>
+            <a href="#" onclick="mostrarSeccion('gestionFacturasSection')" class="hover:underline">Gestión de Facturas</a>
             <a href="#" class="hover:underline">Clientes</a>
-            <a href="#" class="hover:underline">Nueva Venta</a> <a href="#gestionFacturas" class="hover:underline">Gestión de Facturas</a> <a href="#" class="hover:underline">Galería</a>
+            <a href="#" class="hover:underline">Galería</a>
         </nav>
     </header>
 
-    <div class="max-w-6xl mx-auto mt-6 bg-white p-6 rounded shadow">
-        <h2 class="font-semibold text-lg mb-4">Datos del Cliente y Nueva Factura</h2>
+    <div id="nuevaVentaSection" class="max-w-6xl mx-auto mt-6 bg-white p-6 rounded shadow">
+        <h2 class="font-semibold text-lg mb-4" id="formFacturaTitle">Datos del Cliente y Nueva Factura</h2>
         <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
                 <label for="cliente" class="block text-sm font-medium text-gray-700">Cédula o Nombre:</label>
@@ -140,10 +150,10 @@
                     <option value="En espera">En espera</option>
                     <option value="Entregado">Entregado</option>
                     <option value="Facturado">Facturado</option>
-                </select>
+                    <option value="Devuelto">Devuelto</option> </select>
             </div>
             <div class="flex items-end">
-                <button onclick="guardarFactura()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md w-full transition duration-150 ease-in-out">💾 Guardar Factura</button>
+                <button onclick="guardarFactura()" id="guardarFacturaBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md w-full transition duration-150 ease-in-out">💾 Guardar Factura</button>
             </div>
         </div>
 
@@ -195,7 +205,7 @@
         </div>
     </div>
 
-    <div id="gestionFacturas" class="max-w-6xl mx-auto mt-8 bg-white p-6 rounded shadow">
+    <div id="gestionFacturasSection" class="max-w-6xl mx-auto mt-8 bg-white p-6 rounded shadow hidden">
         <h2 class="font-semibold text-lg mb-4">Gestión y Consulta de Facturas</h2>
 
         <div class="grid md:grid-cols-3 gap-4 mb-4">
@@ -238,14 +248,43 @@
         const db = firebase.firestore();
         let items = [];
         let todasLasFacturas = []; // Para almacenar todas las facturas cargadas y permitir filtros
+        let facturaEnEdicionId = null; // Variable para saber si estamos editando una factura existente
+        let todaLaInformacionFacturaEnEdicion = null; // Guarda todos los datos de la factura si estamos editando
 
-        // Inicializar las fechas a la fecha actual y cargar facturas al cargar la página
+
+        // Función para mostrar/ocultar secciones
+        function mostrarSeccion(sectionId) {
+            const nuevaVenta = document.getElementById('nuevaVentaSection');
+            const gestionFacturas = document.getElementById('gestionFacturasSection');
+
+            if (sectionId === 'nuevaVentaSection') {
+                nuevaVenta.classList.remove('hidden');
+                gestionFacturas.classList.add('hidden');
+                // Si NO estamos en modo edición (porque venimos de Gestion de Facturas), limpiar el formulario.
+                // Si SÍ estamos en modo edición (porque acabamos de pulsar "Editar Factura"), el formulario ya se habrá llenado.
+                if (facturaEnEdicionId === null) { 
+                    limpiarFormulario();
+                }
+                document.getElementById('formFacturaTitle').textContent = 'Datos del Cliente y Nueva Factura';
+                document.getElementById('guardarFacturaBtn').textContent = '💾 Guardar Factura';
+            } else if (sectionId === 'gestionFacturasSection') {
+                gestionFacturas.classList.remove('hidden');
+                nuevaVenta.classList.add('hidden');
+                cargarFacturas(); // Recargar facturas cada vez que se muestre la gestión
+                // Al cambiar a gestión de facturas, asegúrate de que el estado de edición se resetee
+                facturaEnEdicionId = null; 
+                todaLaInformacionFacturaEnEdicion = null;
+            }
+        }
+
+
+        // Inicializar las fechas a la fecha actual y mostrar la sección de nueva venta
         document.addEventListener('DOMContentLoaded', () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('fechaIngreso').value = today;
             document.getElementById('fechaEntrega').value = today;
             actualizarTabla(); // Para el formulario de nueva factura (mostrar "No hay ítems...")
-            cargarFacturas(); // Cargar facturas existentes al inicio
+            mostrarSeccion('nuevaVentaSection'); // Muestra la sección de Nueva Venta por defecto
         });
 
         function agregarItem() {
@@ -340,24 +379,28 @@
             }
 
             let invoiceNumber = ''; // Variable para almacenar el número de factura generado
+            let docIdToSave = facturaEnEdicionId; // Será null para nueva, o el ID para edición
 
             try {
-                // INICIO DE LA TRANSACCIÓN PARA GENERAR EL NÚMERO DE FACTURA
-                await db.runTransaction(async (transaction) => {
-                    const counterRef = db.collection('contadores').doc('facturas');
-                    const counterDoc = await transaction.get(counterRef);
+                // Si es una factura nueva, generar el número vía transacción
+                if (!docIdToSave) {
+                    await db.runTransaction(async (transaction) => {
+                        const counterRef = db.collection('contadores').doc('facturas');
+                        const counterDoc = await transaction.get(counterRef);
 
-                    let currentNumber = 0;
-                    if (counterDoc.exists) {
-                        currentNumber = counterDoc.data().ultimoNumero || 0;
-                    }
+                        let currentNumber = 0;
+                        if (counterDoc.exists) {
+                            currentNumber = counterDoc.data().ultimoNumero || 0;
+                        }
 
-                    const newNumber = currentNumber + 1;
-                    transaction.update(counterRef, { ultimoNumero: newNumber });
-
-                    invoiceNumber = formatInvoiceNumber(newNumber);
-                });
-                // FIN DE LA TRANSACCIÓN
+                        const newNumber = currentNumber + 1;
+                        transaction.update(counterRef, { ultimoNumero: newNumber });
+                        invoiceNumber = formatInvoiceNumber(newNumber);
+                    });
+                } else {
+                    // Si estamos editando, reutilizar el número de factura existente
+                    invoiceNumber = todaLaInformacionFacturaEnEdicion.numeroFactura;
+                }
 
                 const data = {
                     numeroFactura: invoiceNumber,
@@ -369,19 +412,34 @@
                     estado,
                     items,
                     total: parseFloat(total.toFixed(2)),
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    // El timestamp solo se actualiza si es una factura nueva.
+                    // Si se edita, mantenemos el timestamp original.
+                    timestamp: facturaEnEdicionId ? todaLaInformacionFacturaEnEdicion.timestamp : firebase.firestore.FieldValue.serverTimestamp()
                 };
 
-                const docRef = await db.collection('facturas').add(data);
-                alert(`Factura ${invoiceNumber} guardada con éxito.`);
+                if (docIdToSave) {
+                    // Actualizar documento existente
+                    await db.collection('facturas').doc(docIdToSave).set(data); // `set` sin merge reemplaza todo
+                    alert(`Factura ${invoiceNumber} actualizada con éxito.`);
+                } else {
+                    // Añadir nuevo documento
+                    await db.collection('facturas').add(data);
+                    alert(`Factura ${invoiceNumber} guardada con éxito.`);
+                }
 
-                generarPDF(data, invoiceNumber);
-                limpiarFormulario();
-                cargarFacturas(); // Recargar la lista de facturas después de guardar una nueva
+                // Resetear el estado de edición después de guardar/actualizar
+                facturaEnEdicionId = null;
+                todaLaInformacionFacturaEnEdicion = null;
+                document.getElementById('formFacturaTitle').textContent = 'Datos del Cliente y Nueva Factura';
+                document.getElementById('guardarFacturaBtn').textContent = '💾 Guardar Factura';
+
+                generarPDF(data, invoiceNumber); // Siempre generar PDF al guardar/actualizar
+                limpiarFormulario(); // Limpiar el formulario
+                cargarFacturas(); // Recargar la lista de facturas
 
             } catch (error) {
-                console.error("Error al guardar la factura: ", error);
-                alert("Hubo un error al guardar la factura. Por favor, inténtalo de nuevo. Detalles: " + error.message);
+                console.error("Error al guardar/actualizar la factura: ", error);
+                alert("Hubo un error al guardar/actualizar la factura. Por favor, inténtalo de nuevo. Detalles: " + error.message);
             }
         }
 
@@ -704,7 +762,7 @@
             document.getElementById('cliente').focus();
         }
 
-        // --- Nuevas funciones para Gestión de Facturas ---
+        // --- Funciones para Gestión de Facturas ---
 
         async function cargarFacturas() {
             const tablaBody = document.getElementById('listaFacturasTableBody');
@@ -743,7 +801,6 @@
 
             facturasToDisplay.forEach(factura => {
                 const fechaIngreso = factura.fechaIngreso || 'N/A';
-                // const fechaEntrega = factura.fechaEntrega || 'N/A'; // No se usa en la tabla de listado, pero está disponible
                 const total = factura.total ? `$${factura.total.toFixed(2)}` : '$0.00';
 
                 tablaBody.innerHTML += `
@@ -762,6 +819,7 @@
             });
         }
 
+        // --- Función para ver detalle de factura en pop-up y con opciones de edición/devolución ---
         function verDetalleFactura(facturaData) {
             let itemsHtml = facturaData.items.map(item => `
                 <tr>
@@ -773,68 +831,216 @@
             `).join('');
 
             const popupContent = `
-                <div class="popup-invoice-container">
-                    <h2>Detalles de Factura #${facturaData.numeroFactura || facturaData.id}</h2>
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Detalles de Factura - ${facturaData.numeroFactura || facturaData.id}</title>
+                    <style>
+                        /* Incluir los estilos del popup definidos en el head del documento padre */
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 0; margin: 0; background-color: #f5f5f5; }
+                        .popup-invoice-container {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            padding: 20px;
+                            color: #333;
+                            max-width: 800px;
+                            margin: 20px auto;
+                            border: 1px solid #eee;
+                            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+                            background-color: #fff;
+                        }
+                        .popup-invoice-container h2 {
+                            text-align: center;
+                            color: #0f766e;
+                            margin-bottom: 25px;
+                        }
+                        .popup-invoice-container .info-section {
+                            display: flex;
+                            justify-content: space-between;
+                            margin-bottom: 15px;
+                            flex-wrap: wrap;
+                        }
+                        .popup-invoice-container .info-section > div {
+                            flex: 1;
+                            min-width: 280px;
+                            margin-right: 20px;
+                            margin-bottom: 10px;
+                        }
+                        .popup-invoice-container .info-section > div:last-child {
+                            margin-right: 0;
+                        }
+                        .popup-invoice-container p {
+                            margin: 5px 0;
+                            line-height: 1.4;
+                        }
+                        .popup-invoice-container strong {
+                            color: #555;
+                        }
+                        .popup-invoice-container table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 20px;
+                        }
+                        .popup-invoice-container th,
+                        .popup-invoice-container td {
+                            border: 1px solid #ddd;
+                            padding: 10px 8px;
+                            text-align: left;
+                        }
+                        .popup-invoice-container th {
+                            background-color: #f8f8f8;
+                            color: #666;
+                            font-weight: 600;
+                        }
+                        .popup-invoice-container tfoot tr.total-row td {
+                            background-color: #f0f0f0;
+                            font-weight: bold;
+                            text-align: right;
+                        }
+                        .popup-invoice-container .text-right {
+                            text-align: right;
+                        }
+                        .popup-invoice-container .text-center {
+                            text-align: center;
+                        }
+                        .popup-invoice-container .btn-actions {
+                            text-align: center;
+                            margin-top: 30px;
+                        }
+                        .popup-invoice-container .btn-actions button {
+                            padding: 10px 20px;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-size: 1em;
+                            margin: 0 5px;
+                        }
+                        .popup-invoice-container .btn-actions .btn-print {
+                            background-color: #0f766e;
+                            color: white;
+                        }
+                        .popup-invoice-container .btn-actions .btn-edit {
+                            background-color: #2563eb;
+                            color: white;
+                        }
+                        .popup-invoice-container .btn-actions .btn-return {
+                            background-color: #dc2626;
+                            color: white;
+                        }
+                        .popup-invoice-container .btn-actions .btn-close {
+                            background-color: #6b7280;
+                            color: white;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="popup-invoice-container">
+                        <h2>Detalles de Factura #${facturaData.numeroFactura || facturaData.id}</h2>
 
-                    <div class="info-section">
-                        <div>
-                            <p><strong>Número de Factura:</strong> ${facturaData.numeroFactura || 'N/A'}</p>
-                            <p><strong>Fecha de Emisión:</strong> ${facturaData.timestamp ? new Date(facturaData.timestamp.toDate()).toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}</p>
+                        <div class="info-section">
+                            <div>
+                                <p><strong>Número de Factura:</strong> ${facturaData.numeroFactura || 'N/A'}</p>
+                                <p><strong>Fecha de Emisión:</strong> ${facturaData.timestamp ? new Date(facturaData.timestamp.toDate()).toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}</p>
+                            </div>
+                            <div class="text-right">
+                                <p><strong>Fixitech</strong></p>
+                                <p>Su dirección aquí</p>
+                                <p>Su teléfono aquí</p>
+                                <p>Su email aquí</p>
+                            </div>
                         </div>
-                        <div class="text-right">
-                            <p><strong>Fixitech</strong></p>
-                            <p>Su dirección aquí</p>
-                            <p>Su teléfono aquí</p>
-                            <p>Su email aquí</p>
+
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+
+                        <div class="info-section">
+                            <div>
+                                <p><strong>Cliente:</strong> ${facturaData.cliente}</p>
+                                <p><strong>Teléfono:</strong> ${facturaData.telefono}</p>
+                                <p><strong>Dirección:</strong> ${facturaData.direccion}</p>
+                            </div>
+                            <div>
+                                <p><strong>Fecha de Ingreso:</strong> ${facturaData.fechaIngreso}</p>
+                                <p><strong>Fecha de Entrega:</strong> ${facturaData.fechaEntrega}</p>
+                                <p><strong>Estado del Pedido:</strong> ${facturaData.estado}</p>
+                            </div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Descripción</th>
+                                    <th class="text-center">Cant.</th>
+                                    <th class="text-right">P. Unitario</th>
+                                    <th class="text-right">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${itemsHtml}
+                            </tbody>
+                            <tfoot>
+                                <tr class="total-row">
+                                    <td colspan="3">Total:</td>
+                                    <td class="text-right">$${facturaData.total ? facturaData.total.toFixed(2) : '0.00'}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <div class="btn-actions">
+                            <button class="btn-print" onclick='window.opener.generarPDF(${JSON.stringify(facturaData)}, "${facturaData.numeroFactura || facturaData.id}")'>Imprimir PDF</button>
+                            <button class="btn-edit" onclick='window.opener.editarFacturaExistente(${JSON.stringify(facturaData)}); window.close();'>Editar Factura</button>
+                            <button class="btn-return" onclick='window.opener.procesarDevolucion(${JSON.stringify(facturaData)}); window.close();'>Procesar Devolución</button>
+                            <button class="btn-close" onclick="window.close()">Cerrar</button>
                         </div>
                     </div>
-
-                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-
-                    <div class="info-section">
-                        <div>
-                            <p><strong>Cliente:</strong> ${facturaData.cliente}</p>
-                            <p><strong>Teléfono:</strong> ${facturaData.telefono}</p>
-                            <p><strong>Dirección:</strong> ${facturaData.direccion}</p>
-                        </div>
-                        <div>
-                            <p><strong>Fecha de Ingreso:</strong> ${facturaData.fechaIngreso}</p>
-                            <p><strong>Fecha de Entrega:</strong> ${facturaData.fechaEntrega}</p>
-                            <p><strong>Estado del Pedido:</strong> ${facturaData.estado}</p>
-                        </div>
-                    </div>
-
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Descripción</th>
-                                <th class="text-center">Cant.</th>
-                                <th class="text-right">P. Unitario</th>
-                                <th class="text-right">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${itemsHtml}
-                        </tbody>
-                        <tfoot>
-                            <tr class="total-row">
-                                <td colspan="3">Total:</td>
-                                <td class="text-right">$${facturaData.total ? facturaData.total.toFixed(2) : '0.00'}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-
-                    <div class="btn-actions">
-                        <button class="btn-print" onclick='window.opener.generarPDF(${JSON.stringify(facturaData)}, "${facturaData.numeroFactura || facturaData.id}")'>Imprimir PDF</button>
-                        <button class="btn-close" onclick="window.close()">Cerrar</button>
-                    </div>
-                </div>
+                </body>
+                </html>
             `;
 
             const popupWindow = window.open('', '_blank', 'width=950,height=750,scrollbars=yes,resizable=yes');
             popupWindow.document.write(popupContent);
             popupWindow.document.close();
             popupWindow.focus();
+        }
+
+        // --- Función para cargar datos de una factura existente al formulario de edición ---
+        function editarFacturaExistente(facturaData) {
+            facturaEnEdicionId = facturaData.id;
+            todaLaInformacionFacturaEnEdicion = facturaData; 
+            
+            document.getElementById('cliente').value = facturaData.cliente || '';
+            document.getElementById('telefono').value = facturaData.telefono || '';
+            document.getElementById('direccion').value = facturaData.direccion || '';
+            document.getElementById('fechaIngreso').value = facturaData.fechaIngreso || '';
+            document.getElementById('fechaEntrega').value = facturaData.fechaEntrega || '';
+            document.getElementById('estado').value = facturaData.estado || 'En espera';
+            
+            items = facturaData.items || [];
+            actualizarTabla(); // Actualizar la tabla de ítems del formulario
+
+            document.getElementById('formFacturaTitle').textContent = `Editando Factura #${facturaData.numeroFactura || facturaData.id}`;
+            document.getElementById('guardarFacturaBtn').textContent = 'Actualizar Factura';
+            
+            mostrarSeccion('nuevaVentaSection'); // Cambiar a la sección de Nueva Venta
+            window.scrollTo(0, 0); // Desplazarse al inicio del formulario
+        }
+
+        // --- Función básica para procesar una devolución (cambio de estado) ---
+        async function procesarDevolucion(facturaData) {
+            if (!confirm(`¿Estás seguro de que quieres marcar la factura #${facturaData.numeroFactura || facturaData.id} como "Devuelta"? Esto solo cambia el estado.`)) {
+                return;
+            }
+
+            try {
+                // Actualizar el estado de la factura en Firestore
+                await db.collection('facturas').doc(facturaData.id).update({
+                    estado: 'Devuelto',
+                    fechaDevolucion: new Date().toISOString().split('T')[0] // Opcional: añadir una fecha de devolución
+                });
+                alert(`Factura #${facturaData.numeroFactura || facturaData.id} marcada como "Devuelto".`);
+                cargarFacturas(); // Recargar la lista para reflejar el cambio de estado
+            } catch (error) {
+                console.error("Error al procesar devolución: ", error);
+                alert("Hubo un error al marcar la factura como devuelta. Detalles: " + error.message);
+            }
         }
 
     </script>
