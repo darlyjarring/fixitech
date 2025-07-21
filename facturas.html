@@ -3,41 +3,75 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Facturación - Múltiples Ítems</title>
+  <title>Nueva Venta - Fixitech</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
-<body class="bg-gray-100 p-4">
-  <h1 class="text-2xl font-bold mb-4">📋 Caja Facturadora - Fixitech</h1>
-  <div class="grid md:grid-cols-2 gap-6">
-    <!-- Caja de ítems -->
-    <div class="bg-white p-4 rounded shadow">
-      <h2 class="font-semibold mb-2">Agregar Ítems</h2>
-      <input type="text" id="descripcion" placeholder="Descripción" class="w-full mb-2 p-2 border rounded" />
-      <input type="number" id="cantidad" placeholder="Cantidad" class="w-full mb-2 p-2 border rounded" />
-      <input type="number" id="precio" placeholder="Precio Unitario" class="w-full mb-2 p-2 border rounded" />
-      <button onclick="agregarItem()" class="bg-teal-600 text-white px-4 py-2 rounded w-full mb-4">+ Agregar</button>
-      <ul id="listaItems" class="space-y-2"></ul>
-      <p class="font-bold mt-4">Total: $<span id="total">0</span></p>
+<body class="bg-gray-50 font-sans">
+
+  <!-- Barra de navegación -->
+  <header class="bg-cyan-800 text-white p-4 flex justify-between items-center shadow">
+    <h1 class="text-xl font-bold">Fixitech - Nueva Venta</h1>
+    <nav class="space-x-4 text-sm">
+      <a href="#" class="hover:underline">Inicio</a>
+      <a href="#" class="hover:underline">Clientes</a>
+      <a href="#" class="hover:underline">Facturación</a>
+      <a href="#" class="hover:underline">Galería</a>
+    </nav>
+  </header>
+
+  <!-- Formulario de Cliente y Venta -->
+  <div class="max-w-6xl mx-auto mt-6 bg-white p-6 rounded shadow">
+    <div class="grid md:grid-cols-4 gap-4 mb-4">
+      <input type="text" id="cliente" placeholder="Nombre del Cliente" class="p-2 border rounded w-full" />
+      <input type="text" id="telefono" placeholder="Teléfono" class="p-2 border rounded w-full" />
+      <input type="text" id="direccion" placeholder="Dirección" class="p-2 border rounded w-full" />
+      <button onclick="guardarFactura()" class="bg-blue-600 text-white px-4 py-2 rounded w-full">💾 Guardar Factura</button>
     </div>
 
-    <!-- Datos de la factura -->
-    <div class="bg-white p-4 rounded shadow">
-      <h2 class="font-semibold mb-2">Datos del Cliente</h2>
-      <input type="text" id="cliente" placeholder="Nombre del Cliente" class="w-full mb-2 p-2 border rounded" />
-      <input type="date" id="fechaIngreso" class="w-full mb-2 p-2 border rounded" />
-      <input type="date" id="fechaEntrega" class="w-full mb-2 p-2 border rounded" />
-      <select id="estado" class="w-full mb-2 p-2 border rounded">
+    <div class="grid md:grid-cols-4 gap-4 mb-4">
+      <input type="date" id="fechaIngreso" class="p-2 border rounded w-full" />
+      <input type="date" id="fechaEntrega" class="p-2 border rounded w-full" />
+      <select id="estado" class="p-2 border rounded w-full">
         <option value="En espera">En espera</option>
         <option value="Entregado">Entregado</option>
         <option value="Facturado">Facturado</option>
       </select>
-      <button onclick="guardarFactura()" class="bg-blue-600 text-white px-4 py-2 rounded w-full mb-2">💾 Guardar Factura</button>
+      <p class="p-2 font-semibold bg-gray-100 rounded text-center">Estado del Pedido</p>
+    </div>
+
+    <!-- Agregar Ítems -->
+    <h2 class="font-semibold mt-6 mb-2 text-lg">Agregar Ítems</h2>
+    <div class="grid md:grid-cols-4 gap-4 mb-4">
+      <input type="text" id="descripcion" placeholder="Descripción" class="p-2 border rounded w-full" />
+      <input type="number" id="cantidad" placeholder="Cantidad" class="p-2 border rounded w-full" />
+      <input type="number" id="precio" placeholder="Precio Unitario" class="p-2 border rounded w-full" />
+      <button onclick="agregarItem()" class="bg-teal-600 text-white px-4 py-2 rounded w-full">+ Agregar</button>
+    </div>
+
+    <!-- Tabla de ítems -->
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm text-left border border-gray-300">
+        <thead class="bg-gray-200 text-gray-700">
+          <tr>
+            <th class="px-3 py-2 border">Descripción</th>
+            <th class="px-3 py-2 border">Cantidad</th>
+            <th class="px-3 py-2 border">Precio</th>
+            <th class="px-3 py-2 border">Subtotal</th>
+            <th class="px-3 py-2 border">Acción</th>
+          </tr>
+        </thead>
+        <tbody id="tablaItems" class="bg-white"></tbody>
+        <tfoot>
+          <tr class="bg-gray-100 font-semibold">
+            <td colspan="3" class="text-right px-3 py-2 border">Total:</td>
+            <td class="px-3 py-2 border" id="total">$0.00</td>
+            <td class="border"></td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   </div>
-
-  <!-- Lista de facturas -->
-  <div id="facturas" class="mt-8 grid gap-4"></div>
 
   <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
@@ -57,31 +91,38 @@
       document.getElementById('descripcion').value = '';
       document.getElementById('cantidad').value = '';
       document.getElementById('precio').value = '';
-      actualizarListaItems();
+      actualizarTabla();
     }
 
-    function actualizarListaItems() {
-      const lista = document.getElementById('listaItems');
+    function actualizarTabla() {
+      const tabla = document.getElementById('tablaItems');
       const totalEl = document.getElementById('total');
-      lista.innerHTML = '';
+      tabla.innerHTML = '';
       let total = 0;
       items.forEach((item, index) => {
         total += item.subtotal;
-        const li = document.createElement('li');
-        li.innerHTML = `${item.cantidad} x ${item.descripcion} @ $${item.precio} = $${item.subtotal.toFixed(2)}
-          <button onclick="eliminarItem(${index})" class="text-red-600 ml-2">✖</button>`;
-        lista.appendChild(li);
+        tabla.innerHTML += `
+          <tr>
+            <td class="px-3 py-2 border">${item.descripcion}</td>
+            <td class="px-3 py-2 border">${item.cantidad}</td>
+            <td class="px-3 py-2 border">$${item.precio}</td>
+            <td class="px-3 py-2 border">$${item.subtotal.toFixed(2)}</td>
+            <td class="px-3 py-2 border"><button onclick="eliminarItem(${index})" class="text-red-600">✖</button></td>
+          </tr>
+        `;
       });
-      totalEl.textContent = total.toFixed(2);
+      totalEl.textContent = `$${total.toFixed(2)}`;
     }
 
     function eliminarItem(index) {
       items.splice(index, 1);
-      actualizarListaItems();
+      actualizarTabla();
     }
 
     async function guardarFactura() {
       const cliente = document.getElementById('cliente').value;
+      const telefono = document.getElementById('telefono').value;
+      const direccion = document.getElementById('direccion').value;
       const fechaIngreso = document.getElementById('fechaIngreso').value;
       const fechaEntrega = document.getElementById('fechaEntrega').value;
       const estado = document.getElementById('estado').value;
@@ -89,55 +130,46 @@
       if (!cliente || items.length === 0) return alert('Faltan datos del cliente o ítems');
 
       const data = {
-        cliente, fechaIngreso, fechaEntrega, estado, items, total, timestamp: new Date()
+        cliente, telefono, direccion, fechaIngreso, fechaEntrega, estado, items, total, timestamp: new Date()
       };
       await db.collection('facturas').add(data);
       alert('Factura guardada');
+      generarPDF(data);
       items = [];
-      actualizarListaItems();
-      cargarFacturas();
+      actualizarTabla();
     }
-
-    async function cargarFacturas() {
-      const contenedor = document.getElementById('facturas');
-      contenedor.innerHTML = '';
-      const snap = await db.collection('facturas').orderBy('timestamp', 'desc').get();
-      snap.forEach(doc => {
-        const f = doc.data();
-        const div = document.createElement('div');
-        div.className = 'bg-white p-4 rounded shadow';
-        let html = `<h3 class="font-bold">${f.cliente}</h3><ul class="mb-2">`;
-        f.items.forEach(i => {
-          html += `<li>${i.cantidad} x ${i.descripcion} = $${i.subtotal.toFixed(2)}</li>`;
-        });
-        html += `</ul><p><strong>Total:</strong> $${f.total}</p><p>Estado: ${f.estado}</p>
-        <button onclick='generarPDF(${JSON.stringify(f).replace(/"/g, "&quot;")})' class="mt-2 bg-gray-700 text-white px-2 py-1 rounded">📄 PDF</button>`;
-        div.innerHTML = html;
-        contenedor.appendChild(div);
-      });
-    }
-
-    function generarPDF(f) {
+  
+    function generarPDF(data) {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      doc.text(`Factura - Fixitech`, 10, 10);
-      doc.text(`Cliente: ${f.cliente}`, 10, 20);
-      let y = 30;
-      f.items.forEach(i => {
-        doc.text(`${i.cantidad} x ${i.descripcion} @ $${i.precio} = $${i.subtotal.toFixed(2)}`, 10, y);
-        y += 10;
+      let y = 10;
+      doc.setFontSize(12);
+      doc.text("Factura - Fixitech", 10, y);
+      y += 10;
+      doc.text(`Cliente: ${data.cliente}`, 10, y);
+      y += 6;
+      doc.text(`Teléfono: ${data.telefono}`, 10, y);
+      y += 6;
+      doc.text(`Dirección: ${data.direccion}`, 10, y);
+      y += 6;
+      doc.text(`Fecha Ingreso: ${data.fechaIngreso}`, 10, y);
+      y += 6;
+      doc.text(`Fecha Entrega: ${data.fechaEntrega}`, 10, y);
+      y += 10;
+
+      doc.text("Detalle:", 10, y);
+      y += 8;
+      data.items.forEach(i => {
+        doc.text(`- ${i.cantidad} x ${i.descripcion} @ $${i.precio} = $${i.subtotal.toFixed(2)}`, 10, y);
+        y += 6;
       });
-      doc.text(`Total: $${f.total}`, 10, y);
-      y += 10;
-      doc.text(`Ingreso: ${f.fechaIngreso}`, 10, y);
-      y += 10;
-      doc.text(`Entrega: ${f.fechaEntrega}`, 10, y);
-      y += 10;
-      doc.text(`Estado: ${f.estado}`, 10, y);
-      doc.save(`Factura_${f.cliente}.pdf`);
+      y += 4;
+      doc.text(`Total: $${data.total.toFixed(2)}`, 10, y);
+      y += 6;
+      doc.text(`Estado: ${data.estado}`, 10, y + 4);
+      doc.save(`Factura_${data.cliente}.pdf`);
     }
 
-    cargarFacturas();
-  </script>
+</script>
 </body>
 </html>
