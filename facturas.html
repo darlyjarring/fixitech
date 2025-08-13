@@ -132,11 +132,11 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-b pb-4 mb-4">
                     <div class="relative">
                         <label for="cedulaCliente" class="block text-sm font-medium text-gray-700">Cédula</label>
-                        <input type="text" id="cedulaCliente" placeholder="Cédula del Cliente" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500" onblur="buscarClientePorCedulaONombre()">
+                        <input type="text" id="cedulaCliente" placeholder="Cédula del Cliente" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500" onblur="buscarClientePorCedula()">
                     </div>
                     <div class="relative">
                         <label for="nombreCliente" class="block text-sm font-medium text-gray-700">Nombre</label>
-                        <input type="text" id="nombreCliente" placeholder="Nombre Completo del Cliente" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500" onblur="buscarClientePorCedulaONombre()">
+                        <input type="text" id="nombreCliente" placeholder="Nombre Completo del Cliente" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
                         <button type="button" onclick="guardarClienteDesdeFactura()" class="absolute right-2 top-8 text-sm bg-gray-200 hover:bg-gray-300 p-1 rounded-md" title="Guardar este cliente">💾</button>
                     </div>
                     <div>
@@ -983,46 +983,37 @@
                 mostrarMensaje("Error al registrar/actualizar el cliente. Por favor, inténtalo de nuevo.", 'bg-red-500');
             }
         }
-
-        async function buscarClientePorCedulaONombre() {
+        
+        // Función de búsqueda de cliente (corregida)
+        async function buscarClientePorCedula() {
             const cedulaInput = document.getElementById('cedulaCliente').value.trim();
-            const nombreInput = document.getElementById('nombreCliente').value.trim().toLowerCase();
+            const nombreInput = document.getElementById('nombreCliente');
             const telefonoInput = document.getElementById('telefono');
             const direccionInput = document.getElementById('direccion');
 
-            if (cedulaInput.length > 0) {
-                 const clienteDoc = await db.collection('clientes').doc(cedulaInput).get();
-                 if (clienteDoc.exists) {
-                     const data = clienteDoc.data();
-                     document.getElementById('nombreCliente').value = data.nombre || '';
-                     telefonoInput.value = data.telefono || '';
-                     direccionInput.value = data.direccion || '';
-                     mostrarMensaje('Cliente encontrado.', 'bg-green-500');
-                     return;
-                 }
+            if (cedulaInput.length === 0) {
+                return;
             }
 
-            // Si no se encontró por cédula o la cédula está vacía, buscamos por nombre
-            if (nombreInput.length > 0) {
-                 const querySnapshot = await db.collection('clientes').where('nombre', '==', nombreInput).limit(1).get();
-                 if (!querySnapshot.empty) {
-                      const clienteDoc = querySnapshot.docs[0];
-                      const data = clienteDoc.data();
-                      document.getElementById('cedulaCliente').value = clienteDoc.id || '';
-                      telefonoInput.value = data.telefono || '';
-                      direccionInput.value = data.direccion || '';
-                      mostrarMensaje('Cliente encontrado.', 'bg-green-500');
-                      return;
-                 }
-            }
-            
-            // Si no se encuentra, limpiar campos
-            if (cedulaInput.length > 0) {
-                 document.getElementById('nombreCliente').value = '';
-                 telefonoInput.value = '';
-                 direccionInput.value = '';
+            try {
+                const clienteDoc = await db.collection('clientes').doc(cedulaInput).get();
+                if (clienteDoc.exists) {
+                    const data = clienteDoc.data();
+                    nombreInput.value = data.nombre || '';
+                    telefonoInput.value = data.telefono || '';
+                    direccionInput.value = data.direccion || '';
+                    mostrarMensaje('Cliente encontrado.', 'bg-green-500');
+                } else {
+                    telefonoInput.value = '';
+                    direccionInput.value = '';
+                    mostrarMensaje('Cliente no encontrado. Puedes ingresarlo y guardarlo.', 'bg-yellow-500');
+                }
+            } catch (error) {
+                console.error("Error al buscar cliente: ", error);
+                mostrarMensaje("Error al buscar el cliente.", 'bg-red-500');
             }
         }
+        
 
         async function cargarClientes() {
             const tableBody = document.getElementById('listaClientesTableBody');
