@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+     <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Gestión de Ventas - Fixitech</title>
+    <title>Gestión de Ventas y Compras - Fixitech</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
@@ -110,8 +110,9 @@
         <nav class="space-x-4 text-sm">
             <a href="#" onclick="mostrarSeccion('nuevaVentaSection')" class="hover:underline">Nueva Venta</a>
             <a href="#" onclick="mostrarSeccion('gestionFacturasSection')" class="hover:underline">Gestión de Facturas</a>
-            <a href="#" class="hover:underline">Clientes</a>
-            <a href="#" class="hover:underline">Galería</a>
+            <a href="#" onclick="mostrarSeccion('gestionClientesSection')" class="hover:underline">Clientes</a>
+            <a href="#" onclick="mostrarSeccion('gestionProductosSection')" class="hover:underline">Productos/Servicios</a>
+            <a href="#" onclick="mostrarSeccion('gestionComprasSection')" class="hover:underline">Compras</a>
         </nav>
     </header>
 
@@ -119,8 +120,12 @@
         <h2 class="font-semibold text-lg mb-4" id="formFacturaTitle">Datos del Cliente y Nueva Factura</h2>
         <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
-                <label for="cliente" class="block text-sm font-medium text-gray-700">Cédula o Nombre:</label>
-                <input type="text" id="cliente" placeholder="Cédula o Nombre del Cliente" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" />
+                <label for="cedulaCliente" class="block text-sm font-medium text-gray-700">Cédula:</label>
+                <input type="text" id="cedulaCliente" placeholder="Cédula del Cliente" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" oninput="buscarClientePorCedulaONombre()" />
+            </div>
+            <div>
+                <label for="nombreCliente" class="block text-sm font-medium text-gray-700">Nombre:</label>
+                <input type="text" id="nombreCliente" placeholder="Nombre del Cliente" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" oninput="buscarClientePorCedulaONombre()" />
             </div>
             <div>
                 <label for="telefono" class="block text-sm font-medium text-gray-700">Teléfono:</label>
@@ -130,10 +135,11 @@
                 <label for="direccion" class="block text-sm font-medium text-gray-700">Dirección:</label>
                 <input type="text" id="direccion" placeholder="Dirección" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" />
             </div>
-            <div class="flex items-end">
-                <button onclick="nuevoCliente()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md w-full transition duration-150 ease-in-out">➕ Nuevo Cliente</button>
-            </div>
         </div>
+        <div class="flex justify-end mb-6">
+            <button onclick="guardarClienteDesdeFactura()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md w-1/4 transition duration-150 ease-in-out">➕ Registrar/Actualizar Cliente</button>
+        </div>
+
 
         <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div>
@@ -241,873 +247,1453 @@
         </div>
     </div>
 
-   <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
-<script src="firebase.js"></script>
-<script>
-    const db = firebase.firestore();
-    let items = [];
-    let todasLasFacturas = []; // Para almacenar todas las facturas cargadas y permitir filtros
-    let facturaEnEdicionId = null; // Variable para saber si estamos editando una factura existente
-    let todaLaInformacionFacturaEnEdicion = null; // Guarda todos los datos de la factura si estamos editando
+    <div id="gestionClientesSection" class="max-w-6xl mx-auto mt-8 bg-white p-6 rounded shadow hidden">
+        <h2 class="font-semibold text-lg mb-4">Gestión y Consulta de Clientes</h2>
+        
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <div>
+                <label for="filtroClienteNombre" class="block text-sm font-medium text-gray-700">Filtrar por Nombre/Cédula:</label>
+                <input type="text" id="filtroClienteNombre" placeholder="Nombre o Cédula del Cliente" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" onkeyup="filtrarClientes()" />
+            </div>
+            <div class="flex items-end">
+                <button onclick="cargarClientes()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md w-full transition duration-150 ease-in-out">Actualizar Lista</button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm text-left border border-gray-300 rounded-md overflow-hidden">
+                <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
+                    <tr>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 tracking-wider">ID/Cédula</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-20er-200 tracking-wider">Nombre</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 tracking-wider">Teléfono</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 tracking-wider">Dirección</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-center tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="listaClientesTableBody" class="bg-white divide-y divide-gray-200">
+                    <tr><td colspan="5" class="text-center py-4 text-gray-500">Cargando clientes...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="gestionProductosSection" class="max-w-6xl mx-auto mt-8 bg-white p-6 rounded shadow hidden">
+        <h2 class="font-semibold text-lg mb-4" id="formProductoServicioTitle">Gestión de Productos y Servicios</h2>
+        
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div>
+                <label for="nombreProducto" class="block text-sm font-medium text-gray-700">Nombre:</label>
+                <input type="text" id="nombreProducto" placeholder="Nombre del Producto/Servicio" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+            <div>
+                <label for="tipoProducto" class="block text-sm font-medium text-gray-700">Tipo:</label>
+                <select id="tipoProducto" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" onchange="toggleStockInput()">
+                    <option value="producto">Producto</option>
+                    <option value="servicio">Servicio</option>
+                </select>
+            </div>
+            <div>
+                <label for="precioProducto" class="block text-sm font-medium text-gray-700">Precio:</label>
+                <input type="number" id="precioProducto" placeholder="Precio" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" min="0" step="0.01" />
+            </div>
+            <div id="stockInputDiv">
+                <label for="stockProducto" class="block text-sm font-medium text-gray-700">Stock:</label>
+                <input type="number" id="stockProducto" placeholder="Stock" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" min="0" value="0" />
+            </div>
+            <div class="flex items-end">
+                <button onclick="guardarProductoServicio()" id="guardarProductoBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md w-full transition duration-150 ease-in-out">💾 Guardar Producto/Servicio</button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm text-left border border-gray-300 rounded-md overflow-hidden">
+                <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
+                    <tr>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 tracking-wider">Nombre</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 tracking-wider">Tipo</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-right tracking-wider">Precio</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-center tracking-wider">Stock</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-center tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="listaProductosTableBody" class="bg-white divide-y divide-gray-200">
+                    <tr><td colspan="5" class="text-center py-4 text-gray-500">Cargando productos y servicios...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div id="gestionComprasSection" class="max-w-6xl mx-auto mt-8 bg-white p-6 rounded shadow hidden">
+        <h2 class="font-semibold text-lg mb-4">Registro y Consulta de Compras</h2>
+        
+        <h3 class="font-medium text-md mb-3 text-gray-700">Registrar Nueva Compra</h3>
+        <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 items-end">
+            <div>
+                <label for="fechaCompra" class="block text-sm font-medium text-gray-700">Fecha:</label>
+                <input type="date" id="fechaCompra" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+            <div>
+                <label for="productoCompra" class="block text-sm font-medium text-gray-700">Producto:</label>
+                <select id="productoCompra" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500"></select>
+            </div>
+            <div>
+                <label for="cantidadCompra" class="block text-sm font-medium text-gray-700">Cantidad:</label>
+                <input type="number" id="cantidadCompra" placeholder="Cantidad comprada" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" min="1" value="1" />
+            </div>
+            <div>
+                <label for="costoCompra" class="block text-sm font-medium text-gray-700">Costo Unitario:</label>
+                <input type="number" id="costoCompra" placeholder="Costo unitario" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" min="0" step="0.01" />
+            </div>
+            <div>
+                <label for="facturaCompra" class="block text-sm font-medium text-gray-700">N° Factura:</label>
+                <input type="text" id="facturaCompra" placeholder="Número de factura" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" required />
+            </div>
+            <div>
+                <label for="usuarioCompra" class="block text-sm font-medium text-gray-700">Usuario:</label>
+                <input type="text" id="usuarioCompra" placeholder="Usuario que registra" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+            <div class="flex items-end col-span-2">
+                <button onclick="guardarCompra()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md w-full transition duration-150 ease-in-out">💾 Guardar Compra</button>
+            </div>
+        </div>
+
+        <hr class="my-6 border-gray-200">
+
+        <h3 class="font-medium text-md mb-3 text-gray-700">Historial de Compras</h3>
+        <div class="grid md:grid-cols-4 gap-4 mb-4 items-end">
+            <div>
+                <label for="filtroAno" class="block text-sm font-medium text-gray-700">Filtrar por Año:</label>
+                <select id="filtroAno" onchange="filtrarCompras()" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500"></select>
+            </div>
+            <div>
+                <label for="filtroMes" class="block text-sm font-medium text-gray-700">Filtrar por Mes:</label>
+                <select id="filtroMes" onchange="filtrarCompras()" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Todos</option>
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div>
+                <label for="filtroDia" class="block text-sm font-medium text-gray-700">Filtrar por Día:</label>
+                <input type="number" id="filtroDia" placeholder="Día (ej. 15)" onkeyup="filtrarCompras()" class="p-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500" min="1" max="31" />
+            </div>
+            <div class="flex items-end">
+                <button onclick="cargarCompras()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md w-full transition duration-150 ease-in-out">Actualizar Lista</button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm text-left border border-gray-300 rounded-md overflow-hidden">
+                <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
+                    <tr>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 tracking-wider">Fecha</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 tracking-wider">Producto</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-center tracking-wider">Cantidad</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-right tracking-wider">Costo Unitario</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-right tracking-wider">Total Compra</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 tracking-wider">N° Factura</th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 tracking-wider">Usuario</th>
+                    </tr>
+                </thead>
+                <tbody id="listaComprasTableBody" class="bg-white divide-y divide-gray-200">
+                    <tr><td colspan="7" class="text-center py-4 text-gray-500">Cargando compras...</td></tr>
+                </tbody>
+                <tfoot id="comprasSummaryFooter">
+                    </tfoot>
+            </table>
+        </div>
+    </div>
 
 
-    // Función para mostrar/ocultar secciones
-    function mostrarSeccion(sectionId) {
-        const nuevaVenta = document.getElementById('nuevaVentaSection');
-        const gestionFacturas = document.getElementById('gestionFacturasSection');
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
+    <script src="firebase.js"></script> 
+    <script>
+        const db = firebase.firestore();
+        let items = [];
+        let todasLasFacturas = []; // Para almacenar todas las facturas cargadas y permitir filtros
+        let facturaEnEdicionId = null; // Variable para saber si estamos editando una factura existente
+        let todaLaInformacionFacturaEnEdicion = null; // Guarda todos los datos de la factura si estamos editando
+        
+        let todosLosClientes = []; // Para almacenar todos los clientes cargados
+        let todosLosProductosYServicios = []; // Para almacenar todos los productos y servicios cargados
+        let productoServicioEnEdicionId = null; // Para edición de productos/servicios
 
-        if (sectionId === 'nuevaVentaSection') {
-            nuevaVenta.classList.remove('hidden');
-            gestionFacturas.classList.add('hidden');
-            // Si NO estamos en modo edición (porque venimos de Gestion de Facturas), limpiar el formulario.
-            // Si SÍ estamos en modo edición (porque acabamos de pulsar "Editar Factura"), el formulario ya se habrá llenado.
-            if (facturaEnEdicionId === null) { 
-                limpiarFormulario();
-            }
-            document.getElementById('formFacturaTitle').textContent = 'Datos del Cliente y Nueva Factura';
-            document.getElementById('guardarFacturaBtn').textContent = '💾 Guardar Factura';
-        } else if (sectionId === 'gestionFacturasSection') {
-            gestionFacturas.classList.remove('hidden');
-            nuevaVenta.classList.add('hidden');
-            cargarFacturas(); // Recargar facturas cada vez que se muestre la gestión
-            // Al cambiar a gestión de facturas, asegúrate de que el estado de edición se resetee
-            facturaEnEdicionId = null; 
-            todaLaInformacionFacturaEnEdicion = null;
-        }
-    }
+        let todasLasCompras = []; // Para almacenar todas las compras
+        
 
+        // Función para mostrar/ocultar secciones
+        function mostrarSeccion(sectionId) {
+            document.querySelectorAll('div[id$="Section"]').forEach(section => {
+                section.classList.add('hidden');
+            });
 
-    // Inicializar las fechas a la fecha actual y mostrar la sección de nueva venta
-    document.addEventListener('DOMContentLoaded', () => {
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('fechaIngreso').value = today;
-        document.getElementById('fechaEntrega').value = today;
-        actualizarTabla(); // Para el formulario de nueva factura (mostrar "No hay ítems...")
-        mostrarSeccion('nuevaVentaSection'); // Muestra la sección de Nueva Venta por defecto
-    });
+            document.getElementById(sectionId).classList.remove('hidden');
 
-    function agregarItem() {
-        const descripcionInput = document.getElementById('descripcion');
-        const cantidadInput = document.getElementById('cantidad');
-        const precioInput = document.getElementById('precio');
-
-        const descripcion = descripcionInput.value.trim();
-        const cantidad = parseInt(cantidadInput.value);
-        const precio = parseFloat(precioInput.value);
-
-        if (!descripcion || isNaN(cantidad) || cantidad <= 0 || isNaN(precio) || precio < 0) {
-            alert('Por favor, ingresa una descripción válida, una cantidad positiva y un precio unitario no negativo.');
-            return;
-        }
-
-        const subtotal = cantidad * precio;
-        items.push({ descripcion, cantidad, precio, subtotal });
-
-        // Limpiar campos después de agregar
-        descripcionInput.value = '';
-        cantidadInput.value = '1';
-        precioInput.value = '';
-        descripcionInput.focus();
-
-        actualizarTabla();
-    }
-
-    function actualizarTabla() {
-        const tabla = document.getElementById('tablaItems');
-        const totalEl = document.getElementById('total');
-        tabla.innerHTML = '';
-        let total = 0;
-
-        if (items.length === 0) {
-            tabla.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No hay ítems agregados aún.</td></tr>`;
-            totalEl.textContent = `$0.00`;
-            return;
-        }
-
-        items.forEach((item, index) => {
-            total += item.subtotal;
-            tabla.innerHTML += `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-3 py-2 border-b border-gray-200">${item.descripcion}</td>
-                    <td class="px-3 py-2 border-b border-gray-200 text-center">${item.cantidad}</td>
-                    <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.precio.toFixed(2)}</td>
-                    <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.subtotal.toFixed(2)}</td>
-                    <td class="px-3 py-2 border-b border-gray-200 text-center">
-                        <button onclick="eliminarItem(${index})" class="text-red-600 hover:text-red-800 transition duration-150 ease-in-out" title="Eliminar Ítem">✖</button>
-                    </td>
-                </tr>
-            `;
-        });
-        totalEl.textContent = `$${total.toFixed(2)}`;
-    }
-
-    function eliminarItem(index) {
-        if (confirm('¿Estás seguro de que quieres eliminar este ítem?')) {
-            items.splice(index, 1);
-            actualizarTabla();
-        }
-    }
-
-    // Función auxiliar para formatear el número de factura
-    function formatInvoiceNumber(number) {
-        const year = new Date().getFullYear();
-        const paddedNumber = String(number).padStart(6, '0');
-        return `${paddedNumber}${year.toString().substring(2)}`;
-    }
-
-    async function guardarFactura() {
-        const cliente = document.getElementById('cliente').value.trim();
-        const telefono = document.getElementById('telefono').value.trim();
-        const direccion = document.getElementById('direccion').value.trim();
-        const fechaIngreso = document.getElementById('fechaIngreso').value;
-        const fechaEntrega = document.getElementById('fechaEntrega').value;
-        const estado = document.getElementById('estado').value;
-        const total = items.reduce((sum, item) => sum + item.subtotal, 0);
-
-        if (!cliente || !telefono || !direccion || !fechaIngreso || !fechaEntrega) {
-            alert('Por favor, completa todos los datos del cliente y las fechas.');
-            return;
-        }
-        if (items.length === 0) {
-            alert('La factura debe contener al menos un ítem.');
-            return;
-        }
-        if (new Date(fechaIngreso) > new Date(fechaEntrega)) {
-            alert('La fecha de entrega no puede ser anterior a la fecha de ingreso.');
-            return;
-        }
-
-        let invoiceNumber = ''; 
-        let docIdToSave = facturaEnEdicionId; 
-
-        try {
-            // Si es una factura nueva, generar el número vía transacción
-            if (!docIdToSave) {
-                await db.runTransaction(async (transaction) => {
-                    const counterRef = db.collection('contadores').doc('facturas');
-                    const counterDoc = await transaction.get(counterRef);
-
-                    let currentNumber = 0;
-                    if (counterDoc.exists) {
-                        currentNumber = counterDoc.data().ultimoNumero || 0;
-                    }
-
-                    const newNumber = currentNumber + 1;
-                    transaction.update(counterRef, { ultimoNumero: newNumber });
-                    invoiceNumber = formatInvoiceNumber(newNumber);
-                });
-            } else {
-                // Si estamos editando, reutilizar el número de factura existente
-                invoiceNumber = todaLaInformacionFacturaEnEdicion.numeroFactura;
-            }
-
-            // --- INICIO DE LA VERIFICACIÓN DEFENSIVA ADICIONAL ---
-            // Aseguramos que 'items' sea un array JavaScript nativo justo antes de guardarlo en Firestore
-            const sanitizedItems = Array.isArray(items) ? items.map(item => ({
-                descripcion: item.descripcion,
-                cantidad: item.cantidad,
-                precio: item.precio,
-                subtotal: item.subtotal
-            })) : [];
-            // --- FIN DE LA VERIFICACIÓN DEFENSIVA ADICIONAL ---
-
-            const data = {
-                numeroFactura: invoiceNumber,
-                cliente,
-                telefono,
-                direccion,
-                fechaIngreso,
-                fechaEntrega,
-                estado,
-                items: sanitizedItems, // USAMOS EL ARRAY SANITIZADO AQUÍ
-                total: parseFloat(total.toFixed(2)),
-                timestamp: facturaEnEdicionId ? todaLaInformacionFacturaEnEdicion.timestamp : firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            if (docIdToSave) {
-                // Actualizar documento existente
-                await db.collection('facturas').doc(docIdToSave).set(data); 
-                alert(`Factura ${invoiceNumber} actualizada con éxito.`);
-            } else {
-                // Añadir nuevo documento
-                await db.collection('facturas').add(data);
-                alert(`Factura ${invoiceNumber} guardada con éxito.`);
-            }
-
-            // Resetear el estado de edición después de guardar/actualizar
-            facturaEnEdicionId = null;
-            todaLaInformacionFacturaEnEdicion = null;
-            document.getElementById('formFacturaTitle').textContent = 'Datos del Cliente y Nueva Factura';
-            document.getElementById('guardarFacturaBtn').textContent = '💾 Guardar Factura';
-
-            generarPDF(data, invoiceNumber); 
-            limpiarFormulario(); 
-            cargarFacturas(); 
-
-        } catch (error) {
-            console.error("Error al guardar/actualizar la factura: ", error);
-            alert("Hubo un error al guardar/actualizar la factura. Por favor, inténtalo de nuevo. Detalles: " + error.message);
-        }
-    }
-
-    function generarPDF(data, facturaNum) {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        let y = 15;
-        const margin = 15;
-        const lineHeight = 7;
-
-        doc.setFontSize(18);
-        doc.setTextColor(52, 152, 219);
-        doc.text("Factura - Fixitech", margin, y);
-        y += lineHeight * 2;
-
-        doc.setFontSize(10);
-        doc.setTextColor(0, 0, 0);
-
-        doc.setFontSize(12);
-        doc.text(`Factura #${facturaNum || 'N/A'}`, doc.internal.pageSize.width - margin, 15, null, null, 'right');
-        doc.setFontSize(10);
-        y += lineHeight;
-
-        doc.setFont("helvetica", "bold");
-        doc.text("Datos del Cliente:", margin, y);
-        doc.setFont("helvetica", "normal");
-        y += lineHeight;
-        doc.text(`Cliente: ${data.cliente}`, margin, y);
-        y += lineHeight;
-        doc.text(`Teléfono: ${data.telefono}`, margin, y);
-        y += lineHeight;
-        doc.text(`Dirección: ${data.direccion}`, margin, y);
-        y += lineHeight;
-        doc.text(`Fecha de Ingreso: ${data.fechaIngreso}`, margin, y);
-        y += lineHeight;
-        doc.text(`Fecha de Entrega: ${data.fechaEntrega}`, margin, y);
-        y += lineHeight * 2;
-
-        doc.setFont("helvetica", "bold");
-        doc.text("Detalle de los Servicios/Productos:", margin, y);
-        y += lineHeight;
-
-        const tableHeaders = [["Descripción", "Cantidad", "Precio Unitario", "Subtotal"]];
-        const tableData = data.items.map(item => [
-            item.descripcion,
-            item.cantidad.toString(),
-            `$${item.precio.toFixed(2)}`,
-            `$${item.subtotal.toFixed(2)}`
-        ]);
-
-        doc.autoTable({
-            startY: y,
-            head: tableHeaders,
-            body: tableData,
-            theme: 'striped',
-            headStyles: { fillColor: [23, 162, 184], textColor: [255, 255, 255], fontStyle: 'bold' },
-            styles: { fontSize: 9, cellPadding: 2, overflow: 'linebreak' },
-            columnStyles: {
-                0: { cellWidth: 80 },
-                1: { cellWidth: 25, halign: 'center' },
-                2: { cellWidth: 35, halign: 'right' },
-                3: { cellWidth: 35, halign: 'right' }
-            },
-            didDrawPage: function (data) {
-                let str = "Página " + doc.internal.getNumberOfPages();
-                doc.setFontSize(10);
-                doc.text(str, doc.internal.pageSize.width - margin, doc.internal.pageSize.height - 10);
-            }
-        });
-
-        y = doc.autoTable.previous.finalY + lineHeight;
-
-        doc.setFont("helvetica", "bold");
-        doc.text(`Total: $${data.total.toFixed(2)}`, doc.internal.pageSize.width - margin, y, null, null, 'right');
-        y += lineHeight;
-        doc.text(`Estado del Pedido: ${data.estado}`, margin, y);
-
-        y += lineHeight * 2;
-        doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text("Gracias por preferir Fixitech. Para cualquier consulta, contáctenos.", margin, y);
-
-        doc.save(`Factura_Fixitech_${facturaNum}.pdf`);
-    }
-
-    async function buscarClientePorCedula() {
-        const clienteInput = document.getElementById('cliente');
-        const telefonoInput = document.getElementById('telefono');
-        const direccionInput = document.getElementById('direccion');
-        const cedula = clienteInput.value.trim();
-
-        if (cedula.length < 3) {
-            telefonoInput.value = '';
-            direccionInput.value = '';
-            return;
-        }
-
-        try {
-            const doc = await db.collection('clientes').doc(cedula).get();
-            if (doc.exists) {
-                const data = doc.data();
-                telefonoInput.value = data.telefono || '';
-                direccionInput.value = data.direccion || '';
-                if (data.nombre && !/^\d+$/.test(clienteInput.value)) {
-                    clienteInput.value = data.nombre; // Cambia el input a nombre si se encontró por cédula y tiene nombre
+            // Lógica específica al mostrar cada sección
+            if (sectionId === 'nuevaVentaSection') {
+                if (facturaEnEdicionId === null) { 
+                    limpiarFormulario();
                 }
-                console.log("Cliente encontrado por cédula:", data);
+                document.getElementById('formFacturaTitle').textContent = 'Datos del Cliente y Nueva Factura';
+                document.getElementById('guardarFacturaBtn').textContent = '💾 Guardar Factura';
+            } else if (sectionId === 'gestionFacturasSection') {
+                cargarFacturas(); 
+                facturaEnEdicionId = null; 
+                todaLaInformacionFacturaEnEdicion = null;
+            } else if (sectionId === 'gestionClientesSection') {
+                cargarClientes();
+            } else if (sectionId === 'gestionProductosSection') {
+                limpiarFormularioProductoServicio();
+                cargarProductosServicios();
+            } else if (sectionId === 'gestionComprasSection') {
+                limpiarFormularioCompra();
+                cargarProductosParaCompras(); 
+                cargarCompras(); 
+            }
+        }
+
+
+        // Inicializar las fechas a la fecha actual y mostrar la sección de nueva venta
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('fechaIngreso').value = today;
+            document.getElementById('fechaEntrega').value = today;
+            document.getElementById('fechaCompra').value = today; // Nueva fecha de compra
+            actualizarTabla(); // Para el formulario de nueva factura (mostrar "No hay ítems...")
+            mostrarSeccion('nuevaVentaSection'); // Muestra la sección de Nueva Venta por defecto
+        });
+
+        function agregarItem() {
+            const descripcionInput = document.getElementById('descripcion');
+            const cantidadInput = document.getElementById('cantidad');
+            const precioInput = document.getElementById('precio');
+
+            const descripcion = descripcionInput.value.trim();
+            const cantidad = parseInt(cantidadInput.value);
+            const precio = parseFloat(precioInput.value);
+
+            if (!descripcion || isNaN(cantidad) || cantidad <= 0 || isNaN(precio) || precio < 0) {
+                mostrarMensaje('Por favor, ingresa una descripción válida, una cantidad positiva y un precio unitario no negativo.', 'bg-red-500');
                 return;
             }
 
-            const querySnapshot = await db.collection('clientes')
-                .where('nombre', '==', cedula)
-                .limit(1)
-                .get();
+            const subtotal = cantidad * precio;
+            items.push({ descripcion, cantidad, precio, subtotal });
 
-            if (!querySnapshot.empty) {
-                const doc = querySnapshot.docs[0];
-                const data = doc.data();
-                telefonoInput.value = data.telefono || '';
-                direccionInput.value = data.direccion || '';
-                clienteInput.value = data.nombre || cedula;
-                console.log("Cliente encontrado por nombre:", data);
-            } else {
+            // Limpiar campos después de agregar
+            descripcionInput.value = '';
+            cantidadInput.value = '1';
+            precioInput.value = '';
+            descripcionInput.focus();
+
+            actualizarTabla();
+        }
+
+        function actualizarTabla() {
+            const tabla = document.getElementById('tablaItems');
+            const totalEl = document.getElementById('total');
+            tabla.innerHTML = '';
+            let total = 0;
+
+            if (items.length === 0) {
+                tabla.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No hay ítems agregados aún.</td></tr>`;
+                totalEl.textContent = `$0.00`;
+                return;
+            }
+
+            items.forEach((item, index) => {
+                total += item.subtotal;
+                tabla.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${item.descripcion}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">${item.cantidad}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.precio.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.subtotal.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button onclick="eliminarItem(${index})" class="text-red-600 hover:text-red-800 transition duration-150 ease-in-out" title="Eliminar Ítem">✖</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            totalEl.textContent = `$${total.toFixed(2)}`;
+        }
+
+        function eliminarItem(index) {
+            if (confirm('¿Estás seguro de que quieres eliminar este ítem?')) {
+                items.splice(index, 1);
+                actualizarTabla();
+            }
+        }
+
+        // Función auxiliar para formatear el número de factura
+        function formatInvoiceNumber(number) {
+            const year = new Date().getFullYear();
+            const paddedNumber = String(number).padStart(6, '0');
+            return `${paddedNumber}${year.toString().substring(2)}`;
+        }
+
+        async function guardarFactura() {
+            const clienteCedula = document.getElementById('cedulaCliente').value.trim();
+            const clienteNombre = document.getElementById('nombreCliente').value.trim();
+            const telefono = document.getElementById('telefono').value.trim();
+            const direccion = document.getElementById('direccion').value.trim();
+            const fechaIngreso = document.getElementById('fechaIngreso').value;
+            const fechaEntrega = document.getElementById('fechaEntrega').value;
+            const estado = document.getElementById('estado').value;
+            const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+
+            if (!clienteCedula && !clienteNombre) {
+                mostrarMensaje('Por favor, ingresa al menos la Cédula o el Nombre del cliente.', 'bg-red-500');
+                return;
+            }
+            if (!telefono || !direccion || !fechaIngreso || !fechaEntrega) {
+                mostrarMensaje('Por favor, completa el Teléfono, Dirección y las Fechas.', 'bg-red-500');
+                return;
+            }
+            if (items.length === 0) {
+                mostrarMensaje('La factura debe contener al menos un ítem.', 'bg-red-500');
+                return;
+            }
+            if (new Date(fechaIngreso) > new Date(fechaEntrega)) {
+                mostrarMensaje('La fecha de entrega no puede ser anterior a la fecha de ingreso.', 'bg-red-500');
+                return;
+            }
+
+            let invoiceNumber = ''; 
+            let docIdToSave = facturaEnEdicionId; 
+
+            try {
+                // Si es una factura nueva, generar el número vía transacción
+                if (!docIdToSave) {
+                    await db.runTransaction(async (transaction) => {
+                        const counterRef = db.collection('contadores').doc('facturas');
+                        const counterDoc = await transaction.get(counterRef);
+
+                        let currentNumber = 0;
+                        if (counterDoc.exists) {
+                            currentNumber = counterDoc.data().ultimoNumero || 0;
+                        }
+
+                        const newNumber = currentNumber + 1;
+                        transaction.update(counterRef, { ultimoNumero: newNumber });
+                        invoiceNumber = formatInvoiceNumber(newNumber);
+                    });
+                } else {
+                    // Si estamos editando, reutilizar el número de factura existente
+                    invoiceNumber = todaLaInformacionFacturaEnEdicion.numeroFactura;
+                }
+
+                const sanitizedItems = Array.isArray(items) ? items.map(item => ({
+                    descripcion: item.descripcion,
+                    cantidad: item.cantidad,
+                    precio: item.precio,
+                    subtotal: item.subtotal
+                })) : [];
+
+                const data = {
+                    numeroFactura: invoiceNumber,
+                    clienteCedula: clienteCedula || null, // Guardar la cédula
+                    clienteNombre: clienteNombre || null, // Guardar el nombre
+                    telefono,
+                    direccion,
+                    fechaIngreso,
+                    fechaEntrega,
+                    estado,
+                    items: sanitizedItems, 
+                    total: parseFloat(total.toFixed(2)),
+                    timestamp: facturaEnEdicionId ? todaLaInformacionFacturaEnEdicion.timestamp : firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                if (docIdToSave) {
+                    await db.collection('facturas').doc(docIdToSave).set(data); 
+                    mostrarMensaje(`Factura ${invoiceNumber} actualizada con éxito.`);
+                } else {
+                    await db.collection('facturas').add(data);
+                    mostrarMensaje(`Factura ${invoiceNumber} guardada con éxito.`);
+                }
+
+                facturaEnEdicionId = null;
+                todaLaInformacionFacturaEnEdicion = null;
+                document.getElementById('formFacturaTitle').textContent = 'Datos del Cliente y Nueva Factura';
+                document.getElementById('guardarFacturaBtn').textContent = '💾 Guardar Factura';
+
+                generarPDF(data, invoiceNumber); 
+                limpiarFormulario(); 
+
+            } catch (error) {
+                console.error("Error al guardar/actualizar la factura: ", error);
+                mostrarMensaje("Hubo un error al guardar/actualizar la factura. Por favor, inténtalo de nuevo. Detalles: " + error.message, 'bg-red-500');
+            }
+        }
+
+        function generarPDF(data, facturaNum) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let y = 15;
+            const margin = 15;
+            const lineHeight = 7;
+
+            doc.setFontSize(18);
+            doc.setTextColor(52, 152, 219);
+            doc.text("Factura - Fixitech", margin, y);
+            y += lineHeight * 2;
+
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+
+            doc.setFontSize(12);
+            doc.text(`Factura #${facturaNum || 'N/A'}`, doc.internal.pageSize.width - margin, 15, null, null, 'right');
+            doc.setFontSize(10);
+            y += lineHeight;
+
+            doc.setFont("helvetica", "bold");
+            doc.text("Datos del Cliente:", margin, y);
+            doc.setFont("helvetica", "normal");
+            y += lineHeight;
+            doc.text(`Nombre: ${data.clienteNombre || 'N/A'}`, margin, y);
+            y += lineHeight;
+            doc.text(`Cédula: ${data.clienteCedula || 'N/A'}`, margin, y);
+            y += lineHeight;
+            doc.text(`Teléfono: ${data.telefono}`, margin, y);
+            y += lineHeight;
+            doc.text(`Dirección: ${data.direccion}`, margin, y);
+            y += lineHeight;
+            doc.text(`Fecha de Ingreso: ${data.fechaIngreso}`, margin, y);
+            y += lineHeight;
+            doc.text(`Fecha de Entrega: ${data.fechaEntrega}`, margin, y);
+            y += lineHeight * 2;
+
+            doc.setFont("helvetica", "bold");
+            doc.text("Detalle de los Servicios/Productos:", margin, y);
+            y += lineHeight;
+
+            const tableHeaders = [["Descripción", "Cantidad", "Precio Unitario", "Subtotal"]];
+            const tableData = data.items.map(item => [
+                item.descripcion,
+                item.cantidad.toString(),
+                `$${item.precio.toFixed(2)}`,
+                `$${item.subtotal.toFixed(2)}`
+            ]);
+
+            doc.autoTable({
+                startY: y,
+                head: tableHeaders,
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [23, 162, 184], textColor: [255, 255, 255], fontStyle: 'bold' },
+                styles: { fontSize: 9, cellPadding: 2, overflow: 'linebreak' },
+                columnStyles: {
+                    0: { cellWidth: 80 },
+                    1: { cellWidth: 25, halign: 'center' },
+                    2: { cellWidth: 35, halign: 'right' },
+                    3: { cellWidth: 35, halign: 'right' }
+                },
+                didDrawPage: function (data) {
+                    let str = "Página " + doc.internal.getNumberOfPages();
+                    doc.setFontSize(10);
+                    doc.text(str, doc.internal.pageSize.width - margin, doc.internal.pageSize.height - 10);
+                }
+            });
+
+            y = doc.autoTable.previous.finalY + lineHeight;
+
+            doc.setFont("helvetica", "bold");
+            doc.text(`Total: $${data.total.toFixed(2)}`, doc.internal.pageSize.width - margin, y, null, null, 'right');
+            y += lineHeight;
+            doc.text(`Estado del Pedido: ${data.estado}`, margin, y);
+
+            y += lineHeight * 2;
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text("Gracias por preferir Fixitech. Para cualquier consulta, contáctenos.", margin, y);
+
+            doc.save(`Factura_Fixitech_${facturaNum}.pdf`);
+        }
+
+        async function buscarClientePorCedulaONombre() {
+            const cedulaInput = document.getElementById('cedulaCliente');
+            const nombreInput = document.getElementById('nombreCliente');
+            const telefonoInput = document.getElementById('telefono');
+            const direccionInput = document.getElementById('direccion');
+
+            const cedula = cedulaInput.value.trim();
+            const nombre = nombreInput.value.trim();
+
+            if (!cedula && !nombre) {
+                telefonoInput.value = '';
+                direccionInput.value = '';
+                return;
+            }
+
+            try {
+                let querySnapshot;
+                if (cedula) {
+                    const doc = await db.collection('clientes').doc(cedula).get();
+                    if (doc.exists) {
+                        const data = doc.data();
+                        nombreInput.value = data.nombre || '';
+                        telefonoInput.value = data.telefono || '';
+                        direccionInput.value = data.direccion || '';
+                        console.log("Cliente encontrado por cédula (ID):", data);
+                        return;
+                    }
+                }
+                
+                if (nombre) {
+                    querySnapshot = await db.collection('clientes')
+                        .where('nombre', '==', nombre)
+                        .limit(1)
+                        .get();
+
+                    if (!querySnapshot.empty) {
+                        const doc = querySnapshot.docs[0];
+                        const data = doc.data();
+                        if (/^\d+$/.test(doc.id)) {
+                            cedulaInput.value = doc.id;
+                        } else {
+                            cedulaInput.value = ''; 
+                        }
+                        nombreInput.value = data.nombre || '';
+                        telefonoInput.value = data.telefono || '';
+                        direccionInput.value = data.direccion || '';
+                        console.log("Cliente encontrado por nombre:", data);
+                        return;
+                    }
+                }
+
                 telefonoInput.value = '';
                 direccionInput.value = '';
                 console.log("Cliente no encontrado.");
+
+            } catch (error) {
+                console.error("Error al buscar cliente:", error);
+                mostrarMensaje("Hubo un error al buscar el cliente. Por favor, inténtalo de nuevo.", 'bg-red-500');
             }
-        } catch (error) {
-            console.error("Error al buscar cliente:", error);
-            alert("Hubo un error al buscar el cliente. Por favor, inténtalo de nuevo.");
-        }
-    }
-
-    async function nuevoCliente() {
-        const clienteInput = document.getElementById('cliente');
-        const telefonoInput = document.getElementById('telefono');
-        const direccionInput = document.getElementById('direccion');
-
-        const nombreOrCedula = clienteInput.value.trim();
-        const telefono = telefonoInput.value.trim();
-        const direccion = direccionInput.value.trim();
-
-        if (!nombreOrCedula || !telefono || !direccion) {
-            alert("Por favor, completa la Cédula/Nombre, Teléfono y Dirección para registrar un nuevo cliente.");
-            return;
         }
 
-        try {
-            const isNumeric = /^\d+$/.test(nombreOrCedula);
-            let docId = nombreOrCedula;
-            let clientData = { telefono, direccion };
+        async function guardarClienteDesdeFactura() {
+            const cedula = document.getElementById('cedulaCliente').value.trim();
+            const nombre = document.getElementById('nombreCliente').value.trim();
+            const telefono = document.getElementById('telefono').value.trim();
+            const direccion = document.getElementById('direccion').value.trim();
 
-            if (isNumeric) {
-                const docRef = db.collection('clientes').doc(docId);
-                const doc = await docRef.get();
+            if (!cedula && !nombre) {
+                mostrarMensaje("Por favor, ingresa al menos la Cédula o el Nombre para registrar/actualizar el cliente.", 'bg-red-500');
+                return;
+            }
+            if (!telefono || !direccion) {
+                mostrarMensaje("Por favor, completa el Teléfono y Dirección para registrar/actualizar el cliente.", 'bg-red-500');
+                return;
+            }
 
-                if (doc.exists) {
-                    await docRef.set(clientData, { merge: true });
-                    alert(`Cliente con cédula ${docId} actualizado correctamente.`);
+            try {
+                let docRef;
+                let clientData = { nombre: nombre || null, telefono, direccion };
+
+                if (cedula && /^\d+$/.test(cedula)) {
+                    docRef = db.collection('clientes').doc(cedula);
+                    const doc = await docRef.get();
+                    if (doc.exists) {
+                        await docRef.update(clientData);
+                        mostrarMensaje(`Cliente con cédula ${cedula} actualizado correctamente.`);
+                    } else {
+                        await docRef.set(clientData);
+                        mostrarMensaje(`Cliente con cédula ${cedula} registrado correctamente.`);
+                    }
+                } else if (nombre) {
+                    const existingClientQuery = await db.collection('clientes')
+                        .where('nombre', '==', nombre)
+                        .limit(1)
+                        .get();
+
+                    if (!existingClientQuery.empty) {
+                        docRef = db.collection('clientes').doc(existingClientQuery.docs[0].id);
+                        await docRef.update(clientData);
+                        mostrarMensaje(`Cliente "${nombre}" actualizado correctamente.`);
+                    } else {
+                        docRef = await db.collection('clientes').add(clientData);
+                        mostrarMensaje(`Cliente "${nombre}" registrado con ID: ${docRef.id}`);
+                    }
                 } else {
-                    await docRef.set(clientData);
-                    alert(`Cliente con cédula ${docId} registrado correctamente.`);
+                    mostrarMensaje("No hay suficiente información para registrar/actualizar el cliente.", 'bg-red-500');
+                    return;
                 }
-            } else {
-                const existingClientQuery = await db.collection('clientes')
-                    .where('nombre', '==', nombreOrCedula)
-                    .limit(1)
-                    .get();
+                cargarClientes();
+            } catch (error) {
+                console.error("Error al registrar/actualizar cliente:", error);
+                mostrarMensaje("Hubo un error al registrar/actualizar el cliente. Por favor, inténtalo de nuevo.", 'bg-red-500');
+            }
+        }
 
-                if (!existingClientQuery.empty) {
-                    alert(`Error: Ya existe un cliente registrado con el nombre "${nombreOrCedula}". Por favor, usa un nombre único o la cédula.`);
+
+        function mostrarFactura() {
+            const clienteCedula = document.getElementById('cedulaCliente').value;
+            const clienteNombre = document.getElementById('nombreCliente').value;
+            const telefono = document.getElementById('telefono').value;
+            const direccion = document.getElementById('direccion').value;
+            const fechaIngreso = document.getElementById('fechaIngreso').value;
+            const fechaEntrega = document.getElementById('fechaEntrega').value;
+            const estado = document.getElementById('estado').value;
+
+            if ((!clienteCedula && !clienteNombre) || !telefono || !direccion || items.length === 0) {
+                mostrarMensaje('Por favor, completa los datos del cliente (Cédula o Nombre, Teléfono, Dirección) y agrega al menos un ítem antes de imprimir la vista.', 'bg-red-500');
+                return;
+            }
+
+            let html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                <title>Previsualización de Factura</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; color: #333; }
+                    .invoice-container { max-width: 800px; margin: 0 auto; border: 1px solid #eee; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+                    h2 { text-align: center; color: #0f766e; margin-bottom: 25px; }
+                    .header-info, .client-info { display: flex; justify-content: space-between; margin-bottom: 20px; }
+                    .client-info div, .header-info div { flex: 1; margin-right: 20px; }
+                    .client-info div:last-child, .header-info div:last-child { margin-right: 0; }
+                    p { margin: 5px 0; line-height: 1.5; }
+                    strong { color: #555; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 25px; }
+                    th, td { border: 1px solid #ddd; padding: 12px 8px; text-align: left; }
+                    th { background-color: #f8f8f8; color: #666; font-weight: 600; }
+                    tfoot tr.total-row td { background-color: #f0f0f0; font-weight: bold; text-align: right; }
+                    .text-right { text-align: right; }
+                    .text-center { text-align: center; }
+                    .footer { text-align: center; margin-top: 40px; font-size: 0.9em; color: #777; }
+                    @media print {
+                        body { margin: 0; padding: 0; }
+                        .invoice-container { box-shadow: none; border: none; }
+                    }
+                </style>
+                </head>
+                <body>
+                    <div class="invoice-container">
+                        <h2>Factura de Venta - Fixitech</h2>
+
+                        <div class="header-info">
+                            <div>
+                                <p><strong>Número de Factura:</strong> [Generado al guardar]</p>
+                                <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
+                            </div>
+                            <div class="text-right">
+                                <p><strong>Fixitech</strong></p>
+                                <p>Su dirección aquí</p>
+                                <p>Su teléfono aquí</p>
+                                <p>Su email aquí</p>
+                            </div>
+                        </div>
+
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+
+                        <div class="client-info">
+                            <div>
+                                <p><strong>Nombre Cliente:</strong> ${clienteNombre || 'N/A'}</p>
+                                <p><strong>Cédula:</strong> ${clienteCedula || 'N/A'}</p>
+                                <p><strong>Teléfono:</strong> ${telefono}</p>
+                                <p><strong>Dirección:</strong> ${direccion}</p>
+                            </div>
+                            <div>
+                                <p><strong>Fecha de Ingreso:</strong> ${fechaIngreso}</p>
+                                <p><strong>Fecha de Entrega:</strong> ${fechaEntrega}</p>
+                                <p><strong>Estado del Pedido:</strong> ${estado}</p>
+                            </div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Descripción</th>
+                                    <th class="text-center">Cant.</th>
+                                    <th class="text-right">P. Unitario</th>
+                                    <th class="text-right">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+
+            let total = 0;
+            items.forEach(item => {
+                html += `<tr>
+                    <td>${item.descripcion}</td>
+                    <td class="text-center">${item.cantidad}</td>
+                    <td class="text-right">$${item.precio.toFixed(2)}</td>
+                    <td class="text-right">$${item.subtotal.toFixed(2)}</td>
+                </tr>`;
+                total += item.subtotal;
+            });
+
+            html += `
+                            </tbody>
+                            <tfoot>
+                                <tr class="total-row">
+                                    <td colspan="3">Total:</td>
+                                    <td class="text-right">$${total.toFixed(2)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <div class="footer">
+                            <p>¡Gracias por su preferencia!</p>
+                            <p>Este documento no tiene validez tributaria a menos que se especifique lo contrario.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            const nuevaVentana = window.open('', '', 'width=900,height=700,scrollbars=yes');
+            nuevaVentana.document.write(html);
+            nuevaVentana.document.close();
+            nuevaVentana.focus();
+        }
+
+        function limpiarFormulario() {
+            document.getElementById('cedulaCliente').value = '';
+            document.getElementById('nombreCliente').value = '';
+            document.getElementById('telefono').value = '';
+            document.getElementById('direccion').value = '';
+            document.getElementById('descripcion').value = '';
+            document.getElementById('cantidad').value = '1';
+            document.getElementById('precio').value = '';
+            document.getElementById('estado').value = 'En espera';
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('fechaIngreso').value = today;
+            document.getElementById('fechaEntrega').value = today;
+            items = [];
+            actualizarTabla();
+            document.getElementById('cedulaCliente').focus();
+        }
+
+        // --- Funciones para Gestión de Facturas ---
+
+        async function cargarFacturas() {
+            const tablaBody = document.getElementById('listaFacturasTableBody');
+            tablaBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">Cargando facturas...</td></tr>`;
+            try {
+                const snapshot = await db.collection('facturas').orderBy('timestamp', 'desc').get();
+                todasLasFacturas = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    if (data.timestamp && typeof data.timestamp.toDate === 'function') {
+                        data.timestamp = data.timestamp.toDate(); 
+                    }
+                    return { id: doc.id, ...data };
+                });
+                filtrarFacturas(); 
+            } catch (error) {
+                console.error("Error al cargar facturas: ", error);
+                tablaBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-500">Error al cargar facturas.</td></tr>`;
+            }
+        }
+
+        function filtrarFacturas() {
+            const filtroCliente = document.getElementById('filtroCliente').value.toLowerCase().trim();
+            const filtroNumeroFactura = document.getElementById('filtroNumeroFactura').value.toLowerCase().trim();
+
+            const facturasFiltradas = todasLasFacturas.filter(factura => {
+                const matchNombre = (factura.clienteNombre || '').toLowerCase().includes(filtroCliente);
+                const matchCedula = (factura.clienteCedula || '').toLowerCase().includes(filtroCliente);
+                const matchNumero = factura.numeroFactura && factura.numeroFactura.toLowerCase().includes(filtroNumeroFactura);
+                return (matchNombre || matchCedula) && matchNumero;
+            });
+
+            actualizarTablaFacturas(facturasFiltradas);
+        }
+
+        function actualizarTablaFacturas(facturasToDisplay) {
+            const tablaBody = document.getElementById('listaFacturasTableBody');
+            tablaBody.innerHTML = '';
+
+            if (facturasToDisplay.length === 0) {
+                tablaBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">No hay facturas que coincidan con los filtros.</td></tr>`;
+                return;
+            }
+
+            facturasToDisplay.forEach(factura => {
+                const fechaIngreso = factura.fechaIngreso || 'N/A';
+                const total = factura.total ? `$${factura.total.toFixed(2)}` : '$0.00';
+                const clienteDisplay = `${factura.clienteNombre || 'N/A'} (${factura.clienteCedula || factura.id})`;
+
+                tablaBody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${factura.numeroFactura || factura.id}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${clienteDisplay}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">${total}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${factura.estado}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${fechaIngreso}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button onclick='verDetalleFactura(${JSON.stringify(factura)})' class="bg-blue-200 text-blue-800 px-2 py-1 rounded text-xs hover:bg-blue-300 transition duration-150 ease-in-out">Ver Detalles</button>
+                            <button onclick='procesarDevolucion("${factura.id}", "${factura.numeroFactura || factura.id}")' class="bg-red-200 text-red-800 px-2 py-1 rounded text-xs hover:bg-red-300 transition duration-150 ease-in-out">Devolver</button>
+                            <button onclick='generarPDF(${JSON.stringify(factura)}, "${factura.numeroFactura || factura.id}")' class="bg-teal-200 text-teal-800 px-2 py-1 rounded text-xs hover:bg-teal-300 transition duration-150 ease-in-out">Reimprimir</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // --- Función para ver detalle de factura en pop-up y con opciones de edición/devolución ---
+        function verDetalleFactura(facturaData) {
+            let itemsHtml = facturaData.items.map(item => `
+                <tr>
+                    <td>${item.descripcion}</td>
+                    <td class="text-center">${item.cantidad}</td>
+                    <td class="text-right">$${item.precio.toFixed(2)}</td>
+                    <td class="text-right">$${item.subtotal.toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            const popupContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Detalles de Factura - ${facturaData.numeroFactura || facturaData.id}</title>
+                    <style>
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 0; margin: 0; background-color: #f5f5f5; }
+                        .popup-invoice-container {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            padding: 20px;
+                            color: #333;
+                            max-width: 800px;
+                            margin: 20px auto;
+                            border: 1px solid #eee;
+                            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+                            background-color: #fff;
+                        }
+                        .popup-invoice-container h2 {
+                            text-align: center;
+                            color: #0f766e;
+                            margin-bottom: 25px;
+                        }
+                        .popup-invoice-container .info-section {
+                            display: flex;
+                            justify-content: space-between;
+                            margin-bottom: 15px;
+                            flex-wrap: wrap;
+                        }
+                        .popup-invoice-container .info-section > div {
+                            flex: 1;
+                            min-width: 280px;
+                            margin-right: 20px;
+                            margin-bottom: 10px;
+                        }
+                        .popup-invoice-container .info-section > div:last-child {
+                            margin-right: 0;
+                        }
+                        .popup-invoice-container p {
+                            margin: 5px 0;
+                            line-height: 1.4;
+                        }
+                        .popup-invoice-container strong {
+                            color: #555;
+                        }
+                        .popup-invoice-container table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 20px;
+                        }
+                        .popup-invoice-container th,
+                        .popup-invoice-container td {
+                            border: 1px solid #ddd;
+                            padding: 10px 8px;
+                            text-align: left;
+                        }
+                        .popup-invoice-container th {
+                            background-color: #f8f8f8;
+                            color: #666;
+                            font-weight: 600;
+                        }
+                        .popup-invoice-container tfoot tr.total-row td {
+                            background-color: #f0f0f0;
+                            font-weight: bold;
+                            text-align: right;
+                        }
+                        .popup-invoice-container .text-right {
+                            text-align: right;
+                        }
+                        .popup-invoice-container .text-center {
+                            text-align: center;
+                        }
+                        .popup-invoice-container .btn-actions {
+                            text-align: center;
+                            margin-top: 30px;
+                        }
+                        .popup-invoice-container .btn-actions button {
+                            padding: 10px 20px;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-size: 1em;
+                            margin: 0 5px;
+                        }
+                        .popup-invoice-container .btn-actions .btn-print {
+                            background-color: #0f766e;
+                            color: white;
+                        }
+                        .popup-invoice-container .btn-actions .btn-edit {
+                            background-color: #2563eb;
+                            color: white;
+                        }
+                        .popup-invoice-container .btn-actions .btn-return {
+                            background-color: #dc2626;
+                            color: white;
+                        }
+                        .popup-invoice-container .btn-actions .btn-close {
+                            background-color: #6b7280;
+                            color: white;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="popup-invoice-container">
+                        <h2>Detalles de Factura #${facturaData.numeroFactura || facturaData.id}</h2>
+
+                        <div class="info-section">
+                            <div>
+                                <p><strong>Número de Factura:</strong> ${facturaData.numeroFactura || 'N/A'}</p>
+                                <p><strong>Fecha de Emisión:</strong> ${facturaData.timestamp ? new Date(facturaData.timestamp).toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}</p>
+                            </div>
+                            <div class="text-right">
+                                <p><strong>Fixitech</strong></p>
+                                <p>Su dirección aquí</p>
+                                <p>Su teléfono aquí</p>
+                                <p>Su email aquí</p>
+                            </div>
+                        </div>
+
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+
+                        <div class="info-section">
+                            <div>
+                                <p><strong>Nombre Cliente:</strong> ${facturaData.clienteNombre || 'N/A'}</p>
+                                <p><strong>Cédula:</strong> ${facturaData.clienteCedula || 'N/A'}</p>
+                                <p><strong>Teléfono:</strong> ${facturaData.telefono}</p>
+                                <p><strong>Dirección:</strong> ${facturaData.direccion}</p>
+                            </div>
+                            <div>
+                                <p><strong>Fecha de Ingreso:</strong> ${facturaData.fechaIngreso}</p>
+                                <p><strong>Fecha de Entrega:</strong> ${facturaData.fechaEntrega}</p>
+                                <p><strong>Estado del Pedido:</strong> ${facturaData.estado}</p>
+                            </div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Descripción</th>
+                                    <th class="text-center">Cant.</th>
+                                    <th class="text-right">P. Unitario</th>
+                                    <th class="text-right">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${itemsHtml}
+                            </tbody>
+                            <tfoot>
+                                <tr class="total-row">
+                                    <td colspan="3">Total:</td>
+                                    <td class="text-right">$${facturaData.total ? facturaData.total.toFixed(2) : '0.00'}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <div class="btn-actions">
+                            <button class="btn-print" onclick='window.opener.generarPDF(${JSON.stringify(facturaData)}, "${facturaData.numeroFactura || facturaData.id}")'>Imprimir PDF</button>
+                            <button class="btn-edit" onclick='window.opener.editarFacturaExistente(${JSON.stringify(facturaData)}); window.close();'>Editar Factura</button>
+                        
+                            <button class="btn-return" onclick='
+        if (!window.opener || !window.opener.procesarDevolucion) {
+            alert("No se puede procesar la devolución porque no se encontró la ventana principal o su función.");
+        } else {
+            window.opener.procesarDevolucion("${facturaData.id}", "${facturaData.numeroFactura || facturaData.id}"); 
+            window.close(); // Close the popup after action
+        }
+    '>Procesar Devolución</button>
+                            <button class="btn-close" onclick="window.close()">Cerrar</button>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            const popupWindow = window.open('', '_blank', 'width=950,height=750,scrollbars=yes,resizable=yes');
+            popupWindow.document.write(popupContent);
+            popupWindow.document.close();
+            popupWindow.focus();
+        }
+
+        // --- Función para cargar datos de una factura existente al formulario de edición ---
+        function editarFacturaExistente(facturaData) {
+            facturaEnEdicionId = facturaData.id;
+            todaLaInformacionFacturaEnEdicion = facturaData; 
+            
+            document.getElementById('cedulaCliente').value = facturaData.clienteCedula || '';
+            document.getElementById('nombreCliente').value = facturaData.clienteNombre || '';
+            document.getElementById('telefono').value = facturaData.telefono || '';
+            document.getElementById('direccion').value = facturaData.direccion || '';
+            document.getElementById('fechaIngreso').value = facturaData.fechaIngreso || '';
+            document.getElementById('fechaEntrega').value = facturaData.fechaEntrega || '';
+            document.getElementById('estado').value = facturaData.estado || 'En espera';
+            
+            items = Array.isArray(facturaData.items) ? facturaData.items.map(item => ({...item})) : [];
+            actualizarTabla(); 
+
+            document.getElementById('formFacturaTitle').textContent = `Editando Factura #${facturaData.numeroFactura || facturaData.id}`;
+            document.getElementById('guardarFacturaBtn').textContent = 'Actualizar Factura';
+            
+            mostrarSeccion('nuevaVentaSection'); 
+            window.scrollTo(0, 0); 
+        }
+
+        // --- Función para procesar una devolución (cambio de estado) ---
+        async function procesarDevolucion(facturaId, numeroFactura) {
+            if (!confirm(`¿Estás seguro de marcar la factura #${numeroFactura} como DEVUELTA?`)) {
+                return false; 
+            }
+
+            try {
+                await db.collection('facturas').doc(facturaId).update({
+                    estado: 'Devuelto',
+                    fechaDevolucion: new Date().toISOString().split('T')[0]
+                });
+
+                mostrarMensaje(`✅ Factura #${numeroFactura} marcada como DEVUELTA.`);
+                cargarFacturas(); 
+                return true; 
+            } catch (error) {
+                console.error("Error al marcar como devuelta:", error);
+                mostrarMensaje("❌ No se pudo devolver la factura. Intenta nuevamente.", 'bg-red-500');
+                return false;
+            }
+        }
+
+        function mostrarMensaje(texto, color = 'bg-green-600') {
+            const mensaje = document.createElement('div');
+            mensaje.textContent = texto;
+            mensaje.className = `fixed top-5 right-5 ${color} text-white px-4 py-2 rounded shadow-lg z-50`;
+            document.body.appendChild(mensaje);
+            setTimeout(() => mensaje.remove(), 3000);
+        }
+
+        // --- Nuevas funciones para Gestión de Clientes ---
+
+        async function cargarClientes() {
+            const tablaBody = document.getElementById('listaClientesTableBody');
+            tablaBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">Cargando clientes...</td></tr>`;
+            try {
+                const snapshot = await db.collection('clientes').get();
+                todosLosClientes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                filtrarClientes(); // Muestra todos los clientes al cargar inicialmente
+            } catch (error) {
+                console.error("Error al cargar clientes: ", error);
+                tablaBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">Error al cargar clientes.</td></tr>`;
+            }
+        }
+
+        function filtrarClientes() {
+            const filtro = document.getElementById('filtroClienteNombre').value.toLowerCase().trim();
+            const clientesFiltrados = todosLosClientes.filter(cliente => {
+                const matchId = cliente.id.toLowerCase().includes(filtro);
+                const matchNombre = cliente.nombre ? cliente.nombre.toLowerCase().includes(filtro) : false;
+                return matchId || matchNombre;
+            });
+            actualizarTablaClientes(clientesFiltrados);
+        }
+
+        function actualizarTablaClientes(clientesToDisplay) {
+            const tablaBody = document.getElementById('listaClientesTableBody');
+            tablaBody.innerHTML = '';
+
+            if (clientesToDisplay.length === 0) {
+                tablaBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No hay clientes que coincidan con los filtros.</td></tr>`;
+                return;
+            }
+
+            clientesToDisplay.forEach(cliente => {
+                tablaBody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.id}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.nombre || 'N/A'}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.telefono || 'N/A'}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.direccion || 'N/A'}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button onclick='editarCliente("${cliente.id}")' class="bg-yellow-200 text-yellow-800 px-2 py-1 rounded text-xs hover:bg-yellow-300 transition duration-150 ease-in-out">Editar</button>
+                            <button onclick='eliminarCliente("${cliente.id}", "${cliente.nombre || cliente.id}")' class="bg-red-200 text-red-800 px-2 py-1 rounded text-xs hover:bg-red-300 transition duration-150 ease-in-out">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Function to edit client (will populate the new client form)
+        async function editarCliente(clienteId) {
+            try {
+                const doc = await db.collection('clientes').doc(clienteId).get();
+                if (doc.exists) {
+                    const clienteData = { id: doc.id, ...doc.data() };
+                    document.getElementById('cedulaCliente').value = clienteData.id;
+                    document.getElementById('nombreCliente').value = clienteData.nombre || '';
+                    document.getElementById('telefono').value = clienteData.telefono || '';
+                    document.getElementById('direccion').value = clienteData.direccion || '';
+                    
+                    mostrarMensaje("Datos del cliente cargados para edición. Modifique y guarde.", "bg-blue-500");
+                    mostrarSeccion('nuevaVentaSection'); // Go to New Sale section to edit client
+                    document.getElementById('cedulaCliente').focus();
+                } else {
+                    mostrarMensaje("Cliente no encontrado para edición.", "bg-red-500");
+                }
+            } catch (error) {
+                console.error("Error al cargar cliente para edición:", error);
+                mostrarMensaje("Hubo un error al cargar el cliente para edición. Por favor, inténtalo de nuevo.", "bg-red-500");
+            }
+        }
+
+        async function eliminarCliente(clienteId, clienteNombre) {
+            if (!confirm(`¿Estás seguro de eliminar el cliente "${clienteNombre}"? Esto no eliminará facturas asociadas.`)) {
+                return;
+            }
+            try {
+                await db.collection('clientes').doc(clienteId).delete();
+                mostrarMensaje(`Cliente "${clienteNombre}" eliminado con éxito.`);
+                cargarClientes();
+            } catch (error) {
+                console.error("Error al eliminar cliente:", error);
+                mostrarMensaje("Hubo un error al eliminar el cliente. Por favor, inténtalo de nuevo.", 'bg-red-500');
+            }
+        }
+
+        // --- Nuevas funciones para Gestión de Productos y Servicios ---
+        
+        function toggleStockInput() {
+            const tipo = document.getElementById('tipoProducto').value;
+            const stockDiv = document.getElementById('stockInputDiv');
+            if (tipo === 'servicio') {
+                stockDiv.classList.add('hidden');
+                document.getElementById('stockProducto').value = 0; // Reset stock for services
+            } else {
+                stockDiv.classList.remove('hidden');
+            }
+        }
+
+        async function guardarProductoServicio() {
+            const nombre = document.getElementById('nombreProducto').value.trim();
+            const tipo = document.getElementById('tipoProducto').value;
+            const precio = parseFloat(document.getElementById('precioProducto').value);
+            let stock = 0;
+
+            if (tipo === 'producto') {
+                stock = parseInt(document.getElementById('stockProducto').value);
+                if (isNaN(stock) || stock < 0) {
+                    mostrarMensaje('El stock debe ser un número positivo o cero para productos.', 'bg-red-500');
+                    return;
+                }
+            }
+
+            if (!nombre || isNaN(precio) || precio < 0) {
+                mostrarMensaje('Por favor, ingresa un nombre válido y un precio no negativo.', 'bg-red-500');
+                return;
+            }
+
+            const data = {
+                nombre,
+                tipo,
+                precio: parseFloat(precio.toFixed(2)),
+                stock: tipo === 'producto' ? stock : null // stock is null for services
+            };
+
+            try {
+                if (productoServicioEnEdicionId) {
+                    await db.collection('productosYServicios').doc(productoServicioEnEdicionId).set(data);
+                    mostrarMensaje(`"${nombre}" actualizado con éxito.`);
+                } else {
+                    // Check for existing product/service with the same name before adding
+                    const existingQuery = await db.collection('productosYServicios').where('nombre', '==', nombre).limit(1).get();
+                    if (!existingQuery.empty) {
+                        mostrarMensaje(`Ya existe un producto/servicio con el nombre "${nombre}".`, 'bg-red-500');
+                        return;
+                    }
+                    await db.collection('productosYServicios').add(data);
+                    mostrarMensaje(`"${nombre}" guardado con éxito.`);
+                }
+                limpiarFormularioProductoServicio();
+                cargarProductosServicios();
+            } catch (error) {
+                console.error("Error al guardar producto/servicio: ", error);
+                mostrarMensaje("Hubo un error al guardar el producto/servicio. Por favor, inténtalo de nuevo.", 'bg-red-500');
+            }
+        }
+
+        async function cargarProductosServicios() {
+            const tablaBody = document.getElementById('listaProductosTableBody');
+            tablaBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">Cargando productos y servicios...</td></tr>`;
+            try {
+                const snapshot = await db.collection('productosYServicios').orderBy('nombre').get();
+                todosLosProductosYServicios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                actualizarTablaProductosServicios(todosLosProductosYServicios);
+            } catch (error) {
+                console.error("Error al cargar productos/servicios: ", error);
+                tablaBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">Error al cargar productos/servicios.</td></tr>`;
+            }
+        }
+
+        function actualizarTablaProductosServicios(productosYServiciosToDisplay) {
+            const tablaBody = document.getElementById('listaProductosTableBody');
+            tablaBody.innerHTML = '';
+
+            if (productosYServiciosToDisplay.length === 0) {
+                tablaBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No hay productos o servicios registrados.</td></tr>`;
+                return;
+            }
+
+            productosYServiciosToDisplay.forEach(item => {
+                const stockDisplay = item.tipo === 'producto' ? item.stock : 'N/A';
+                tablaBody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${item.nombre}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${item.tipo === 'producto' ? 'Producto' : 'Servicio'}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.precio.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">${stockDisplay}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button onclick='editarProductoServicio("${item.id}")' class="bg-yellow-200 text-yellow-800 px-2 py-1 rounded text-xs hover:bg-yellow-300 transition duration-150 ease-in-out">Editar</button>
+                            <button onclick='eliminarProductoServicio("${item.id}", "${item.nombre}")' class="bg-red-200 text-red-800 px-2 py-1 rounded text-xs hover:bg-red-300 transition duration-150 ease-in-out">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function editarProductoServicio(itemId) {
+            const itemData = todosLosProductosYServicios.find(item => item.id === itemId);
+            if (itemData) {
+                productoServicioEnEdicionId = itemId;
+                document.getElementById('nombreProducto').value = itemData.nombre;
+                document.getElementById('tipoProducto').value = itemData.tipo;
+                document.getElementById('precioProducto').value = itemData.precio;
+                document.getElementById('stockProducto').value = itemData.stock || 0;
+                toggleStockInput(); // Adjust visibility of stock input
+                
+                document.getElementById('formProductoServicioTitle').textContent = `Editando: ${itemData.nombre}`;
+                document.getElementById('guardarProductoBtn').textContent = 'Actualizar';
+                document.getElementById('nombreProducto').focus();
+                mostrarMensaje(`"${itemData.nombre}" cargado para edición.`, "bg-blue-500");
+            } else {
+                mostrarMensaje("Producto/Servicio no encontrado para edición.", "bg-red-500");
+            }
+        }
+
+        async function eliminarProductoServicio(itemId, itemName) {
+            if (!confirm(`¿Estás seguro de eliminar "${itemName}"?`)) {
+                return;
+            }
+            try {
+                await db.collection('productosYServicios').doc(itemId).delete();
+                mostrarMensaje(`"${itemName}" eliminado con éxito.`);
+                cargarProductosServicios();
+            } catch (error) {
+                console.error("Error al eliminar producto/servicio:", error);
+                mostrarMensaje("Hubo un error al eliminar el producto/servicio. Por favor, inténtalo de nuevo.", 'bg-red-500');
+            }
+        }
+
+        function limpiarFormularioProductoServicio() {
+            productoServicioEnEdicionId = null;
+            document.getElementById('nombreProducto').value = '';
+            document.getElementById('tipoProducto').value = 'producto';
+            document.getElementById('precioProducto').value = '';
+            document.getElementById('stockProducto').value = '0';
+            toggleStockInput(); 
+            document.getElementById('formProductoServicioTitle').textContent = 'Gestión de Productos y Servicios';
+            document.getElementById('guardarProductoBtn').textContent = '💾 Guardar Producto/Servicio';
+            document.getElementById('nombreProducto').focus();
+        }
+
+        // --- Nuevas funciones para Gestión de Compras ---
+
+        async function cargarProductosParaCompras() {
+            const select = document.getElementById('productoCompra');
+            select.innerHTML = '<option value="">Seleccione un producto...</option>';
+            try {
+                const snapshot = await db.collection('productosYServicios').where('tipo', '==', 'producto').orderBy('nombre').get();
+                snapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = data.nombre;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Error al cargar productos para el formulario de compras:", error);
+                mostrarMensaje("Error al cargar productos.", 'bg-red-500');
+            }
+        }
+
+        async function guardarCompra() {
+            const fechaCompra = document.getElementById('fechaCompra').value;
+            const productoId = document.getElementById('productoCompra').value;
+            const cantidad = parseInt(document.getElementById('cantidadCompra').value);
+            const costo = parseFloat(document.getElementById('costoCompra').value);
+            const numeroFactura = document.getElementById('facturaCompra').value.trim();
+            const usuario = document.getElementById('usuarioCompra').value.trim();
+            
+            if (!fechaCompra || !productoId || isNaN(cantidad) || cantidad <= 0 || isNaN(costo) || costo < 0 || !numeroFactura || !usuario) {
+                mostrarMensaje('Por favor, completa todos los campos del formulario de compra correctamente.', 'bg-red-500');
+                return;
+            }
+
+            try {
+                const comprasRef = db.collection('compras');
+                // 1. Verificar si el número de factura ya existe
+                const facturaExistente = await comprasRef.where('numeroFactura', '==', numeroFactura).limit(1).get();
+                if (!facturaExistente.empty) {
+                    mostrarMensaje(`El número de factura "${numeroFactura}" ya ha sido registrado.`, 'bg-red-500');
                     return;
                 }
 
-                clientData.nombre = nombreOrCedula;
-                const newDocRef = await db.collection('clientes').add(clientData);
-                alert(`Cliente "${nombreOrCedula}" registrado con ID: ${newDocRef.id}`);
+                // Usamos una transacción para garantizar que la actualización del stock sea atómica
+                await db.runTransaction(async (transaction) => {
+                    // 2. Obtener el producto para actualizar el stock
+                    const productoRef = db.collection('productosYServicios').doc(productoId);
+                    const productoDoc = await transaction.get(productoRef);
+                    if (!productoDoc.exists) {
+                        throw new Error("El producto seleccionado no existe.");
+                    }
+                    const stockActual = productoDoc.data().stock || 0;
+                    const nuevoStock = stockActual + cantidad;
+                    
+                    // 3. Actualizar el stock del producto
+                    transaction.update(productoRef, { stock: nuevoStock });
+                    
+                    // 4. Guardar la nueva compra
+                    const nombreProducto = productoDoc.data().nombre;
+                    const compraData = {
+                        fecha: fechaCompra,
+                        productoId,
+                        nombreProducto,
+                        cantidad,
+                        costo,
+                        totalCompra: cantidad * costo,
+                        numeroFactura,
+                        usuario,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    transaction.add(comprasRef, compraData);
+                });
+
+                mostrarMensaje('✅ Compra registrada y stock actualizado con éxito.');
+                limpiarFormularioCompra();
+                cargarCompras(); // Recargar la lista de compras
+                
+            } catch (error) {
+                console.error("Error al registrar la compra: ", error);
+                mostrarMensaje("❌ Error al registrar la compra. " + error.message, 'bg-red-500');
             }
-        } catch (error) {
-            console.error("Error al registrar cliente:", error);
-            alert("Hubo un error al registrar el cliente. Por favor, inténtalo de nuevo.");
-        }
-    }
-
-    document.getElementById('cliente').addEventListener('input', buscarClientePorCedula);
-
-    function mostrarFactura() {
-        const cliente = document.getElementById('cliente').value;
-        const telefono = document.getElementById('telefono').value;
-        const direccion = document.getElementById('direccion').value;
-        const fechaIngreso = document.getElementById('fechaIngreso').value;
-        const fechaEntrega = document.getElementById('fechaEntrega').value;
-        const estado = document.getElementById('estado').value;
-
-        if (!cliente || !telefono || !direccion || items.length === 0) {
-            alert('Por favor, completa los datos del cliente y agrega al menos un ítem antes de imprimir la vista.');
-            return;
         }
 
-        let html = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-            <title>Previsualización de Factura</title>
-            <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; color: #333; }
-                .invoice-container { max-width: 800px; margin: 0 auto; border: 1px solid #eee; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
-                h2 { text-align: center; color: #0f766e; margin-bottom: 25px; }
-                .header-info, .client-info { display: flex; justify-content: space-between; margin-bottom: 20px; }
-                .client-info div, .header-info div { flex: 1; margin-right: 20px; }
-                .client-info div:last-child, .header-info div:last-child { margin-right: 0; }
-                p { margin: 5px 0; line-height: 1.5; }
-                strong { color: #555; }
-                table { width: 100%; border-collapse: collapse; margin-top: 25px; }
-                th, td { border: 1px solid #ddd; padding: 12px 8px; text-align: left; }
-                th { background-color: #f8f8f8; color: #666; font-weight: 600; }
-                tfoot tr.total-row td { background-color: #f0f0f0; font-weight: bold; text-align: right; }
-                .text-right { text-align: right; }
-                .text-center { text-align: center; }
-                .footer { text-align: center; margin-top: 40px; font-size: 0.9em; color: #777; }
-                @media print {
-                    body { margin: 0; padding: 0; }
-                    .invoice-container { box-shadow: none; border: none; }
-                }
-            </style>
-            </head>
-            <body>
-                <div class="invoice-container">
-                    <h2>Factura de Venta - Fixitech</h2>
+        function limpiarFormularioCompra() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('fechaCompra').value = today;
+            document.getElementById('productoCompra').value = '';
+            document.getElementById('cantidadCompra').value = '1';
+            document.getElementById('costoCompra').value = '';
+            document.getElementById('facturaCompra').value = '';
+            document.getElementById('usuarioCompra').value = '';
+        }
 
-                    <div class="header-info">
-                        <div>
-                            <p><strong>Número de Factura:</strong> [Generado al guardar]</p>
-                            <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
-                        </div>
-                        <div class="text-right">
-                            <p><strong>Fixitech</strong></p>
-                            <p>Su dirección aquí</p>
-                            <p>Su teléfono aquí</p>
-                            <p>Su email aquí</p>
-                        </div>
-                    </div>
+        async function cargarCompras() {
+            const tablaBody = document.getElementById('listaComprasTableBody');
+            tablaBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-500">Cargando compras...</td></tr>`;
 
-                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            // Cargar años para el filtro
+            const yearsSet = new Set();
+            const yearSelect = document.getElementById('filtroAno');
+            yearSelect.innerHTML = '<option value="">Todos</option>';
+            yearsSet.add(new Date().getFullYear().toString());
 
-                    <div class="client-info">
-                        <div>
-                            <p><strong>Cliente:</strong> ${cliente}</p>
-                            <p><strong>Teléfono:</strong> ${telefono}</p>
-                            <p><strong>Dirección:</strong> ${direccion}</p>
-                        </div>
-                        <div>
-                            <p><strong>Fecha de Ingreso:</strong> ${fechaIngreso}</p>
-                            <p><strong>Fecha de Entrega:</strong> ${fechaEntrega}</p>
-                            <p><strong>Estado del Pedido:</strong> ${estado}</p>
-                        </div>
-                    </div>
+            try {
+                const snapshot = await db.collection('compras').orderBy('timestamp', 'desc').get();
+                todasLasCompras = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    const fecha = data.fecha;
+                    yearsSet.add(fecha.substring(0, 4));
+                    return { id: doc.id, ...data };
+                });
+                
+                Array.from(yearsSet).sort().reverse().forEach(year => {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    yearSelect.appendChild(option);
+                });
 
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Descripción</th>
-                                <th class="text-center">Cant.</th>
-                                <th class="text-right">P. Unitario</th>
-                                <th class="text-right">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-        `;
+                filtrarCompras();
+            } catch (error) {
+                console.error("Error al cargar compras: ", error);
+                tablaBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-red-500">Error al cargar compras.</td></tr>`;
+            }
+        }
 
-        let total = 0;
-        items.forEach(item => {
-            html += `<tr>
-                <td>${item.descripcion}</td>
-                <td class="text-center">${item.cantidad}</td>
-                <td class="text-right">$${item.precio.toFixed(2)}</td>
-                <td class="text-right">$${item.subtotal.toFixed(2)}</td>
-            </tr>`;
-            total += item.subtotal;
-        });
+        function filtrarCompras() {
+            const año = document.getElementById('filtroAno').value;
+            const mes = document.getElementById('filtroMes').value;
+            const dia = document.getElementById('filtroDia').value;
 
-        html += `
-                        </tbody>
-                        <tfoot>
-                            <tr class="total-row">
-                                <td colspan="3">Total:</td>
-                                <td class="text-right">$${total.toFixed(2)}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-
-                    <div class="footer">
-                        <p>¡Gracias por su preferencia!</p>
-                        <p>Este documento no tiene validez tributaria a menos que se especifique lo contrario.</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
-
-        const nuevaVentana = window.open('', '', 'width=900,height=700,scrollbars=yes');
-        nuevaVentana.document.write(html);
-        nuevaVentana.document.close();
-        nuevaVentana.focus();
-    }
-
-    function limpiarFormulario() {
-        document.getElementById('cliente').value = '';
-        document.getElementById('telefono').value = '';
-        document.getElementById('direccion').value = '';
-        document.getElementById('descripcion').value = '';
-        document.getElementById('cantidad').value = '1';
-        document.getElementById('precio').value = '';
-        document.getElementById('estado').value = 'En espera';
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('fechaIngreso').value = today;
-        document.getElementById('fechaEntrega').value = today;
-        items = [];
-        actualizarTabla();
-        document.getElementById('cliente').focus();
-    }
-
-    // --- Funciones para Gestión de Facturas ---
-
-    async function cargarFacturas() {
-        const tablaBody = document.getElementById('listaFacturasTableBody');
-        tablaBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">Cargando facturas...</td></tr>`;
-        try {
-            const snapshot = await db.collection('facturas').orderBy('timestamp', 'desc').get();
-            // MODIFICACIÓN CLAVE AQUÍ: Convertir Firestore Timestamp a JavaScript Date
-            todasLasFacturas = snapshot.docs.map(doc => {
-                const data = doc.data();
-                if (data.timestamp && typeof data.timestamp.toDate === 'function') {
-                    data.timestamp = data.timestamp.toDate(); // Convierte el Timestamp de Firestore a Date de JS
-                }
-                return { id: doc.id, ...data };
+            const comprasFiltradas = todasLasCompras.filter(compra => {
+                const fechaCompra = new Date(compra.fecha);
+                const añoMatch = !año || fechaCompra.getFullYear().toString() === año;
+                const mesMatch = !mes || (fechaCompra.getMonth() + 1).toString() === mes;
+                const diaMatch = !dia || fechaCompra.getDate().toString() === dia;
+                return añoMatch && mesMatch && diaMatch;
             });
-            filtrarFacturas(); // Muestra todas las facturas al cargar inicialmente
-        } catch (error) {
-            console.error("Error al cargar facturas: ", error);
-            tablaBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-500">Error al cargar facturas.</td></tr>`;
-        }
-    }
-
-    function filtrarFacturas() {
-        const filtroCliente = document.getElementById('filtroCliente').value.toLowerCase().trim();
-        const filtroNumeroFactura = document.getElementById('filtroNumeroFactura').value.toLowerCase().trim();
-
-        const facturasFiltradas = todasLasFacturas.filter(factura => {
-            const matchCliente = factura.cliente.toLowerCase().includes(filtroCliente);
-            const matchNumero = factura.numeroFactura && factura.numeroFactura.toLowerCase().includes(filtroNumeroFactura);
-            return matchCliente && matchNumero;
-        });
-
-        actualizarTablaFacturas(facturasFiltradas);
-    }
-
-    function actualizarTablaFacturas(facturasToDisplay) {
-        const tablaBody = document.getElementById('listaFacturasTableBody');
-        tablaBody.innerHTML = '';
-
-        if (facturasToDisplay.length === 0) {
-            tablaBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">No hay facturas que coincidan con los filtros.</td></tr>`;
-            return;
+            actualizarTablaCompras(comprasFiltradas);
         }
 
-        facturasToDisplay.forEach(factura => {
-            const fechaIngreso = factura.fechaIngreso || 'N/A';
-            const total = factura.total ? `$${factura.total.toFixed(2)}` : '$0.00';
+        function actualizarTablaCompras(comprasToDisplay) {
+            const tablaBody = document.getElementById('listaComprasTableBody');
+            const summaryFooter = document.getElementById('comprasSummaryFooter');
+            tablaBody.innerHTML = '';
+            summaryFooter.innerHTML = '';
 
-            tablaBody.innerHTML += `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-3 py-2 border-b border-gray-200">${factura.numeroFactura || factura.id}</td>
-                    <td class="px-3 py-2 border-b border-gray-200">${factura.cliente}</td>
-                    <td class="px-3 py-2 border-b border-gray-200 text-right">${total}</td>
-                    <td class="px-3 py-2 border-b border-gray-200">${factura.estado}</td>
-                    <td class="px-3 py-2 border-b border-gray-200">${fechaIngreso}</td>
-                    <td class="px-3 py-2 border-b border-gray-200 text-center">
-                       <button onclick='verDetalleFactura(${JSON.stringify(factura)})' class="...">Ver Detalles</button>
-<button onclick='procesarDevolucion(${JSON.stringify(factura)})' class="bg-red-200 text-red-800 px-2 py-1 rounded text-xs hover:bg-red-300 transition duration-150 ease-in-out">Devolver</button>
-                        <button onclick='generarPDF(${JSON.stringify(factura)}, "${factura.numeroFactura || factura.id}")' class="bg-teal-200 text-teal-800 px-2 py-1 rounded text-xs hover:bg-teal-300 transition duration-150 ease-in-out">Reimprimir</button>
-                    </td>
+            if (comprasToDisplay.length === 0) {
+                tablaBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-500">No hay compras que coincidan con los filtros.</td></tr>`;
+                return;
+            }
+
+            let totalInversion = 0;
+            comprasToDisplay.forEach(compra => {
+                totalInversion += compra.totalCompra;
+                tablaBody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${compra.fecha}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${compra.nombreProducto || 'N/A'}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">${compra.cantidad}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${compra.costo.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${compra.totalCompra.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${compra.numeroFactura}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${compra.usuario}</td>
+                    </tr>
+                `;
+            });
+            
+            summaryFooter.innerHTML = `
+                <tr class="bg-gray-50 font-semibold">
+                    <td colspan="4" class="text-right px-3 py-2 border-t border-gray-200 text-gray-800">Total de Inversión:</td>
+                    <td class="px-3 py-2 border-t border-gray-200 text-right text-gray-800">$${totalInversion.toFixed(2)}</td>
+                    <td colspan="2" class="border-t border-gray-200"></td>
                 </tr>
             `;
-        });
-    }
-
-    // --- Función para ver detalle de factura en pop-up y con opciones de edición/devolución ---
-    function verDetalleFactura(facturaData) {
-        let itemsHtml = facturaData.items.map(item => `
-            <tr>
-                <td>${item.descripcion}</td>
-                <td class="text-center">${item.cantidad}</td>
-                <td class="text-right">$${item.precio.toFixed(2)}</td>
-                <td class="text-right">$${item.subtotal.toFixed(2)}</td>
-            </tr>
-        `).join('');
-
-        const popupContent = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Detalles de Factura - ${facturaData.numeroFactura || facturaData.id}</title>
-                <style>
-                    /* Incluir los estilos del popup definidos en el head del documento padre */
-                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 0; margin: 0; background-color: #f5f5f5; }
-                    .popup-invoice-container {
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                        padding: 20px;
-                        color: #333;
-                        max-width: 800px;
-                        margin: 20px auto;
-                        border: 1px solid #eee;
-                        box-shadow: 0 0 10px rgba(0,0,0,0.05);
-                        background-color: #fff;
-                    }
-                    .popup-invoice-container h2 {
-                        text-align: center;
-                        color: #0f766e;
-                        margin-bottom: 25px;
-                    }
-                    .popup-invoice-container .info-section {
-                        display: flex;
-                        justify-content: space-between;
-                        margin-bottom: 15px;
-                        flex-wrap: wrap;
-                    }
-                    .popup-invoice-container .info-section > div {
-                        flex: 1;
-                        min-width: 280px;
-                        margin-right: 20px;
-                        margin-bottom: 10px;
-                    }
-                    .popup-invoice-container .info-section > div:last-child {
-                        margin-right: 0;
-                    }
-                    .popup-invoice-container p {
-                        margin: 5px 0;
-                        line-height: 1.4;
-                    }
-                    .popup-invoice-container strong {
-                        color: #555;
-                    }
-                    .popup-invoice-container table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-top: 20px;
-                    }
-                    .popup-invoice-container th,
-                    .popup-invoice-container td {
-                        border: 1px solid #ddd;
-                        padding: 10px 8px;
-                        text-align: left;
-                    }
-                    .popup-invoice-container th {
-                        background-color: #f8f8f8;
-                        color: #666;
-                        font-weight: 600;
-                    }
-                    .popup-invoice-container tfoot tr.total-row td {
-                        background-color: #f0f0f0;
-                        font-weight: bold;
-                        text-align: right;
-                    }
-                    .popup-invoice-container .text-right {
-                        text-align: right;
-                    }
-                    .popup-invoice-container .text-center {
-                        text-align: center;
-                    }
-                    .popup-invoice-container .btn-actions {
-                        text-align: center;
-                        margin-top: 30px;
-                    }
-                    .popup-invoice-container .btn-actions button {
-                        padding: 10px 20px;
-                        border: none;
-                        border-radius: 5px;
-                        cursor: pointer;
-                        font-size: 1em;
-                        margin: 0 5px;
-                    }
-                    .popup-invoice-container .btn-actions .btn-print {
-                        background-color: #0f766e;
-                        color: white;
-                    }
-                    .popup-invoice-container .btn-actions .btn-edit {
-                        background-color: #2563eb;
-                        color: white;
-                    }
-                    .popup-invoice-container .btn-actions .btn-return {
-                        background-color: #dc2626;
-                        color: white;
-                    }
-                    .popup-invoice-container .btn-actions .btn-close {
-                        background-color: #6b7280;
-                        color: white;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="popup-invoice-container">
-                    <h2>Detalles de Factura #${facturaData.numeroFactura || facturaData.id}</h2>
-
-                    <div class="info-section">
-                        <div>
-                            <p><strong>Número de Factura:</strong> ${facturaData.numeroFactura || 'N/A'}</p>
-                            <p><strong>Fecha de Emisión:</strong> ${facturaData.timestamp ? new Date(facturaData.timestamp).toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}</p>
-                        </div>
-                        <div class="text-right">
-                            <p><strong>Fixitech</strong></p>
-                            <p>Su dirección aquí</p>
-                            <p>Su teléfono aquí</p>
-                            <p>Su email aquí</p>
-                        </div>
-                    </div>
-
-                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-
-                    <div class="info-section">
-                        <div>
-                            <p><strong>Cliente:</strong> ${facturaData.cliente}</p>
-                            <p><strong>Teléfono:</strong> ${facturaData.telefono}</p>
-                            <p><strong>Dirección:</strong> ${facturaData.direccion}</p>
-                        </div>
-                        <div>
-                            <p><strong>Fecha de Ingreso:</strong> ${facturaData.fechaIngreso}</p>
-                            <p><strong>Fecha de Entrega:</strong> ${facturaData.fechaEntrega}</p>
-                            <p><strong>Estado del Pedido:</strong> ${facturaData.estado}</p>
-                        </div>
-                    </div>
-
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Descripción</th>
-                                <th class="text-center">Cant.</th>
-                                <th class="text-right">P. Unitario</th>
-                                <th class="text-right">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${itemsHtml}
-                        </tbody>
-                        <tfoot>
-                            <tr class="total-row">
-                                <td colspan="3">Total:</td>
-                                <td class="text-right">$${facturaData.total ? facturaData.total.toFixed(2) : '0.00'}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-
-                    <div class="btn-actions">
-                        <button class="btn-print" onclick='window.opener.generarPDF(${JSON.stringify(facturaData)}, "${facturaData.numeroFactura || facturaData.id}")'>Imprimir PDF</button>
-                        <button class="btn-edit" onclick='window.opener.editarFacturaExistente(${JSON.stringify(facturaData)}); window.close();'>Editar Factura</button>
-                    
-
-                        <button class="btn-return" onclick='
-    if (!window.opener || !window.opener.procesarDevolucion) {
-        alert("No se puede procesar la devolución porque no se encontró la ventana principal o su función.");
-    } else {
-        if (window.opener.procesarDevolucion(${JSON.stringify(facturaData)})) window.close();
-    }
-'>Procesar Devolución</button>
-                        <button class="btn-close" onclick="window.close()">Cerrar</button>
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
-
-        const popupWindow = window.open('', '_blank', 'width=950,height=750,scrollbars=yes,resizable=yes');
-        popupWindow.document.write(popupContent);
-        popupWindow.document.close();
-        popupWindow.focus();
-    }
-
-    // --- Función para cargar datos de una factura existente al formulario de edición ---
-    function editarFacturaExistente(facturaData) {
-        facturaEnEdicionId = facturaData.id;
-        todaLaInformacionFacturaEnEdicion = facturaData; 
-        
-        document.getElementById('cliente').value = facturaData.cliente || '';
-        document.getElementById('telefono').value = facturaData.telefono || '';
-        document.getElementById('direccion').value = facturaData.direccion || '';
-        document.getElementById('fechaIngreso').value = facturaData.fechaIngreso || '';
-        document.getElementById('fechaEntrega').value = facturaData.fechaEntrega || '';
-        document.getElementById('estado').value = facturaData.estado || 'En espera';
-        
-        // CORRECCIÓN APLICADA AQUÍ: Asegurar que 'items' sea un array JavaScript nativo
-        items = Array.isArray(facturaData.items) ? facturaData.items.map(item => ({...item})) : [];
-        actualizarTabla(); // Actualizar la tabla de ítems del formulario
-
-        document.getElementById('formFacturaTitle').textContent = `Editando Factura #${facturaData.numeroFactura || facturaData.id}`;
-        document.getElementById('guardarFacturaBtn').textContent = 'Actualizar Factura';
-        
-        mostrarSeccion('nuevaVentaSection'); // Cambiar a la sección de Nueva Venta
-        window.scrollTo(0, 0); // Desplazarse al inicio del formulario
-    }
-
-    // --- Función básica para procesar una devolución (cambio de estado) ---
-    // Ahora devuelve true/false para que la ventana que la llamó sepa si debe cerrarse
-
-async function procesarDevolucion(facturaData) {
-    if (!confirm(`¿Estás seguro de marcar la factura #${facturaData.numeroFactura || facturaData.id} como DEVUELTA?`)) {
-        return; // el usuario canceló
-    }
-
-    try {
-        await db.collection('facturas').doc(facturaData.id).update({
-            estado: 'Devuelto',
-            fechaDevolucion: new Date().toISOString().split('T')[0]
-        });
-
-        // Confirmación visual
-        alert(`✅ Factura #${facturaData.numeroFactura || facturaData.id} marcada como DEVUELTA.`);
-        cargarFacturas(); // recarga la lista
-    } catch (error) {
-        console.error("Error al marcar como devuelta:", error);
-        alert("❌ No se pudo devolver la factura. Intenta nuevamente.");
-    }
-}
-
-    
-async function marcarComoDevuelto(facturaId, numeroFactura) {
-    if (!confirm("¿Estás seguro de marcar esta factura como devuelta?")) return;
-
-    try {
-        const firebaseConfig = {
-            // Asegúrate de copiar tu configuración original aquí o importar el archivo si es posible
-        };
-
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
         }
-        const db = firebase.firestore();
-
-        await db.collection('facturas').doc(facturaId).update({
-            estado: 'Devuelto',
-            fechaDevolucion: new Date().toISOString().split('T')[0]
-        });
-
-        alert(`Factura #${numeroFactura} marcada como devuelta.`);
-        window.close();
-    } catch (error) {
-        console.error("Error al marcar como devuelta:", error);
-        alert("No se pudo marcar la factura como devuelta. Intenta nuevamente.");
-    }
-}
-    function mostrarMensaje(texto, color = 'bg-green-600') {
-    const mensaje = document.createElement('div');
-    mensaje.textContent = texto;
-    mensaje.className = `fixed top-5 right-5 ${color} text-white px-4 py-2 rounded shadow-lg z-50`;
-    document.body.appendChild(mensaje);
-    setTimeout(() => mensaje.remove(), 3000);
-}
-
-    mostrarMensaje(`✅ Factura #${facturaData.numeroFactura || facturaData.id} marcada como DEVUELTA`);
-
-    
-</script>
+        
+    </script>
 </body>
 </html>
