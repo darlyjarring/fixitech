@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
@@ -652,134 +652,130 @@
                 mostrarMensaje('La fecha de entrega no puede ser anterior a la fecha de ingreso.', 'bg-red-500');
                 return;
             }
-            
-            let invoiceNumber = null;
-            let docIdToSave = facturaEnEdicionId;
-            let message = '';
-            let success = false;
 
+            let message = '';
+            let docRef;
+
+            if (facturaEnEdicionId) {
+                docRef = db.collection('facturas').doc(facturaEnEdicionId);
+            } else {
+                docRef = db.collection('facturas').doc();
+            }
+            
             try {
                 if (estado === 'Facturado') {
-                    // Si el estado es Facturado, generamos un número de factura
+                    // Lógica para facturar, se ejecuta en una transacción
                     await db.runTransaction(async (transaction) => {
+                        // 1. Lecturas
                         const counterRef = db.collection('contadores').doc('facturas');
                         const counterDoc = await transaction.get(counterRef);
-                        let currentNumber = 0;
-                        if (counterDoc.exists) {
-                            currentNumber = counterDoc.data().ultimoNumero || 0;
+                        const pedidoDoc = await transaction.get(docRef);
+
+                        // Si es un pedido que se está facturando, verificamos el stock
+                        if (pedidoDoc.exists) {
+                            const stockPromises = items.map(item => {
+                                const producto = todosLosProductosYServicios.find(p => p.nombre === item.descripcion && p.tipo === 'producto');
+                                if (producto) {
+                                    const productoRef = db.collection('productosYServicios').doc(producto.id);
+                                    return transaction.get(productoRef);
+                                }
+                                return Promise.resolve(null);
+                            });
+                            const stockDocs = await Promise.all(stockPromises);
+
+                            stockDocs.forEach((stockDoc, index) => {
+                                if (stockDoc && stockDoc.exists) {
+                                    const stockActual = stockDoc.data().stock || 0;
+                                    const cantidadVendida = items[index].cantidad;
+                                    const nuevoStock = stockActual - cantidadVendida;
+                                    if (nuevoStock < 0) {
+                                        throw new Error(`No hay suficiente stock para el producto "${items[index].descripcion}". Stock actual: ${stockActual}.`);
+                                    }
+                                    transaction.update(stockDoc.ref, { stock: nuevoStock });
+                                }
+                            });
                         }
+                        
+                        // 2. Escrituras después de todas las lecturas
+                        let currentNumber = counterDoc.exists ? (counterDoc.data().ultimoNumero || 0) : 0;
                         const newNumber = currentNumber + 1;
+                        const invoiceNumber = formatInvoiceNumber(newNumber);
+                        
                         transaction.update(counterRef, { ultimoNumero: newNumber });
-                        invoiceNumber = formatInvoiceNumber(newNumber);
+                        
+                        const data = {
+                            numeroFactura: invoiceNumber,
+                            clienteCedula: clienteCedula || null,
+                            clienteNombre: clienteNombre || null, 
+                            telefono,
+                            direccion,
+                            fechaIngreso,
+                            fechaEntrega,
+                            estado,
+                            items: items.map(item => ({ descripcion: item.descripcion, cantidad: item.cantidad, precio: item.precio, subtotal: item.subtotal })),
+                            total: parseFloat(total.toFixed(2)),
+                            timestamp: facturaEnEdicionId ? todaLaInformacionFacturaEnEdicion.timestamp : firebase.firestore.FieldValue.serverTimestamp()
+                        };
+                        transaction.set(docRef, data);
                     });
-                    
-                    // Actualizar el stock de productos
-                    await actualizarStock(items, 'restar');
-                    message = `✅ Factura ${invoiceNumber} guardada y stock actualizado con éxito.`;
-                    success = true;
+
+                    message = facturaEnEdicionId ? `✅ Pedido facturado y stock actualizado con éxito.` : `✅ Factura guardada y stock actualizado con éxito.`;
+
                 } else {
-                    // Si el estado no es Facturado (En espera, Entregado, etc.), no generamos factura
-                    message = `✅ Pedido de venta guardado con éxito.`;
-                    success = true;
+                    // Lógica para guardar un pedido (sin transacción)
+                    const data = {
+                        numeroFactura: null,
+                        clienteCedula: clienteCedula || null,
+                        clienteNombre: clienteNombre || null, 
+                        telefono,
+                        direccion,
+                        fechaIngreso,
+                        fechaEntrega,
+                        estado,
+                        items: items.map(item => ({ descripcion: item.descripcion, cantidad: item.cantidad, precio: item.precio, subtotal: item.subtotal })),
+                        total: parseFloat(total.toFixed(2)),
+                        timestamp: facturaEnEdicionId ? todaLaInformacionFacturaEnEdicion.timestamp : firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await docRef.set(data);
+                    message = facturaEnEdicionId ? `✅ Pedido actualizado con éxito.` : `✅ Pedido de venta guardado con éxito.`;
                 }
 
-                const sanitizedItems = Array.isArray(items) ? items.map(item => ({ descripcion: item.descripcion, cantidad: item.cantidad, precio: item.precio, subtotal: item.subtotal })) : [];
-                const data = {
-                    numeroFactura: invoiceNumber,
-                    clienteCedula: clienteCedula || null,
-                    clienteNombre: clienteNombre || null, 
-                    telefono,
-                    direccion,
-                    fechaIngreso,
-                    fechaEntrega,
-                    estado,
-                    items: sanitizedItems,
-                    total: parseFloat(total.toFixed(2)),
-                    timestamp: facturaEnEdicionId ? todaLaInformacionFacturaEnEdicion.timestamp : firebase.firestore.FieldValue.serverTimestamp()
-                };
-
-                if (docIdToSave) {
-                    await db.collection('facturas').doc(docIdToSave).set(data);
-                    mostrarMensaje(`Venta actualizada con éxito.`);
-                } else {
-                    await db.collection('facturas').add(data);
-                    mostrarMensaje(message);
-                }
-
-                if (success) {
-                    limpiarFormulario();
-                    cargarFacturas(); // Recargar la lista para que se muestre el nuevo registro
-                }
+                mostrarMensaje(message);
+                limpiarFormulario();
+                cargarFacturas(); 
 
             } catch (error) {
                 console.error("Error al guardar/actualizar la venta: ", error);
                 mostrarMensaje("❌ Hubo un error al guardar/actualizar la venta. Por favor, inténtalo de nuevo. Detalles: " + error.message, 'bg-red-500');
-                if (invoiceNumber) {
-                     // Si hubo un error después de generar el número de factura, debemos deshacerlo
-                     console.warn("Error después de generar número de factura. Intentando revertir...");
-                     db.collection('contadores').doc('facturas').update({ ultimoNumero: firebase.firestore.FieldValue.increment(-1) });
-                }
             }
         }
         
-        // Nueva función para convertir un pedido en factura
-        async function facturarPedido(pedidoId) {
-            if (!confirm("¿Estás seguro de que quieres facturar este pedido? Esta acción no se puede deshacer y actualizará el stock de productos.")) {
+        // Nueva función para cargar la factura en el formulario para edición/facturación
+        async function cargarFacturaParaEdicion(facturaId) {
+            const factura = todasLasFacturas.find(f => f.id === facturaId);
+            if (!factura) {
+                mostrarMensaje('Venta no encontrada para editar.', 'bg-red-500');
                 return;
             }
 
-            try {
-                let invoiceNumber = null;
-                const pedidoRef = db.collection('facturas').doc(pedidoId);
+            facturaEnEdicionId = facturaId;
+            todaLaInformacionFacturaEnEdicion = factura;
 
-                await db.runTransaction(async (transaction) => {
-                    // 1. Generar el número de factura
-                    const counterRef = db.collection('contadores').doc('facturas');
-                    const counterDoc = await transaction.get(counterRef);
-                    let currentNumber = 0;
-                    if (counterDoc.exists) {
-                        currentNumber = counterDoc.data().ultimoNumero || 0;
-                    }
-                    const newNumber = currentNumber + 1;
-                    transaction.update(counterRef, { ultimoNumero: newNumber });
-                    invoiceNumber = formatInvoiceNumber(newNumber);
-                    
-                    // 2. Obtener los datos del pedido y actualizar el estado
-                    const pedidoDoc = await transaction.get(pedidoRef);
-                    const pedidoData = pedidoDoc.data();
+            document.getElementById('cedulaCliente').value = factura.clienteCedula || '';
+            document.getElementById('nombreCliente').value = factura.clienteNombre || '';
+            document.getElementById('telefono').value = factura.telefono || '';
+            document.getElementById('direccion').value = factura.direccion || '';
+            document.getElementById('fechaIngreso').value = factura.fechaIngreso;
+            document.getElementById('fechaEntrega').value = factura.fechaEntrega;
+            document.getElementById('estado').value = factura.estado;
 
-                    // 3. Actualizar el stock de productos
-                    const batch = db.batch();
-                    for (const item of pedidoData.items) {
-                        const producto = todosLosProductosYServicios.find(p => p.nombre === item.descripcion && p.tipo === 'producto');
-                        if (producto) {
-                            const productoRef = db.collection('productosYServicios').doc(producto.id);
-                            const productoDoc = await productoRef.get();
-                            const stockActual = productoDoc.data().stock || 0;
-                            const nuevoStock = stockActual - item.cantidad;
+            items = factura.items;
+            actualizarTabla();
 
-                            if (nuevoStock < 0) {
-                                throw new Error(`No hay suficiente stock para el producto "${item.descripcion}". Stock actual: ${stockActual}.`);
-                            }
-                            batch.update(productoRef, { stock: nuevoStock });
-                        }
-                    }
-                    await batch.commit();
+            document.getElementById('formFacturaTitle').textContent = `Editando Venta`;
+            document.getElementById('guardarFacturaBtn').textContent = '💾 Actualizar Venta';
 
-                    // 4. Actualizar el documento del pedido con el número de factura y el nuevo estado
-                    transaction.update(pedidoRef, {
-                        numeroFactura: invoiceNumber,
-                        estado: 'Facturado'
-                    });
-                });
-
-                mostrarMensaje(`✅ Pedido facturado con éxito. Se generó la factura ${invoiceNumber}.`);
-                cargarFacturas();
-
-            } catch (error) {
-                console.error("Error al facturar el pedido: ", error);
-                mostrarMensaje("❌ Error al facturar el pedido. " + error.message, 'bg-red-500');
-            }
+            mostrarSeccion('nuevaVentaSection');
         }
 
         async function cargarFacturas() {
@@ -829,9 +825,9 @@
                 const numeroFacturaDisplay = factura.numeroFactura || `<span class="bg-yellow-100 text-yellow-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded">Pendiente</span>`;
                 const accionesHTML = factura.numeroFactura 
                     ? `<button onclick="verDetalleFactura('${factura.id}')" class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out mr-2" title="Ver Detalle">👁️</button>
-                       <button onclick="editarFacturaExistente('${factura.id}')" class="text-green-600 hover:text-green-800 transition duration-150 ease-in-out mr-2" title="Editar">✏️</button>`
+                       <button onclick="cargarFacturaParaEdicion('${factura.id}')" class="text-green-600 hover:text-green-800 transition duration-150 ease-in-out mr-2" title="Editar">✏️</button>`
                     : `<button onclick="verDetalleFactura('${factura.id}')" class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out mr-2" title="Ver Detalle">👁️</button>
-                       <button onclick="facturarPedido('${factura.id}')" class="bg-green-500 text-white hover:bg-green-600 text-xs font-medium py-1 px-2 rounded transition duration-150 ease-in-out" title="Facturar este Pedido">Facturar</button>`;
+                       <button onclick="cargarFacturaParaEdicion('${factura.id}')" class="bg-green-500 text-white hover:bg-green-600 text-xs font-medium py-1 px-2 rounded transition duration-150 ease-in-out" title="Facturar este Pedido">Facturar</button>`;
 
                 tableBody.innerHTML += `
                     <tr class="hover:bg-gray-50">
@@ -891,33 +887,6 @@
             popup.document.write(`
                 <iframe width='100%' height='100%' src='${pdfUrl}'></iframe>
             `);
-        }
-
-        function editarFacturaExistente(facturaId) {
-            const factura = todasLasFacturas.find(f => f.id === facturaId);
-            if (!factura) {
-                mostrarMensaje('Venta no encontrada para editar.', 'bg-red-500');
-                return;
-            }
-
-            facturaEnEdicionId = facturaId;
-            todaLaInformacionFacturaEnEdicion = factura;
-
-            document.getElementById('cedulaCliente').value = factura.clienteCedula || '';
-            document.getElementById('nombreCliente').value = factura.clienteNombre || '';
-            document.getElementById('telefono').value = factura.telefono || '';
-            document.getElementById('direccion').value = factura.direccion || '';
-            document.getElementById('fechaIngreso').value = factura.fechaIngreso;
-            document.getElementById('fechaEntrega').value = factura.fechaEntrega;
-            document.getElementById('estado').value = factura.estado;
-
-            items = factura.items;
-            actualizarTabla();
-
-            document.getElementById('formFacturaTitle').textContent = `Editando Venta`;
-            document.getElementById('guardarFacturaBtn').textContent = '💾 Actualizar Venta';
-
-            mostrarSeccion('nuevaVentaSection');
         }
 
         async function guardarClienteDesdeFactura() {
@@ -1364,7 +1333,7 @@
             try {
                 const querySnapshot = await db.collection('compras').orderBy('timestamp', 'desc').get();
                 if (querySnapshot.empty) {
-                    tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">No hay compras registradas.</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">No hay compras registradas.</td></td>';
                     return;
                 }
                 
