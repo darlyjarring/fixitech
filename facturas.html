@@ -1538,67 +1538,70 @@
             }
         }
 
-        async function guardarCompra() {
-            const fechaCompra = document.getElementById('fechaCompra').value;
-            const productoId = document.getElementById('productoCompra').value;
-            const cantidad = parseInt(document.getElementById('cantidadCompra').value);
-            const costo = parseFloat(document.getElementById('costoCompra').value);
-            const numeroFactura = document.getElementById('facturaCompra').value.trim();
-            const usuario = document.getElementById('usuarioCompra').value.trim();
-            
-            if (!fechaCompra || !productoId || isNaN(cantidad) || cantidad <= 0 || isNaN(costo) || costo < 0 || !numeroFactura || !usuario) {
-                mostrarMensaje('Por favor, completa todos los campos del formulario de compra correctamente.', 'bg-red-500');
-                return;
-            }
-
-            try {
-                const comprasRef = db.collection('compras');
-                // 1. Verificar si el número de factura ya existe
-                const facturaExistente = await comprasRef.where('numeroFactura', '==', numeroFactura).limit(1).get();
-                if (!facturaExistente.empty) {
-                    mostrarMensaje(`El número de factura "${numeroFactura}" ya ha sido registrado.`, 'bg-red-500');
-                    return;
-                }
-
-                // Usamos una transacción para garantizar que la actualización del stock sea atómica
-                await db.runTransaction(async (transaction) => {
-                    // 2. Obtener el producto para actualizar el stock
-                    const productoRef = db.collection('productosYServicios').doc(productoId);
-                    const productoDoc = await transaction.get(productoRef);
-                    if (!productoDoc.exists) {
-                        throw new Error("El producto seleccionado no existe.");
-                    }
-                    const stockActual = productoDoc.data().stock || 0;
-                    const nuevoStock = stockActual + cantidad;
-                    
-                    // 3. Actualizar el stock del producto
-                    transaction.update(productoRef, { stock: nuevoStock });
-                    
-                    // 4. Guardar la nueva compra
-                    const nombreProducto = productoDoc.data().nombre;
-                    const compraData = {
-                        fecha: fechaCompra,
-                        productoId,
-                        nombreProducto,
-                        cantidad,
-                        costo,
-                        totalCompra: cantidad * costo,
-                        numeroFactura,
-                        usuario,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-                    transaction.add(comprasRef, compraData);
-                });
-
-                mostrarMensaje('✅ Compra registrada y stock actualizado con éxito.');
-                limpiarFormularioCompra();
-                cargarCompras(); // Recargar la lista de compras
-                
-            } catch (error) {
-                console.error("Error al registrar la compra: ", error);
-                mostrarMensaje("❌ Error al registrar la compra. " + error.message, 'bg-red-500');
-            }
-        }
+          async function guardarCompra() {
+              const fechaCompra = document.getElementById('fechaCompra').value;
+              const productoId = document.getElementById('productoCompra').value;
+              const cantidad = parseInt(document.getElementById('cantidadCompra').value);
+              const costo = parseFloat(document.getElementById('costoCompra').value);
+              const numeroFactura = document.getElementById('facturaCompra').value.trim();
+              const usuario = document.getElementById('usuarioCompra').value.trim();
+              
+              if (!fechaCompra || !productoId || isNaN(cantidad) || cantidad <= 0 || isNaN(costo) || costo < 0 || !numeroFactura || !usuario) {
+                  mostrarMensaje('Por favor, completa todos los campos del formulario de compra correctamente.', 'bg-red-500');
+                  return;
+              }
+          
+              try {
+                  const comprasRef = db.collection('compras');
+                  // 1. Verificar si el número de factura ya existe
+                  const facturaExistente = await comprasRef.where('numeroFactura', '==', numeroFactura).limit(1).get();
+                  if (!facturaExistente.empty) {
+                      mostrarMensaje(`El número de factura "${numeroFactura}" ya ha sido registrado.`, 'bg-red-500');
+                      return;
+                  }
+          
+                  // Obtener una referencia para el nuevo documento *antes* de la transacción
+                  const newCompraRef = comprasRef.doc(); 
+          
+                  // Usamos una transacción para garantizar que la actualización del stock sea atómica
+                  await db.runTransaction(async (transaction) => {
+                      // 2. Obtener el producto para actualizar el stock
+                      const productoRef = db.collection('productosYServicios').doc(productoId);
+                      const productoDoc = await transaction.get(productoRef);
+                      if (!productoDoc.exists) {
+                          throw new Error("El producto seleccionado no existe.");
+                      }
+                      const stockActual = productoDoc.data().stock || 0;
+                      const nuevoStock = stockActual + cantidad;
+                      
+                      // 3. Actualizar el stock del producto
+                      transaction.update(productoRef, { stock: nuevoStock });
+                      
+                      // 4. Guardar la nueva compra usando la referencia creada
+                      const nombreProducto = productoDoc.data().nombre;
+                      const compraData = {
+                          fecha: fechaCompra,
+                          productoId,
+                          nombreProducto,
+                          cantidad,
+                          costo,
+                          totalCompra: cantidad * costo,
+                          numeroFactura,
+                          usuario,
+                          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                      };
+                      transaction.set(newCompraRef, compraData); // Usar set() en la referencia
+                  });
+          
+                  mostrarMensaje('✅ Compra registrada y stock actualizado con éxito.');
+                  limpiarFormularioCompra();
+                  cargarCompras(); // Recargar la lista de compras
+                  
+              } catch (error) {
+                  console.error("Error al registrar la compra: ", error);
+                  mostrarMensaje("❌ Error al registrar la compra. " + error.message, 'bg-red-500');
+              }
+          }
 
         function limpiarFormularioCompra() {
             const today = new Date().toISOString().split('T')[0];
