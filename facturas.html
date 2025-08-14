@@ -948,7 +948,7 @@
                 const doc = await clienteRef.get();
                 
                 if (doc.exists) {
-                    await clienteRef.update({ nombre, telefono, direccion });
+                    await clienteRef.update({ cedula, nombre, telefono, direccion });
                     mostrarMensaje(`✅ Cliente ${nombre} actualizado con éxito.`);
                 } else {
                     await clienteRef.set({ nombre, telefono, direccion });
