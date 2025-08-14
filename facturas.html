@@ -512,6 +512,11 @@
             if (seccionAMostrar) {
                 seccionAMostrar.classList.remove('hidden');
             }
+
+         // Código agregado para recargar los datos
+            if (sectionId === 'gestionClientesSection') {
+                cargarClientes();
+            }
         }
 
         function iniciarNuevaVenta() {
