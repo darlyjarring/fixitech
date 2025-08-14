@@ -940,7 +940,7 @@
             );
             renderizarClientes(clientesFiltrados);
         }
-
+let clienteEnEdicionId = null;
         function renderizarClientes(clientes) {
             const tableBody = document.getElementById('listaClientesTableBody');
             tableBody.innerHTML = '';
@@ -963,6 +963,55 @@
                 `;
             });
         }
+
+        async function editarCliente(clienteId) {
+                const cliente = todosLosClientes.find(c => c.cedula === clienteId);
+                if (cliente) {
+                    clienteEnEdicionId = clienteId;
+                    document.getElementById('editCedula').value = cliente.cedula;
+                    document.getElementById('editNombre').value = cliente.nombre;
+                    document.getElementById('editTelefono').value = cliente.telefono || '';
+                    document.getElementById('editDireccion').value = cliente.direccion || '';
+                    document.getElementById('formCliente').classList.remove('hidden');
+                    mostrarMensaje('Cargando cliente para edición...', 'bg-blue-500');
+                }
+        }
+
+                // Nueva función para guardar los cambios
+        async function guardarCliente() {
+            const cedula = document.getElementById('editCedula').value;
+            const nombre = document.getElementById('editNombre').value;
+            const telefono = document.getElementById('editTelefono').value;
+            const direccion = document.getElementById('editDireccion').value;
+        
+            if (!cedula || !nombre) {
+                mostrarMensaje('❌ Se necesita la cédula y el nombre.', 'bg-red-500');
+                return;
+            }
+        
+            try {
+                const clienteRef = db.collection('clientes').doc(cedula);
+                const clienteData = { nombre, telefono, direccion, cedula };
+                
+                await clienteRef.update(clienteData);
+                mostrarMensaje(`✅ Cliente ${nombre} actualizado con éxito.`);
+                
+                limpiarFormularioCliente();
+                cargarClientes();
+            } catch (error) {
+                console.error("Error al actualizar cliente:", error);
+                mostrarMensaje('❌ Ocurrió un error al actualizar el cliente.', 'bg-red-500');
+            }
+        }
+        
+        // Nueva función para limpiar el formulario
+        function limpiarFormularioCliente() {
+            clienteEnEdicionId = null;
+            document.getElementById('formCliente').reset();
+            document.getElementById('formCliente').classList.add('hidden');
+            document.getElementById('filtroClienteNombre').focus();
+        }
+
         
         async function guardarClienteDesdeFactura() {
             const cedula = document.getElementById('cedulaCliente').value;
