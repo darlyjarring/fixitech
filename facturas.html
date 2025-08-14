@@ -590,35 +590,43 @@
             limpiarFormularioFactura();
         }
 
-       async function login() {
-            const email = document.getElementById('usuario').value;
+        async function login() {
+            const usuario = document.getElementById('usuario').value;
             const password = document.getElementById('password').value;
-        
-            try {
-                const snapshot = await db.collection('usuarios').where('email', '==', email).get();
-                if (snapshot.empty) {
-                    mostrarMensaje('❌ Usuario o contraseña incorrectos.', 'bg-red-500');
-                    return;
+            const errorElement = document.getElementById('error');
+            const doc = await db.collection('usuarios').doc(usuario).get();
+
+            if (doc.exists && doc.data().password === password) {
+                errorElement.classList.add('hidden');
+                currentLoggedInUser = {
+                    username: usuario,
+                    rol: doc.data().rol,
+                    nombre: doc.data().nombre,
+                };
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('sidebar').classList.remove('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+                
+                if (currentLoggedInUser.rol === 'admin') {
+                    document.getElementById('menu-dashboard').classList.remove('hidden');
+                    document.getElementById('menu-productos').classList.remove('hidden');
+                    document.getElementById('menu-compras').classList.remove('hidden');
+                    mostrarSeccion('dashboardSection');
+                } else {
+                    mostrarSeccion('nuevaVentaSection');
                 }
-        
-                const userData = snapshot.docs[0].data();
-                if (userData.password !== password) {
-                    mostrarMensaje('❌ Usuario o contraseña incorrectos.', 'bg-red-500');
-                    return;
-                }
-        
-                usuarioActual = userData;
-                localStorage.setItem('usuarioActual', JSON.stringify(userData));
-        
-                document.getElementById('app').classList.remove('hidden');
-                document.getElementById('loginSection').classList.add('hidden'); // Usa loginSection aquí
-                document.getElementById('usuarioActualNombre').textContent = `Usuario: ${usuarioActual.nombre}`;
-        
-            } catch (error) {
-                console.error("Error al iniciar sesión:", error);
-                mostrarMensaje('❌ Ocurrió un error al iniciar sesión. Por favor, inténtalo de nuevo.', 'bg-red-500');
+
+                document.getElementById('userNameDisplay').textContent = currentLoggedInUser.nombre;
+                document.getElementById('userRoleDisplay').textContent = currentLoggedInUser.rol.toUpperCase();
+                document.getElementById('vendedor').value = currentLoggedInUser.nombre;
+                document.getElementById('usuarioCompra').value = currentLoggedInUser.nombre;
+                
+                await cargarDatosIniciales();
+            } else {
+                errorElement.classList.remove('hidden');
             }
         }
+
 
 
         function controlarMenuPorRol() {
