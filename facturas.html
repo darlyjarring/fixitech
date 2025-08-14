@@ -435,6 +435,10 @@
                 <h3 class="text-xl font-semibold mb-2">Registrar Nueva Compra</h3>
                 <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <div>
+                        <label for="numeroFacturaCompra" class="block text-sm font-medium text-gray-700">Número de Factura</label>
+                        <input type="text" id="numeroFacturaCompra" placeholder="Ej: 001-002-12345" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                    <div>
                         <label for="fechaCompra" class="block text-sm font-medium text-gray-700">Fecha</label>
                         <input type="date" id="fechaCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
                     </div>
@@ -1343,12 +1347,14 @@ let clienteEnEdicionId = null;
             const costo = parseFloat(document.getElementById('costoCompra').value);
             const fechaVencimiento = document.getElementById('fechaVencimientoCompra').value;
             const usuario = document.getElementById('usuarioCompra').value;
-
+            // Nueva línea para obtener el número de factura de compra
+            const numeroFactura = document.getElementById('numeroFacturaCompra').value;
+        
             if (!fechaCompra || !productoId || isNaN(cantidad) || cantidad <= 0 || isNaN(costo) || costo < 0) {
                 mostrarMensaje('❌ Por favor, complete todos los campos de la compra correctamente.', 'bg-red-500');
                 return;
             }
-
+        
             try {
                 const producto = todosLosProductosYServicios.find(p => p.id === productoId);
                 if (!producto) {
@@ -1366,15 +1372,16 @@ let clienteEnEdicionId = null;
                     totalCompra,
                     fechaVencimiento,
                     usuario,
+                    // Nueva línea para guardar el número de factura
+                    numeroFactura,
                     fechaRegistro: new Date()
                 });
-
-                // Actualizar el stock del producto
+        
                 const nuevoStock = producto.stock + cantidad;
                 await db.collection('productosYServicios').doc(productoId).update({
                     stock: nuevoStock
                 });
-
+        
                 mostrarMensaje('✅ Compra registrada y stock actualizado con éxito.');
                 document.getElementById('formCompra').reset();
                 cargarCompras();
