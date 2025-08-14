@@ -500,24 +500,24 @@
             // Se puede llamar a login() si ya se han guardado las credenciales
         };
 
-        function mostrarSeccion(sectionId) {
-            const secciones = ['dashboardSection', 'nuevaVentaSection', 'gestionFacturasSection', 'gestionClientesSection', 'gestionProductosSection', 'gestionComprasSection'];
-            secciones.forEach(id => {
-                const seccion = document.getElementById(id);
-                if (seccion) {
-                    seccion.classList.add('hidden');
+            function mostrarSeccion(sectionId) {
+                const secciones = ['dashboardSection', 'nuevaVentaSection', 'gestionFacturasSection', 'gestionClientesSection', 'gestionProductosSection', 'gestionComprasSection'];
+                secciones.forEach(id => {
+                    const seccion = document.getElementById(id);
+                    if (seccion) {
+                        seccion.classList.add('hidden');
+                    }
+                });
+                const seccionAMostrar = document.getElementById(sectionId);
+                if (seccionAMostrar) {
+                    seccionAMostrar.classList.remove('hidden');
                 }
-            });
-            const seccionAMostrar = document.getElementById(sectionId);
-            if (seccionAMostrar) {
-                seccionAMostrar.classList.remove('hidden');
+            
+                // Código agregado para recargar los datos
+                if (sectionId === 'gestionClientesSection') {
+                    cargarClientes();
+                }
             }
-
-         // Código agregado para recargar los datos
-            if (sectionId === 'gestionClientesSection') {
-                cargarClientes();
-            }
-        }
 
         function iniciarNuevaVenta() {
             mostrarSeccion('nuevaVentaSection');
