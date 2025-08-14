@@ -21,73 +21,40 @@
             background-color: #3f83f8;
             color: white;
         }
-        .popup-invoice-container {
-            padding: 2rem;
-            max-width: 800px;
-            margin: 2rem auto;
-            background: #fff;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            border-radius: 0.5rem;
-        }
-        .popup-invoice-container table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-        .popup-invoice-container th, .popup-invoice-container td {
-            padding: 0.75rem;
-            border-bottom: 1px solid #e5e7eb;
-            text-align: left;
-        }
-        .popup-invoice-container .info-section {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-        }
-        .popup-invoice-container .total-row {
-            font-weight: bold;
-        }
-        .popup-invoice-container .btn-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 1rem;
-            margin-top: 2rem;
-        }
-        .popup-invoice-container .btn-print, .popup-invoice-container .btn-close {
-            padding: 0.5rem 1rem;
-            border-radius: 0.25rem;
-            cursor: pointer;
-            border: none;
-        }
-        .popup-invoice-container .btn-print {
-            background-color: #3f83f8;
-            color: #fff;
-        }
-        .popup-invoice-container .btn-close {
-            background-color: #ef4444;
-            color: #fff;
-        }
         @media print {
             body * {
                 visibility: hidden;
             }
-            .popup-invoice-container, .popup-invoice-container * {
+            .printable-content, .printable-content * {
                 visibility: visible;
             }
-            .popup-invoice-container {
+            .printable-content {
                 position: absolute;
                 left: 0;
                 top: 0;
-            }
-            .btn-actions {
-                display: none;
             }
         }
     </style>
 </head>
 <body class="bg-gray-100 flex min-h-screen">
 
-    
+    <div id="loginSection" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+            <h2 class="text-3xl font-bold text-center text-teal-600 mb-6">Iniciar Sesión Fixitech</h2>
+            <p id="error" class="text-red-600 mt-4 text-center hidden">Credenciales incorrectas</p>
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label for="usuario" class="block text-gray-700 font-medium mb-2">Usuario:</label>
+                    <input type="text" id="usuario" name="usuario" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Ej: admin" required>
+                </div>
+                 <div class="mb-4">
+                    <label for="password" class="block text-gray-700 font-medium mb-2">Contraseña:</label>
+                    <input type="password" id="password" name="password" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Contraseña" required>
+                </div>
+                <button type="button" onclick="login()" class="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 transition duration-300">Ingresar</button>
+            </form>
+        </div>
+    </div>
 
     <div id="sidebar" class="sidebar bg-gray-800 text-white flex-shrink-0 fixed h-full p-4 flex flex-col hidden">
         <h1 class="text-2xl font-bold mb-6 text-center text-teal-400">Sistema de Venta</h1>
@@ -529,26 +496,32 @@
         let todasLasCompras = []; 
         
         let currentLoggedInUser = null; 
-        const mockUsers = [
-            { username: 'admin', rol: 'admin', nombre: 'Administrador Principal' },
-            { username: 'vendedor1', rol: 'vendedor', nombre: 'Juan Pérez' },
-            { username: 'vendedor2', rol: 'vendedor', nombre: 'María López' },
-        ];
         
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const user = mockUsers.find(u => u.username === username);
+        // --- LÓGICA DE LOGIN INTEGRADA ---
+        async function login() {
+            const usuario = document.getElementById('usuario').value;
+            const password = document.getElementById('password').value;
+            const errorElement = document.getElementById('error');
 
-            if (user) {
-                currentLoggedInUser = user;
+            const doc = await db.collection('usuarios').doc(usuario).get();
+            
+            if (doc.exists && doc.data().password === password) {
+                errorElement.classList.add('hidden');
+                currentLoggedInUser = {
+                    username: usuario,
+                    rol: doc.data().rol,
+                    nombre: doc.data().nombre,
+                };
+                
+                // Ocultar login y mostrar el sistema
                 document.getElementById('loginSection').classList.add('hidden');
                 document.getElementById('sidebar').classList.remove('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
-                document.getElementById('userNameDisplay').textContent = user.nombre;
-                document.getElementById('userRoleDisplay').textContent = user.rol.toUpperCase();
-
-                if (user.rol === 'admin') {
+                document.getElementById('userNameDisplay').textContent = currentLoggedInUser.nombre;
+                document.getElementById('userRoleDisplay').textContent = currentLoggedInUser.rol.toUpperCase();
+                
+                // Configurar permisos y sección inicial
+                if (currentLoggedInUser.rol === 'admin') {
                     document.getElementById('menu-dashboard').classList.remove('hidden');
                     document.getElementById('menu-productos').classList.remove('hidden');
                     document.getElementById('menu-compras').classList.remove('hidden');
@@ -559,18 +532,20 @@
                     document.getElementById('menu-compras').classList.add('hidden');
                     mostrarSeccion('nuevaVentaSection');
                 }
-                document.getElementById('vendedor').value = user.nombre;
+                document.getElementById('vendedor').value = currentLoggedInUser.nombre;
+
             } else {
-                mostrarMensaje('Usuario no encontrado. Intente con "admin" o "vendedor1".', 'bg-red-500');
+                errorElement.classList.remove('hidden');
             }
-        });
+        }
         
         function logout() {
             currentLoggedInUser = null;
             document.getElementById('loginSection').classList.remove('hidden');
             document.getElementById('sidebar').classList.add('hidden');
             document.getElementById('main-content').classList.add('hidden');
-            document.getElementById('username').value = '';
+            document.getElementById('usuario').value = '';
+            document.getElementById('password').value = '';
             document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
         }
 
