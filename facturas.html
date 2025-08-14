@@ -300,6 +300,38 @@
 
         <div id="gestionClientesSection" class="hidden bg-white rounded-lg shadow-md p-6">
             <h2 class="text-2xl font-semibold mb-6 text-gray-800">Gestión de Clientes</h2>
+
+
+            <form id="formCliente" class="space-y-4 mb-6 hidden">
+                <h3 id="formClienteTitle" class="text-xl font-semibold">Editar Cliente</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label for="editCedula" class="block text-sm font-medium text-gray-700">Cédula</label>
+                        <input type="text" id="editCedula" placeholder="Cédula del Cliente" class="mt-1 p-2 block w-full border border-gray-300 rounded-md bg-gray-200" readonly>
+                    </div>
+                    <div>
+                        <label for="editNombre" class="block text-sm font-medium text-gray-700">Nombre</label>
+                        <input type="text" id="editNombre" placeholder="Nombre Completo del Cliente" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                    <div>
+                        <label for="editTelefono" class="block text-sm font-medium text-gray-700">Teléfono</label>
+                        <input type="text" id="editTelefono" placeholder="Número de Teléfono" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                    <div>
+                        <label for="editDireccion" class="block text-sm font-medium text-gray-700">Dirección</label>
+                        <input type="text" id="editDireccion" placeholder="Dirección del Cliente" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="limpiarFormularioCliente()" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-600 transition duration-200">
+                        Cancelar
+                    </button>
+                    <button type="button" onclick="guardarCliente()" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600 transition duration-200">
+                        💾 Guardar Cambios
+                    </button>
+                </div>
+            </form>
+
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
