@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Facturación y Compras</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -24,7 +24,7 @@
             color: white;
         }
         .expiring-soon {
-            background-color: #fbd38d; /* yellow-200 */
+            background-color: #fbd38d;
         }
         @media print {
             body * {
@@ -481,11 +481,8 @@
                 </table>
             </div>
         </div>
-
     </div>
-
-    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
+    
     <script src="firebase.js"></script>
     <script>
         const db = firebase.firestore();
@@ -498,16 +495,36 @@
         let productoServicioEnEdicionId = null;
         let todasLasCompras = [];
         let currentLoggedInUser = null;
-        
+
         window.onload = async () => {
-            // Este bloque se mantiene, pero las llamadas importantes se movieron a login()
+            // Se puede llamar a login() si ya se han guardado las credenciales
         };
+
+        function mostrarSeccion(sectionId) {
+            const secciones = ['dashboardSection', 'nuevaVentaSection', 'gestionFacturasSection', 'gestionClientesSection', 'gestionProductosSection', 'gestionComprasSection'];
+            secciones.forEach(id => {
+                const seccion = document.getElementById(id);
+                if (seccion) { // <-- Aquí está la corrección principal
+                    seccion.classList.add('hidden');
+                }
+            });
+            const seccionAMostrar = document.getElementById(sectionId);
+            if (seccionAMostrar) { // <-- Y aquí también
+                seccionAMostrar.classList.remove('hidden');
+            }
+        }
+
+        function iniciarNuevaVenta() {
+            mostrarSeccion('nuevaVentaSection');
+            limpiarFormularioFactura();
+        }
 
         async function login() {
             const usuario = document.getElementById('usuario').value;
             const password = document.getElementById('password').value;
             const errorElement = document.getElementById('error');
             const doc = await db.collection('usuarios').doc(usuario).get();
+
             if (doc.exists && doc.data().password === password) {
                 errorElement.classList.add('hidden');
                 currentLoggedInUser = {
@@ -515,29 +532,25 @@
                     rol: doc.data().rol,
                     nombre: doc.data().nombre,
                 };
-                
                 document.getElementById('loginSection').classList.add('hidden');
                 document.getElementById('sidebar').classList.remove('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
-                document.getElementById('userNameDisplay').textContent = currentLoggedInUser.nombre;
-                document.getElementById('userRoleDisplay').textContent = currentLoggedInUser.rol.toUpperCase();
-
+                
                 if (currentLoggedInUser.rol === 'admin') {
                     document.getElementById('menu-dashboard').classList.remove('hidden');
                     document.getElementById('menu-productos').classList.remove('hidden');
                     document.getElementById('menu-compras').classList.remove('hidden');
                     mostrarSeccion('dashboardSection');
                 } else {
-                    document.getElementById('menu-dashboard').classList.add('hidden');
-                    document.getElementById('menu-productos').classList.add('hidden');
-                    document.getElementById('menu-compras').classList.add('hidden');
-                    iniciarNuevaVenta();
+                    mostrarSeccion('nuevaVentaSection');
                 }
+
+                document.getElementById('userNameDisplay').textContent = currentLoggedInUser.nombre;
+                document.getElementById('userRoleDisplay').textContent = currentLoggedInUser.rol.toUpperCase();
                 document.getElementById('vendedor').value = currentLoggedInUser.nombre;
                 document.getElementById('usuarioCompra').value = currentLoggedInUser.nombre;
                 
-                await cargarClientes();
-                await cargarProductosYServicios();
+                await cargarDatosIniciales();
             } else {
                 errorElement.classList.remove('hidden');
             }
@@ -548,510 +561,262 @@
             document.getElementById('loginSection').classList.remove('hidden');
             document.getElementById('sidebar').classList.add('hidden');
             document.getElementById('main-content').classList.add('hidden');
-            document.getElementById('loginForm').reset();
-            items = [];
-            actualizarTablaItems();
-        }
-
-        // [INICIO DE MODIFICACIÓN]
-        // Se añade una nueva función para iniciar una venta desde cero.
-        function iniciarNuevaVenta() {
-            resetFormFactura();
-            mostrarSeccion('nuevaVentaSection');
-        }
-
-        // Se elimina la llamada a resetFormFactura() para que el formulario no se borre al editar.
-        function mostrarSeccion(seccionId) {
-            document.querySelectorAll('#main-content > div').forEach(div => {
-                div.classList.add('hidden');
-            });
-            document.getElementById(seccionId).classList.remove('hidden');
-
-            document.querySelectorAll('.menu-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            document.querySelector(`[onclick*="mostrarSeccion('${seccionId}')"]`).classList.add('active');
-
-            if (seccionId === 'gestionFacturasSection') {
-                cargarFacturas();
-            } else if (seccionId === 'gestionClientesSection') {
-                cargarClientes();
-            } else if (seccionId === 'gestionProductosSection') {
-                cargarProductosYServicios();
-            } else if (seccionId === 'gestionComprasSection') {
-                cargarProductosCompra();
-                cargarCompras();
-            } else if (seccionId === 'dashboardSection') {
-                cargarDashboardData();
-            }
-        }
-        // [FIN DE MODIFICACIÓN]
-
-        function resetFormFactura() {
+            
             document.getElementById('formFactura').reset();
-            document.getElementById('cedulaCliente').value = '';
-            document.getElementById('nombreCliente').value = '';
-            document.getElementById('telefono').value = '';
-            document.getElementById('direccion').value = '';
-            document.getElementById('descripcion').value = '';
-            document.getElementById('cantidad').value = '1';
-            document.getElementById('precio').value = '';
-            document.getElementById('fechaIngreso').valueAsDate = new Date();
-            document.getElementById('fechaEntrega').valueAsDate = new Date();
-            document.getElementById('vendedor').value = currentLoggedInUser.nombre;
-            facturaEnEdicionId = null;
-            todaLaInformacionFacturaEnEdicion = null;
-            document.getElementById('formFacturaTitle').textContent = 'Datos del Cliente y Nueva Venta';
-            document.getElementById('guardarFacturaBtn').textContent = '💾 Guardar Venta';
-            items = []; // Se asegura de que la lista de ítems esté vacía
-            actualizarTablaItems();
+            document.getElementById('formCompra').reset();
+            document.getElementById('formProductoServicio').reset();
+            
+            items = [];
+            document.getElementById('tablaItems').innerHTML = '';
+            actualizarTotal();
         }
+
+        function mostrarMensaje(texto, color = 'bg-green-600') {
+            const mensaje = document.createElement('div');
+            mensaje.textContent = texto;
+            mensaje.className = `fixed top-5 right-5 ${color} text-white px-4 py-2 rounded shadow-lg z-50`;
+            document.body.appendChild(mensaje);
+            setTimeout(() => mensaje.remove(), 3000);
+        }
+
+        // ---------------------------------------------
+        // FUNCIONES DE GESTIÓN DE VENTAS Y FACTURAS
+        // ---------------------------------------------
 
         function agregarItem() {
-            const descripcion = document.getElementById('descripcion').value.trim();
+            const descripcion = document.getElementById('descripcion').value;
             const cantidad = parseFloat(document.getElementById('cantidad').value);
             const precio = parseFloat(document.getElementById('precio').value);
-            const stockSugerencia = document.querySelector('#sugerencias li.selected')?.dataset.stock || null;
 
-            if (descripcion === '' || isNaN(cantidad) || cantidad <= 0 || isNaN(precio) || precio < 0) {
-                alert('Por favor, ingresa una descripción, cantidad y precio válidos.');
-                return;
-            }
-
-            // [INICIO DE MODIFICACIÓN]
-            // Se elimina la verificación de stock para permitir vender productos incluso con stock bajo o agotado.
-            // La lógica de decremento de stock se mantiene en la función guardarFactura().
-            // const productoSeleccionado = todosLosProductosYServicios.find(p => p.nombre.toLowerCase() === descripcion.toLowerCase());
-            // if (productoSeleccionado && productoSeleccionado.tipo === 'producto' && !facturaEnEdicionId) {
-            //     const stockTotal = productoSeleccionado.stock;
-            //     const cantidadEnCarrito = items.filter(item => item.descripcion.toLowerCase() === descripcion.toLowerCase()).reduce((acc, item) => acc + item.cantidad, 0);
-            //     if ((cantidad + cantidadEnCarrito) > stockTotal) {
-            //         alert(`No hay suficiente stock para el producto "${descripcion}". Stock disponible: ${stockTotal}`);
-            //         return;
-            //     }
-            // }
-            // [FIN DE MODIFICACIÓN]
-
-            const itemExistente = items.find(item => item.descripcion.toLowerCase() === descripcion.toLowerCase());
-            if (itemExistente) {
-                itemExistente.cantidad += cantidad;
-                itemExistente.subtotal = itemExistente.cantidad * itemExistente.precio;
+            if (descripcion && !isNaN(cantidad) && cantidad > 0 && !isNaN(precio) && precio >= 0) {
+                const subtotal = cantidad * precio;
+                items.push({ descripcion, cantidad, precio, subtotal });
+                renderizarItems();
+                document.getElementById('descripcion').value = '';
+                document.getElementById('cantidad').value = '1';
+                document.getElementById('precio').value = '';
+                document.getElementById('descripcion').focus();
             } else {
-                items.push({
-                    descripcion,
-                    cantidad,
-                    precio,
-                    subtotal: cantidad * precio,
-                });
+                mostrarMensaje('Por favor, completa todos los campos del ítem correctamente.', 'bg-red-500');
             }
-
-            actualizarTablaItems();
-            document.getElementById('descripcion').value = '';
-            document.getElementById('cantidad').value = '1';
-            document.getElementById('precio').value = '';
-            document.getElementById('descripcion').focus();
-        }
-
-        function actualizarTablaItems() {
-            const tabla = document.getElementById('tablaItems');
-            const totalElement = document.getElementById('total');
-            tabla.innerHTML = '';
-            let total = 0;
-
-            items.forEach((item, index) => {
-                const row = document.createElement('tr');
-                row.className = 'text-gray-700';
-                row.innerHTML = `
-                    <td class="px-3 py-2 whitespace-nowrap">${item.descripcion}</td>
-                    <td class="px-3 py-2 text-center">${item.cantidad}</td>
-                    <td class="px-3 py-2 text-right">$${item.precio.toFixed(2)}</td>
-                    <td class="px-3 py-2 text-right">$${item.subtotal.toFixed(2)}</td>
-                    <td class="px-3 py-2 text-center">
-                        <button type="button" onclick="eliminarItem(${index})" class="text-red-500 hover:text-red-700">
-                            🗑️
-                        </button>
-                    </td>
-                `;
-                tabla.appendChild(row);
-                total += item.subtotal;
-            });
-            totalElement.textContent = `$${total.toFixed(2)}`;
         }
 
         function eliminarItem(index) {
             items.splice(index, 1);
-            actualizarTablaItems();
+            renderizarItems();
+        }
+
+        function renderizarItems() {
+            const tablaItems = document.getElementById('tablaItems');
+            tablaItems.innerHTML = '';
+            items.forEach((item, index) => {
+                const row = `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${item.descripcion}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">${item.cantidad}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.precio.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.subtotal.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button type="button" onclick="eliminarItem(${index})" class="text-red-500 hover:text-red-700">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tablaItems.innerHTML += row;
+            });
+            actualizarTotal();
+        }
+
+        function actualizarTotal() {
+            const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+            document.getElementById('total').textContent = `$${total.toFixed(2)}`;
         }
 
         async function guardarFactura() {
-            if (items.length === 0) {
-                alert('La venta no puede estar vacía.');
-                return;
-            }
-
-            const cedulaCliente = document.getElementById('cedulaCliente').value.trim();
-            const nombreCliente = document.getElementById('nombreCliente').value.trim() || 'Consumidor Final';
-            const telefono = document.getElementById('telefono').value.trim();
-            const direccion = document.getElementById('direccion').value.trim();
+            const cedulaCliente = document.getElementById('cedulaCliente').value;
+            const nombreCliente = document.getElementById('nombreCliente').value;
+            const telefono = document.getElementById('telefono').value;
+            const direccion = document.getElementById('direccion').value;
             const fechaIngreso = document.getElementById('fechaIngreso').value;
             const fechaEntrega = document.getElementById('fechaEntrega').value;
             const estado = document.getElementById('estado').value;
-            const vendedor = currentLoggedInUser.nombre;
-            const total = parseFloat(document.getElementById('total').textContent.replace('$', ''));
+            const vendedor = document.getElementById('vendedor').value;
+            const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+
+            if (!cedulaCliente || !nombreCliente || items.length === 0) {
+                mostrarMensaje('❌ Por favor, complete la información del cliente y agregue al menos un ítem.', 'bg-red-500');
+                return;
+            }
 
             try {
-                let docId;
-                let numeroFactura;
-                let facturaData;
+                const facturaData = {
+                    cedulaCliente,
+                    nombreCliente,
+                    telefono,
+                    direccion,
+                    fechaIngreso,
+                    fechaEntrega,
+                    estado,
+                    vendedor,
+                    items,
+                    total,
+                    fechaCreacion: new Date()
+                };
 
                 if (facturaEnEdicionId) {
-                    if (todaLaInformacionFacturaEnEdicion.estado !== 'En espera' && todaLaInformacionFacturaEnEdicion.estado !== 'Entregado') {
-                        alert('No se puede editar una factura con estado "Facturado".');
-                        return;
-                    }
-                    docId = facturaEnEdicionId;
-                    numeroFactura = todaLaInformacionFacturaEnEdicion.numeroFactura;
-                    
-                    const oldItems = todaLaInformacionFacturaEnEdicion.items;
-                    const newItems = items;
-                    
-                    for (const oldItem of oldItems) {
-                        const productoRef = db.collection('productosYServicios').where('nombreOriginal', '==', oldItem.descripcion).limit(1);
-                        const snapshot = await productoRef.get();
-                        if (!snapshot.empty && snapshot.docs[0].data().tipo === 'producto') {
-                            const productoDoc = snapshot.docs[0];
-                            const productoId = productoDoc.id;
-                            const lotesRef = db.collection('productosYServicios').doc(productoId).collection('lotes');
-                            const ultimoLoteSnapshot = await lotesRef.orderBy('fechaEntrada', 'desc').limit(1).get();
-                            if (!ultimoLoteSnapshot.empty) {
-                                const ultimoLoteDoc = ultimoLoteSnapshot.docs[0];
-                                await ultimoLoteDoc.ref.update({ cantidad: firebase.firestore.FieldValue.increment(oldItem.cantidad) });
-                            }
-                        }
-                    }
-
-                    for (const newItem of newItems) {
-                        const productoRef = db.collection('productosYServicios').where('nombreOriginal', '==', newItem.descripcion).limit(1);
-                        const snapshot = await productoRef.get();
-                        if (!snapshot.empty && snapshot.docs[0].data().tipo === 'producto') {
-                            const productoDoc = snapshot.docs[0];
-                            const productoId = productoDoc.id;
-                            const lotesRef = db.collection('productosYServicios').doc(productoId).collection('lotes');
-                            const lotesSnapshot = await lotesRef.orderBy('fechaVencimiento').get();
-                            let cantidadPendiente = newItem.cantidad;
-                            
-                            for (const loteDoc of lotesSnapshot.docs) {
-                                const loteData = loteDoc.data();
-                                if (cantidadPendiente > 0 && loteData.cantidad > 0) {
-                                    const cantidadADeducir = Math.min(cantidadPendiente, loteData.cantidad);
-                                    await loteDoc.ref.update({ cantidad: loteData.cantidad - cantidadADeducir });
-                                    cantidadPendiente -= cantidadADeducir;
-                                }
-                            }
-                        }
-                    }
-
-                    facturaData = {
-                        cliente: {
-                            cedula: cedulaCliente,
-                            nombre: nombreCliente,
-                            telefono: telefono,
-                            direccion: direccion,
-                        },
-                        items: items,
-                        total: total,
-                        fechaIngreso: fechaIngreso,
-                        fechaEntrega: fechaEntrega,
-                        estado: estado,
-                        vendedor: vendedor,
-                        ultimaActualizacion: firebase.firestore.FieldValue.serverTimestamp(),
-                        numeroFactura: numeroFactura
-                    };
-                    await db.collection('facturas').doc(docId).update(facturaData);
-                    alert('Factura actualizada exitosamente.');
+                    await db.collection('facturas').doc(facturaEnEdicionId).update(facturaData);
+                    mostrarMensaje('✅ Factura actualizada con éxito.');
                 } else {
-                    const counterRef = db.collection('config').doc('factura_counter');
-                    await db.runTransaction(async (transaction) => {
-                        const counterDoc = await transaction.get(counterRef);
-                        const newCounter = counterDoc.data().currentValue + 1;
-                        transaction.update(counterRef, { currentValue: newCounter });
-                        numeroFactura = newCounter;
-                        
-                        for (const item of items) {
-                            const productoSeleccionado = todosLosProductosYServicios.find(p => p.nombreOriginal.toLowerCase() === item.descripcion.toLowerCase());
-                            if (productoSeleccionado && productoSeleccionado.tipo === 'producto') {
-                                const lotesRef = db.collection('productosYServicios').doc(productoSeleccionado.id).collection('lotes');
-                                const lotesSnapshot = await lotesRef.orderBy('fechaVencimiento').get();
-                                let cantidadPendiente = item.cantidad;
-                                
-                                for (const loteDoc of lotesSnapshot.docs) {
-                                    const loteData = loteDoc.data();
-                                    if (cantidadPendiente > 0 && loteData.cantidad > 0) {
-                                        const cantidadADeducir = Math.min(cantidadPendiente, loteData.cantidad);
-                                        const nuevoStockLote = loteData.cantidad - cantidadADeducir;
-                                        if (nuevoStockLote === 0) {
-                                            transaction.delete(loteDoc.ref);
-                                        } else {
-                                            transaction.update(loteDoc.ref, { cantidad: nuevoStockLote });
-                                        }
-                                        cantidadPendiente -= cantidadADeducir;
-                                    }
-                                }
-                                // [INICIO DE MODIFICACIÓN]
-                                // Se elimina la validación que impedía vender si no había suficiente stock.
-                                // if (cantidadPendiente > 0) {
-                                //     throw new Error(`No hay suficiente stock disponible para el producto "${item.descripcion}".`);
-                                // }
-                                // [FIN DE MODIFICACIÓN]
-                                await db.collection('productosYServicios').doc(productoSeleccionado.id).update({ stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
-                            }
-                        }
-
-                        facturaData = {
-                            numeroFactura: numeroFactura,
-                            cliente: {
-                                cedula: cedulaCliente,
-                                nombre: nombreCliente,
-                                telefono: telefono,
-                                direccion: direccion,
-                            },
-                            items: items,
-                            total: total,
-                            fechaIngreso: fechaIngreso,
-                            fechaEntrega: fechaEntrega,
-                            estado: estado,
-                            vendedor: vendedor,
-                            fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
-                        };
-                        const docRef = db.collection('facturas').doc();
-                        transaction.set(docRef, facturaData);
-                        docId = docRef.id;
-                    });
-                    alert('Factura guardada exitosamente.');
-                    generarPDF(docId, false, facturaData);
+                    await db.collection('facturas').add(facturaData);
+                    mostrarMensaje('✅ Venta guardada con éxito.');
                 }
                 
-                resetFormFactura();
+                limpiarFormularioFactura();
                 cargarFacturas();
-                cargarProductosYServicios();
-            } catch (e) {
-                console.error("Error al guardar la factura: ", e);
-                alert('Ocurrió un error al guardar la factura. Por favor, intenta de nuevo.');
+                cargarDashboardData();
+
+            } catch (error) {
+                console.error("Error al guardar la factura:", error);
+                mostrarMensaje('❌ Ocurrió un error al intentar guardar la venta.', 'bg-red-500');
             }
         }
 
         async function cargarFacturas() {
-            const tbody = document.getElementById('listaFacturasTableBody');
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">Cargando...</td></tr>';
-            
-            let facturasRef = db.collection('facturas').orderBy('fechaCreacion', 'desc');
-            
-            const snapshot = await facturasRef.get();
-            todasLasFacturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            filtrarFacturas();
+            try {
+                const snapshot = await db.collection('facturas').orderBy('fechaCreacion', 'desc').get();
+                todasLasFacturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                filtrarFacturas();
+            } catch (error) {
+                console.error("Error al cargar las facturas:", error);
+            }
         }
 
         function filtrarFacturas() {
-            const anio = document.getElementById('filtroVentasAnio').value;
-            const mes = document.getElementById('filtroVentasMes').value;
-            const horaInicial = document.getElementById('filtroVentasHoraInicial').value;
-            const horaFinal = document.getElementById('filtroVentasHoraFinal').value;
+            const filtroAnio = document.getElementById('filtroVentasAnio').value;
+            const filtroMes = document.getElementById('filtroVentasMes').value;
+            const filtroHoraInicial = document.getElementById('filtroVentasHoraInicial').value;
+            const filtroHoraFinal = document.getElementById('filtroVentasHoraFinal').value;
             
-            const facturasFiltradas = todasLasFacturas.filter(factura => {
-                const fecha = factura.fechaCreacion ? factura.fechaCreacion.toDate() : new Date();
-                const facturaAnio = fecha.getFullYear().toString();
-                const facturaMes = (fecha.getMonth() + 1).toString();
-                const facturaHora = fecha.toTimeString().slice(0, 5);
+            let facturasFiltradas = todasLasFacturas;
 
-                const anioMatch = !anio || facturaAnio === anio;
-                const mesMatch = !mes || facturaMes === mes;
-                const horaInicialMatch = !horaInicial || facturaHora >= horaInicial;
-                const horaFinalMatch = !horaFinal || facturaHora <= horaFinal;
-                
-                return anioMatch && mesMatch && horaInicialMatch && horaFinalMatch;
-            });
-
-            const tbody = document.getElementById('listaFacturasTableBody');
-            tbody.innerHTML = '';
-            if (facturasFiltradas.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">No se encontraron facturas.</td></tr>';
-                return;
+            if (filtroAnio) {
+                facturasFiltradas = facturasFiltradas.filter(factura => {
+                    const fecha = factura.fechaCreacion.toDate();
+                    return fecha.getFullYear() === parseInt(filtroAnio);
+                });
+            }
+            
+            if (filtroMes) {
+                facturasFiltradas = facturasFiltradas.filter(factura => {
+                    const fecha = factura.fechaCreacion.toDate();
+                    return (fecha.getMonth() + 1) === parseInt(filtroMes);
+                });
             }
 
-            facturasFiltradas.forEach(factura => {
-                const fecha = factura.fechaCreacion ? factura.fechaCreacion.toDate().toLocaleDateString('es-ES') : 'N/A';
-                const row = document.createElement('tr');
-                row.className = 'text-gray-700';
-                row.innerHTML = `
-                    <td class="px-3 py-2">${(factura.numeroFactura || factura.id).toString().padStart(8, '0')}</td>
-                    <td class="px-3 py-2">${factura.cliente.nombre}</td>
-                    <td class="px-3 py-2 text-right">$${factura.total.toFixed(2)}</td>
-                    <td class="px-3 py-2">${factura.vendedor}</td>
-                    <td class="px-3 py-2">${factura.estado}</td>
-                    <td class="px-3 py-2">${fecha}</td>
-                    <td class="px-3 py-2 text-center">
-                        <button onclick="editarFactura('${factura.id}')" class="text-blue-500 hover:text-blue-700 mx-1">
-                            ✏️
-                        </button>
-                        <button onclick="eliminarFactura('${factura.id}')" class="text-red-500 hover:text-red-700 mx-1">
-                            🗑️
-                        </button>
-                        <button onclick="generarPDF('${factura.id}')" class="text-green-500 hover:text-green-700 mx-1">
-                            📄
-                        </button>
-                    </td>
+            if (filtroHoraInicial && filtroHoraFinal) {
+                facturasFiltradas = facturasFiltradas.filter(factura => {
+                    const fecha = factura.fechaCreacion.toDate();
+                    const hora = fecha.getHours().toString().padStart(2, '0');
+                    const minutos = fecha.getMinutes().toString().padStart(2, '0');
+                    const horaFactura = `${hora}:${minutos}`;
+                    return horaFactura >= filtroHoraInicial && horaFactura <= filtroHoraFinal;
+                });
+            }
+
+            renderizarFacturas(facturasFiltradas);
+        }
+
+        function renderizarFacturas(facturas) {
+            const tableBody = document.getElementById('listaFacturasTableBody');
+            tableBody.innerHTML = '';
+            facturas.forEach(factura => {
+                const fecha = factura.fechaCreacion.toDate().toLocaleDateString();
+                const hora = factura.fechaCreacion.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                tableBody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">#${factura.id.slice(0, 5)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${factura.nombreCliente}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${factura.total.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${factura.vendedor}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${factura.estado}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${fecha} ${hora}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button onclick="editarFactura('${factura.id}')" class="text-blue-500 hover:text-blue-700 mx-1" title="Editar">
+                                ✏️
+                            </button>
+                            <button onclick="eliminarFactura('${factura.id}')" class="text-red-500 hover:text-red-700 mx-1" title="Eliminar">
+                                🗑️
+                            </button>
+                            <button onclick="imprimirFactura('${factura.id}')" class="text-green-500 hover:text-green-700 mx-1" title="Imprimir">
+                                🖨️
+                            </button>
+                        </td>
+                    </tr>
                 `;
-                tbody.appendChild(row);
-            });
-            cargarAniosFiltro(todasLasFacturas);
-        }
-
-        function cargarAniosFiltro(facturas) {
-            const selectAnio = document.getElementById('filtroVentasAnio');
-            const anios = [...new Set(facturas.map(f => (f.fechaCreacion ? f.fechaCreacion.toDate().getFullYear() : new Date().getFullYear())))].sort().reverse();
-            selectAnio.innerHTML = '<option value="">Todos</option>';
-            anios.forEach(anio => {
-                const option = document.createElement('option');
-                option.value = anio;
-                option.textContent = anio;
-                selectAnio.appendChild(option);
             });
         }
 
-        async function editarFactura(id) {
-            const factura = todasLasFacturas.find(f => f.id === id);
-            if (!factura) {
-                alert('Factura no encontrada.');
-                return;
+        async function editarFactura(facturaId) {
+            const facturaDoc = await db.collection('facturas').doc(facturaId).get();
+            if (facturaDoc.exists) {
+                const facturaData = facturaDoc.data();
+                facturaEnEdicionId = facturaId;
+                todaLaInformacionFacturaEnEdicion = facturaData;
+
+                document.getElementById('formFacturaTitle').textContent = `Editar Venta #${facturaId.slice(0, 5)}`;
+                document.getElementById('guardarFacturaBtn').textContent = '💾 Actualizar Venta';
+                
+                document.getElementById('cedulaCliente').value = facturaData.cedulaCliente || '';
+                document.getElementById('nombreCliente').value = facturaData.nombreCliente || '';
+                document.getElementById('telefono').value = facturaData.telefono || '';
+                document.getElementById('direccion').value = facturaData.direccion || '';
+                document.getElementById('fechaIngreso').value = facturaData.fechaIngreso || '';
+                document.getElementById('fechaEntrega').value = facturaData.fechaEntrega || '';
+                document.getElementById('estado').value = facturaData.estado || 'En espera';
+                document.getElementById('vendedor').value = facturaData.vendedor || currentLoggedInUser.nombre;
+
+                items = facturaData.items || [];
+                renderizarItems();
+                
+                mostrarSeccion('nuevaVentaSection');
+                mostrarMensaje('Cargando venta para edición...');
             }
-            if (factura.estado !== 'En espera' && factura.estado !== 'Entregado') {
-                alert('Solo se pueden editar facturas con estado "En espera" o "Entregado".');
-                return;
-            }
-            
-            facturaEnEdicionId = id;
-            todaLaInformacionFacturaEnEdicion = factura;
-
-            document.getElementById('cedulaCliente').value = factura.cliente.cedula || '';
-            document.getElementById('nombreCliente').value = factura.cliente.nombre || 'Consumidor Final';
-            document.getElementById('telefono').value = factura.cliente.telefono || '';
-            document.getElementById('direccion').value = factura.cliente.direccion || '';
-            document.getElementById('fechaIngreso').value = factura.fechaIngreso || '';
-            document.getElementById('fechaEntrega').value = factura.fechaEntrega || '';
-            document.getElementById('estado').value = factura.estado || '';
-            document.getElementById('vendedor').value = factura.vendedor || '';
-
-            items = factura.items || [];
-            actualizarTablaItems();
-
-            document.getElementById('formFacturaTitle').textContent = `Editar Venta #${(factura.numeroFactura || factura.id).toString().padStart(8, '0')}...`;
-            document.getElementById('guardarFacturaBtn').textContent = '🔄 Actualizar Venta';
-            mostrarSeccion('nuevaVentaSection');
         }
 
-        async function eliminarFactura(id) {
-            const factura = todasLasFacturas.find(f => f.id === id);
-            if (!factura) {
-                alert('Factura no encontrada.');
-                return;
-            }
-            if (factura.estado !== 'En espera' && factura.estado !== 'Entregado') {
-                alert('Solo se pueden eliminar facturas con estado "En espera" o "Entregado".');
-                return;
-            }
+        async function eliminarFactura(facturaId) {
             if (confirm('¿Estás seguro de que quieres eliminar esta factura? Esta acción no se puede deshacer.')) {
                 try {
-                    const facturaRef = db.collection('facturas').doc(id);
-                    const facturaDoc = await facturaRef.get();
-                    const facturaData = facturaDoc.data();
-                    
-                    for (const item of facturaData.items) {
-                        const productoRef = db.collection('productosYServicios').where('nombreOriginal', '==', item.descripcion).limit(1);
-                        const snapshot = await productoRef.get();
-                        if (!snapshot.empty && snapshot.docs[0].data().tipo === 'producto') {
-                            const productoDoc = snapshot.docs[0];
-                            const lotesRef = db.collection('productosYServicios').doc(productoDoc.id).collection('lotes');
-                            const lotesSnapshot = await lotesRef.get();
-                            
-                            let cantidadADevolver = item.cantidad;
-                            
-                            const ultimoLoteSnapshot = await lotesRef.orderBy('fechaEntrada', 'desc').limit(1).get();
-                            if (!ultimoLoteSnapshot.empty) {
-                                const ultimoLoteDoc = ultimoLoteSnapshot.docs[0];
-                                const ultimoLoteData = ultimoLoteDoc.data();
-                                await ultimoLoteDoc.ref.update({ cantidad: ultimoLoteData.cantidad + cantidadADevolver });
-                            } else {
-                                await lotesRef.add({ cantidad: cantidadADevolver, fechaVencimiento: '2099-12-31', fechaEntrada: firebase.firestore.FieldValue.serverTimestamp() });
-                            }
-                            await db.collection('productosYServicios').doc(productoDoc.id).update({ stock: firebase.firestore.FieldValue.increment(item.cantidad) });
-                        }
-                    }
-
-                    await facturaRef.delete();
-                    alert('Factura eliminada correctamente.');
+                    await db.collection('facturas').doc(facturaId).delete();
+                    mostrarMensaje('✅ Factura eliminada con éxito.');
                     cargarFacturas();
-                    cargarProductosYServicios();
-                } catch (e) {
-                    console.error("Error al eliminar la factura: ", e);
-                    alert('Ocurrió un error al eliminar la factura. Por favor, intenta de nuevo.');
+                    cargarDashboardData();
+                } catch (error) {
+                    console.error("Error al eliminar la factura:", error);
+                    mostrarMensaje('❌ Ocurrió un error al eliminar la factura.', 'bg-red-500');
                 }
             }
         }
 
-        async function mostrarFactura() {
-            const factura = {
-                numeroFactura: "PREVIEW",
-                cliente: {
-                    cedula: document.getElementById('cedulaCliente').value.trim(),
-                    nombre: document.getElementById('nombreCliente').value.trim() || 'Consumidor Final',
-                    telefono: document.getElementById('telefono').value.trim(),
-                    direccion: document.getElementById('direccion').value.trim(),
-                },
-                items: items,
-                total: parseFloat(document.getElementById('total').textContent.replace('$', '')),
-                fechaCreacion: new Date(),
-                estado: document.getElementById('estado').value,
-                vendedor: document.getElementById('vendedor').value,
-            };
-            generarPDF(null, true, factura);
-        }
-
-        async function generarPDF(id, isPreview = false, facturaData = null) {
-            let factura;
-            if (isPreview) {
-                factura = facturaData;
-            } else {
-                const doc = await db.collection('facturas').doc(id).get();
-                if (!doc.exists) {
-                    alert('Factura no encontrada.');
-                    return;
-                }
-                factura = { id: doc.id, ...doc.data() };
-                factura.fechaCreacion = factura.fechaCreacion.toDate();
+        async function imprimirFactura(facturaId) {
+            const facturaDoc = await db.collection('facturas').doc(facturaId).get();
+            if (!facturaDoc.exists) {
+                alert('Factura no encontrada.');
+                return;
             }
 
-            const { jsPDF } = window.jspdf;
+            const data = facturaDoc.data();
+            const jsPDF = window.jspdf.jsPDF;
             const doc = new jsPDF();
             
-            doc.setFontSize(22);
-            doc.text("Factura de Venta", 105, 20, null, null, "center");
+            doc.text(`Factura #${facturaId.slice(0, 5)}`, 14, 20);
+            doc.text(`Cliente: ${data.nombreCliente}`, 14, 30);
+            doc.text(`Cédula: ${data.cedulaCliente}`, 14, 40);
+            doc.text(`Fecha: ${data.fechaCreacion.toDate().toLocaleDateString()}`, 14, 50);
+            doc.text(`Vendedor: ${data.vendedor}`, 14, 60);
 
-            doc.setFontSize(12);
-            doc.text(`N° Factura: ${ (factura.numeroFactura || factura.id).toString().padStart(8, '0')}`, 14, 35);
-            doc.text(`Fecha: ${factura.fechaCreacion.toLocaleDateString('es-ES')}`, 14, 42);
-            doc.text(`Vendedor: ${factura.vendedor}`, 14, 49);
-
-            doc.setFontSize(14);
-            doc.text("Datos del Cliente", 14, 60);
-            doc.line(14, 61, 196, 61);
-            doc.setFontSize(12);
-            doc.text(`Nombre: ${factura.cliente.nombre}`, 14, 68);
-            if (factura.cliente.cedula) doc.text(`Cédula: ${factura.cliente.cedula}`, 14, 75);
-            if (factura.cliente.telefono) doc.text(`Teléfono: ${factura.cliente.telefono}`, 14, 82);
-            if (factura.cliente.direccion) doc.text(`Dirección: ${factura.cliente.direccion}`, 14, 89);
-            
-            const tableColumn = ["Descripción", "Cantidad", "Precio Unitario", "Subtotal"];
-            const tableRows = factura.items.map(item => [
+            const tableData = data.items.map(item => [
                 item.descripcion,
                 item.cantidad,
                 `$${item.precio.toFixed(2)}`,
@@ -1059,570 +824,485 @@
             ]);
 
             doc.autoTable({
-                head: [tableColumn],
-                body: tableRows,
-                startY: 100,
-                theme: 'grid',
-                styles: {
-                    font: 'helvetica',
-                    fontSize: 10,
-                    cellPadding: 3
-                },
-                headStyles: {
-                    fillColor: [44, 62, 80]
-                },
-                didDrawPage: function(data) {
-                    doc.setFontSize(10);
-                    doc.text("Fixitech | Sistema de Facturación", data.settings.margin.left, doc.internal.pageSize.height - 10);
-                }
+                startY: 70,
+                head: [['Descripción', 'Cantidad', 'Precio Unitario', 'Subtotal']],
+                body: tableData,
+                foot: [['', '', 'TOTAL:', `$${data.total.toFixed(2)}`]],
+                theme: 'striped',
+                styles: { fontSize: 10, cellPadding: 2 },
+                headStyles: { fillColor: [200, 200, 200] }
             });
 
-            const finalY = doc.autoTable.previous.finalY;
-            doc.setFontSize(14);
-            doc.text(`Total: $${factura.total.toFixed(2)}`, 196, finalY + 15, null, null, "right");
-
-            window.open(doc.output('dataurlnewwindow'));
+            doc.save(`Factura-${facturaId.slice(0, 5)}.pdf`);
         }
-        
-        async function guardarCompra() {
-            const fechaCompra = document.getElementById('fechaCompra').value;
-            const productoCompra = document.getElementById('productoCompra').value;
-            const cantidadCompra = parseFloat(document.getElementById('cantidadCompra').value);
-            const costoCompra = parseFloat(document.getElementById('costoCompra').value);
-            const facturaCompra = document.getElementById('facturaCompra').value.trim();
-            const usuarioCompra = document.getElementById('usuarioCompra').value;
-            
-            const fechaVencimientoCompra = document.getElementById('fechaVencimientoCompra').value;
 
-            if (!fechaCompra || !productoCompra || isNaN(cantidadCompra) || cantidadCompra <= 0 || isNaN(costoCompra) || costoCompra < 0 || !facturaCompra) {
-                alert('Por favor, completa todos los campos requeridos para la compra.');
-                return;
-            }
-
-            try {
-                await db.collection('compras').add({
-                    fecha: fechaCompra,
-                    producto: productoCompra,
-                    cantidad: cantidadCompra,
-                    costoUnitario: costoCompra,
-                    total: cantidadCompra * costoCompra,
-                    facturaProveedor: facturaCompra,
-                    usuario: usuarioCompra,
-                    fechaRegistro: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                const productoRef = db.collection('productosYServicios').doc(productoCompra);
-                const productoDoc = await productoRef.get();
-                if (productoDoc.exists) {
-                    const productoData = productoDoc.data();
-                    const nuevoStock = (productoData.stock || 0) + cantidadCompra;
-                    await productoRef.update({ stock: nuevoStock });
-                    
-                    if (productoData.tipo === 'producto' && fechaVencimientoCompra) {
-                        const lotesRef = productoRef.collection('lotes');
-                        await lotesRef.add({
-                            cantidad: cantidadCompra,
-                            fechaVencimiento: fechaVencimientoCompra,
-                            fechaEntrada: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    }
-                }
-                
-                alert('Compra registrada exitosamente.');
-                document.getElementById('formCompra').reset();
-                document.getElementById('usuarioCompra').value = currentLoggedInUser.nombre;
-                cargarProductosCompra();
-                cargarCompras();
-            } catch (e) {
-                console.error("Error al registrar la compra: ", e);
-                alert('Ocurrió un error al registrar la compra. Por favor, intenta de nuevo.');
-            }
+        function limpiarFormularioFactura() {
+            facturaEnEdicionId = null;
+            todaLaInformacionFacturaEnEdicion = null;
+            document.getElementById('formFactura').reset();
+            document.getElementById('formFacturaTitle').textContent = 'Datos del Cliente y Nueva Venta';
+            document.getElementById('guardarFacturaBtn').textContent = '💾 Guardar Venta';
+            items = [];
+            renderizarItems();
         }
+
+        // ---------------------------------------------
+        // FUNCIONES DE GESTIÓN DE CLIENTES
+        // ---------------------------------------------
 
         async function cargarClientes() {
-            const tbody = document.getElementById('listaClientesTableBody');
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Cargando...</td></tr>';
-            
-            const snapshot = await db.collection('clientes').get();
-            todosLosClientes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            filtrarClientes();
-        }
-
-        function buscarClientePorCedula() {
-            const cedula = document.getElementById('cedulaCliente').value.trim();
-            const cliente = todosLosClientes.find(c => c.cedula === cedula);
-            if (cliente) {
-                document.getElementById('nombreCliente').value = cliente.nombre;
-                document.getElementById('telefono').value = cliente.telefono;
-                document.getElementById('direccion').value = cliente.direccion;
-            } else {
-                document.getElementById('nombreCliente').value = '';
-                document.getElementById('telefono').value = '';
-                document.getElementById('direccion').value = '';
-            }
-        }
-        
-        async function guardarClienteDesdeFactura() {
-            const cedula = document.getElementById('cedulaCliente').value.trim();
-            const nombre = document.getElementById('nombreCliente').value.trim();
-            const telefono = document.getElementById('telefono').value.trim();
-            const direccion = document.getElementById('direccion').value.trim();
-
-            if (!cedula || !nombre) {
-                alert('Cédula y Nombre son campos obligatorios para guardar un cliente.');
-                return;
-            }
             try {
-                await db.collection('clientes').doc(cedula).set({
-                    nombre,
-                    telefono,
-                    direccion,
-                    ultimaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                alert('Cliente guardado exitosamente.');
-                await cargarClientes();
-            } catch (e) {
-                console.error("Error al guardar cliente: ", e);
-                alert('Ocurrió un error al guardar el cliente.');
+                const snapshot = await db.collection('clientes').get();
+                todosLosClientes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                filtrarClientes();
+            } catch (error) {
+                console.error("Error al cargar los clientes:", error);
             }
         }
 
         function filtrarClientes() {
-            const filtro = document.getElementById('filtroClienteNombre').value.toLowerCase();
-            const clientesFiltrados = todosLosClientes.filter(c =>
-                c.nombre.toLowerCase().includes(filtro) || (c.cedula && c.cedula.toLowerCase().includes(filtro))
+            const filtroNombre = document.getElementById('filtroClienteNombre').value.toLowerCase();
+            const clientesFiltrados = todosLosClientes.filter(cliente => 
+                cliente.nombre.toLowerCase().includes(filtroNombre) || cliente.cedula.includes(filtroNombre)
             );
+            renderizarClientes(clientesFiltrados);
+        }
 
-            const tbody = document.getElementById('listaClientesTableBody');
-            tbody.innerHTML = '';
-            if (clientesFiltrados.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">No se encontraron clientes.</td></tr>';
-                return;
-            }
-            clientesFiltrados.forEach(cliente => {
-                const row = document.createElement('tr');
-                row.className = 'text-gray-700';
-                row.innerHTML = `
-                    <td class="px-3 py-2">${cliente.cedula || 'N/A'}</td>
-                    <td class="px-3 py-2">${cliente.nombre || 'N/A'}</td>
-                    <td class="px-3 py-2">${cliente.telefono || 'N/A'}</td>
-                    <td class="px-3 py-2">${cliente.direccion || 'N/A'}</td>
-                    <td class="px-3 py-2 text-center">
-                        <button onclick="editarCliente('${cliente.id}')" class="text-blue-500 hover:text-blue-700 mx-1">
-                            ✏️
-                        </button>
-                        <button onclick="eliminarCliente('${cliente.id}')" class="text-red-500 hover:text-red-700 mx-1">
-                            🗑️
-                        </button>
-                    </td>
+        function renderizarClientes(clientes) {
+            const tableBody = document.getElementById('listaClientesTableBody');
+            tableBody.innerHTML = '';
+            clientes.forEach(cliente => {
+                tableBody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.cedula}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.nombre}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.telefono || ''}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.direccion || ''}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button onclick="editarCliente('${cliente.id}')" class="text-blue-500 hover:text-blue-700 mx-1" title="Editar">
+                                ✏️
+                            </button>
+                            <button onclick="eliminarCliente('${cliente.id}', '${cliente.nombre}')" class="text-red-500 hover:text-red-700 mx-1" title="Eliminar">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
                 `;
-                tbody.appendChild(row);
             });
         }
+        
+        async function guardarClienteDesdeFactura() {
+            const cedula = document.getElementById('cedulaCliente').value;
+            const nombre = document.getElementById('nombreCliente').value;
+            const telefono = document.getElementById('telefono').value;
+            const direccion = document.getElementById('direccion').value;
 
-        async function editarCliente(id) {
-            const cliente = todosLosClientes.find(c => c.id === id);
-            if (cliente) {
-                document.getElementById('cedulaCliente').value = cliente.cedula;
-                document.getElementById('nombreCliente').value = cliente.nombre;
-                document.getElementById('telefono').value = cliente.telefono;
-                document.getElementById('direccion').value = cliente.direccion;
-                mostrarSeccion('nuevaVentaSection');
-                alert('Cliente cargado en el formulario de Nueva Venta. Puedes editarlo y guardarlo.');
+            if (!cedula || !nombre) {
+                mostrarMensaje('❌ Se necesita la cédula y el nombre para guardar un cliente.', 'bg-red-500');
+                return;
+            }
+
+            try {
+                const clienteRef = db.collection('clientes').doc(cedula);
+                const doc = await clienteRef.get();
+                
+                if (doc.exists) {
+                    await clienteRef.update({ nombre, telefono, direccion });
+                    mostrarMensaje(`✅ Cliente ${nombre} actualizado con éxito.`);
+                } else {
+                    await clienteRef.set({ nombre, telefono, direccion });
+                    mostrarMensaje(`✅ Cliente ${nombre} guardado con éxito.`);
+                }
+                
+                cargarClientes();
+            } catch (error) {
+                console.error("Error al guardar cliente:", error);
+                mostrarMensaje('❌ Ocurrió un error al guardar el cliente.', 'bg-red-500');
             }
         }
-        
-        async function eliminarCliente(id) {
-            if (confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
-                try {
-                    await db.collection('clientes').doc(id).delete();
-                    alert('Cliente eliminado correctamente.');
-                    cargarClientes();
-                } catch (e) {
-                    console.error("Error al eliminar cliente: ", e);
-                    alert('Ocurrió un error al eliminar el cliente.');
+
+        async function buscarClientePorCedula() {
+            const cedula = document.getElementById('cedulaCliente').value;
+            if (cedula.length > 0) {
+                const clienteDoc = await db.collection('clientes').doc(cedula).get();
+                if (clienteDoc.exists) {
+                    const data = clienteDoc.data();
+                    document.getElementById('nombreCliente').value = data.nombre;
+                    document.getElementById('telefono').value = data.telefono || '';
+                    document.getElementById('direccion').value = data.direccion || '';
+                    mostrarMensaje(`Cliente ${data.nombre} encontrado.`, 'bg-blue-500');
+                } else {
+                    document.getElementById('nombreCliente').value = '';
+                    document.getElementById('telefono').value = '';
+                    document.getElementById('direccion').value = '';
+                    mostrarMensaje('Cliente no encontrado. Puedes guardarlo si lo deseas.', 'bg-yellow-500');
                 }
             }
+        }
+
+        // ---------------------------------------------
+        // FUNCIONES DE GESTIÓN DE PRODUCTOS Y SERVICIOS
+        // ---------------------------------------------
+
+        async function cargarProductosServicios() {
+            try {
+                const snapshot = await db.collection('productosYServicios').get();
+                todosLosProductosYServicios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderizarProductos(todosLosProductosYServicios);
+                cargarOpcionesDeProductosEnCompras();
+            } catch (error) {
+                console.error("Error al cargar productos:", error);
+            }
+        }
+
+        function renderizarProductos(productos) {
+            const tableBody = document.getElementById('listaProductosTableBody');
+            tableBody.innerHTML = '';
+            productos.forEach(producto => {
+                const fechaVencimiento = producto.fechaVencimiento ? new Date(producto.fechaVencimiento).toLocaleDateString() : 'N/A';
+                const stock = producto.tipo === 'producto' ? producto.stock : 'N/A';
+                
+                tableBody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${producto.nombre}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${producto.tipo}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${producto.precio.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">${stock}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${fechaVencimiento}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button onclick="editarProductoServicio('${producto.id}')" class="text-blue-500 hover:text-blue-700 mx-1" title="Editar">
+                                ✏️
+                            </button>
+                            <button onclick="eliminarProductoServicio('${producto.id}', '${producto.nombre}')" class="text-red-500 hover:text-red-700 mx-1" title="Eliminar">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
         }
 
         function toggleStockInput() {
             const tipo = document.getElementById('tipoProducto').value;
             const stockDiv = document.getElementById('stockInputDiv');
-            if (tipo === 'producto') {
-                stockDiv.classList.remove('hidden');
-            } else {
+            if (tipo === 'servicio') {
                 stockDiv.classList.add('hidden');
+                document.getElementById('stockProducto').value = '0';
+            } else {
+                stockDiv.classList.remove('hidden');
             }
         }
 
         async function guardarProductoServicio() {
-            const nombre = document.getElementById('nombreProducto').value.trim();
+            const nombre = document.getElementById('nombreProducto').value;
             const tipo = document.getElementById('tipoProducto').value;
             const precio = parseFloat(document.getElementById('precioProducto').value);
-            let stock = tipo === 'producto' ? parseFloat(document.getElementById('stockProducto').value) : 0;
+            const stock = tipo === 'producto' ? parseInt(document.getElementById('stockProducto').value) : 0;
             const fechaVencimiento = document.getElementById('fechaVencimientoProducto').value;
 
-            if (!nombre || isNaN(precio) || precio < 0 || (tipo === 'producto' && isNaN(stock) || stock < 0)) {
-                alert('Por favor, completa todos los campos válidos.');
+            if (!nombre || isNaN(precio) || precio < 0) {
+                mostrarMensaje('❌ Por favor, completa los campos de nombre y precio correctamente.', 'bg-red-500');
+                return;
+            }
+            if (tipo === 'producto' && isNaN(stock)) {
+                mostrarMensaje('❌ Por favor, ingresa un stock válido.', 'bg-red-500');
                 return;
             }
 
             try {
-                let docId = productoServicioEnEdicionId;
-                if (!docId) {
-                    const docRef = await db.collection('productosYServicios').add({
-                        nombreOriginal: nombre,
-                        nombre: nombre.toLowerCase(),
-                        tipo,
-                        precio,
-                        stock,
-                        fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    docId = docRef.id;
-                    alert('Producto/Servicio guardado exitosamente.');
+                const data = { nombre, tipo, precio, stock, fechaVencimiento };
+                if (productoServicioEnEdicionId) {
+                    await db.collection('productosYServicios').doc(productoServicioEnEdicionId).update(data);
+                    mostrarMensaje(`✅ "${nombre}" actualizado con éxito.`);
                 } else {
-                    await db.collection('productosYServicios').doc(docId).update({
-                        nombreOriginal: nombre,
-                        nombre: nombre.toLowerCase(),
-                        tipo,
-                        precio,
-                        stock,
-                        ultimaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    alert('Producto/Servicio actualizado exitosamente.');
-                }
-
-                if (tipo === 'producto' && stock > 0 && !productoServicioEnEdicionId) {
-                    const lotesRef = db.collection('productosYServicios').doc(docId).collection('lotes');
-                    await lotesRef.add({
-                        cantidad: stock,
-                        fechaVencimiento: fechaVencimiento || '2099-12-31',
-                        fechaEntrada: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    await db.collection('productosYServicios').add(data);
+                    mostrarMensaje(`✅ "${nombre}" guardado con éxito.`);
                 }
                 
-                resetFormProductoServicio();
-                await cargarProductosYServicios();
-            } catch (e) {
-                console.error("Error al guardar producto/servicio: ", e);
-                alert('Ocurrió un error al guardar el producto/servicio.');
+                limpiarFormularioProductoServicio();
+                cargarProductosServicios();
+                cargarDashboardData();
+
+            } catch (error) {
+                console.error("Error al guardar el producto/servicio:", error);
+                mostrarMensaje('❌ Ocurrió un error al guardar el producto/servicio.', 'bg-red-500');
             }
         }
-        
-        function resetFormProductoServicio() {
-            document.getElementById('formProductoServicio').reset();
+
+        async function editarProductoServicio(itemId) {
+            const doc = await db.collection('productosYServicios').doc(itemId).get();
+            if (doc.exists) {
+                const itemData = doc.data();
+                productoServicioEnEdicionId = itemId;
+                
+                document.getElementById('formProductoServicioTitle').textContent = `Editar "${itemData.nombre}"`;
+                document.getElementById('guardarProductoBtn').textContent = '💾 Actualizar';
+                document.getElementById('nombreProducto').value = itemData.nombre;
+                document.getElementById('tipoProducto').value = itemData.tipo;
+                document.getElementById('precioProducto').value = itemData.precio;
+                document.getElementById('stockProducto').value = itemData.stock || 0;
+                document.getElementById('fechaVencimientoProducto').value = itemData.fechaVencimiento || '';
+                toggleStockInput();
+                mostrarSeccion('gestionProductosSection');
+                mostrarMensaje(`"${itemData.nombre}" cargado para edición.`, "bg-blue-500");
+            } else {
+                mostrarMensaje("Producto/Servicio no encontrado para edición.", "bg-red-500");
+            }
+        }
+
+        async function eliminarProductoServicio(itemId, itemName) {
+            if (!confirm(`¿Estás seguro de eliminar "${itemName}"?`)) {
+                return;
+            }
+            try {
+                await db.collection('productosYServicios').doc(itemId).delete();
+                mostrarMensaje(`✅ "${itemName}" eliminado con éxito.`);
+                cargarProductosServicios();
+                cargarDashboardData();
+            } catch (error) {
+                console.error("Error al eliminar producto/servicio:", error);
+                mostrarMensaje("❌ Hubo un error al eliminar el producto/servicio. Por favor, inténtalo de nuevo.", 'bg-red-500');
+            }
+        }
+
+        function limpiarFormularioProductoServicio() {
+            productoServicioEnEdicionId = null;
+            document.getElementById('nombreProducto').value = '';
+            document.getElementById('tipoProducto').value = 'producto';
+            document.getElementById('precioProducto').value = '';
+            document.getElementById('stockProducto').value = '0';
+            toggleStockInput();
+            document.getElementById('fechaVencimientoProducto').value = '';
             document.getElementById('formProductoServicioTitle').textContent = 'Gestión de Productos y Servicios';
             document.getElementById('guardarProductoBtn').textContent = '💾 Guardar Producto/Servicio';
-            productoServicioEnEdicionId = null;
+            document.getElementById('nombreProducto').focus();
         }
 
-        async function cargarProductosYServicios() {
-            const tbody = document.getElementById('listaProductosTableBody');
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Cargando...</td></tr>';
-            
-            const snapshot = await db.collection('productosYServicios').get();
-            todosLosProductosYServicios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // ---------------------------------------------
+        // FUNCIONES DE GESTIÓN DE COMPRAS
+        // ---------------------------------------------
 
-            const productosPromises = todosLosProductosYServicios.map(async p => {
-                if (p.tipo === 'producto') {
-                    const lotesSnapshot = await db.collection('productosYServicios').doc(p.id).collection('lotes').orderBy('fechaVencimiento').limit(1).get();
-                    if (!lotesSnapshot.empty) {
-                        p.proximoVencimiento = lotesSnapshot.docs[0].data().fechaVencimiento;
-                    } else {
-                        p.proximoVencimiento = 'N/A';
-                    }
-                } else {
-                    p.proximoVencimiento = 'N/A';
-                }
-                return p;
-            });
-            todosLosProductosYServicios = await Promise.all(productosPromises);
-
-            tbody.innerHTML = '';
-            if (todosLosProductosYServicios.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No se encontraron productos o servicios.</td></tr>';
-                return;
-            }
-
-            todosLosProductosYServicios.forEach(producto => {
-                const row = document.createElement('tr');
-                let rowClass = 'text-gray-700';
-                if (producto.proximoVencimiento && producto.proximoVencimiento !== 'N/A') {
-                    const hoy = new Date();
-                    const fechaVencimiento = new Date(producto.proximoVencimiento);
-                    const diferenciaDias = (fechaVencimiento - hoy) / (1000 * 60 * 60 * 24);
-                    if (diferenciaDias <= 30 && diferenciaDias >= 0) {
-                        rowClass = 'expiring-soon';
-                    }
-                }
-                row.className = rowClass;
-                row.innerHTML = `
-                    <td class="px-3 py-2">${producto.nombreOriginal}</td>
-                    <td class="px-3 py-2">${producto.tipo.charAt(0).toUpperCase() + producto.tipo.slice(1)}</td>
-                    <td class="px-3 py-2 text-right">$${producto.precio.toFixed(2)}</td>
-                    <td class="px-3 py-2 text-center">${producto.tipo === 'producto' ? producto.stock : 'N/A'}</td>
-                    <td class="px-3 py-2">${producto.proximoVencimiento}</td>
-                    <td class="px-3 py-2 text-center">
-                        <button onclick="editarProductoServicio('${producto.id}')" class="text-blue-500 hover:text-blue-700 mx-1">
-                            ✏️
-                        </button>
-                        <button onclick="eliminarProductoServicio('${producto.id}')" class="text-red-500 hover:text-red-700 mx-1">
-                            🗑️
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-            cargarSugerenciasProductos();
-        }
-
-        async function editarProductoServicio(id) {
-            const producto = todosLosProductosYServicios.find(p => p.id === id);
-            if (!producto) {
-                alert('Producto/Servicio no encontrado.');
-                return;
-            }
-
-            productoServicioEnEdicionId = id;
-            document.getElementById('formProductoServicioTitle').textContent = `Editar ${producto.nombreOriginal}`;
-            document.getElementById('guardarProductoBtn').textContent = '🔄 Actualizar';
-            
-            document.getElementById('nombreProducto').value = producto.nombreOriginal;
-            document.getElementById('tipoProducto').value = producto.tipo;
-            document.getElementById('precioProducto').value = producto.precio;
-            document.getElementById('stockProducto').value = producto.stock;
-            if (producto.proximoVencimiento && producto.proximoVencimiento !== 'N/A') {
-                document.getElementById('fechaVencimientoProducto').value = producto.proximoVencimiento;
-            }
-            toggleStockInput();
-        }
-        
-        async function eliminarProductoServicio(id) {
-            if (confirm('¿Estás seguro de que quieres eliminar este producto/servicio?')) {
-                try {
-                    await db.collection('productosYServicios').doc(id).delete();
-                    alert('Producto/Servicio eliminado correctamente.');
-                    cargarProductosYServicios();
-                } catch (e) {
-                    console.error("Error al eliminar producto/servicio: ", e);
-                    alert('Ocurrió un error al eliminar el producto/servicio.');
-                }
-            }
-        }
-        
-        function cargarSugerenciasProductos() {
-            const input = document.getElementById('descripcion');
-            const sugerenciasUl = document.getElementById('sugerencias');
-
-            input.oninput = () => {
-                const valor = input.value.toLowerCase();
-                sugerenciasUl.innerHTML = '';
-                if (valor.length > 0) {
-                    const sugerencias = todosLosProductosYServicios.filter(p => p.nombre.includes(valor));
-                    sugerencias.forEach(p => {
-                        const li = document.createElement('li');
-                        li.textContent = p.nombreOriginal;
-                        li.className = 'p-2 hover:bg-gray-200 cursor-pointer';
-                        li.dataset.precio = p.precio;
-                        li.dataset.stock = p.stock;
-                        li.onclick = () => {
-                            input.value = p.nombreOriginal;
-                            document.getElementById('precio').value = p.precio;
-                            sugerenciasUl.classList.add('hidden');
-                        };
-                        sugerenciasUl.appendChild(li);
-                    });
-                    if (sugerencias.length > 0) {
-                        sugerenciasUl.classList.remove('hidden');
-                    } else {
-                        sugerenciasUl.classList.add('hidden');
-                    }
-                } else {
-                    sugerenciasUl.classList.add('hidden');
-                }
-            };
-
-            document.addEventListener('click', (event) => {
-                if (!sugerenciasUl.contains(event.target) && event.target !== input) {
-                    sugerenciasUl.classList.add('hidden');
-                }
-            });
-        }
-        
-        async function cargarProductosCompra() {
-            const select = document.getElementById('productoCompra');
-            select.innerHTML = '';
-            todosLosProductosYServicios.filter(p => p.tipo === 'producto').forEach(p => {
-                const option = document.createElement('option');
-                option.value = p.id;
-                option.textContent = p.nombreOriginal;
-                select.appendChild(option);
-            });
-        }
-        
         async function cargarCompras() {
-            const tbody = document.getElementById('listaComprasTableBody');
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">Cargando...</td></tr>';
-            
-            const snapshot = await db.collection('compras').orderBy('fechaRegistro', 'desc').get();
-            todasLasCompras = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            filtrarCompras();
+            try {
+                const snapshot = await db.collection('compras').orderBy('fecha', 'desc').get();
+                todasLasCompras = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                filtrarCompras();
+            } catch (error) {
+                console.error("Error al cargar las compras:", error);
+            }
         }
 
         function filtrarCompras() {
-            const anio = document.getElementById('filtroComprasAnio').value;
-            const mes = document.getElementById('filtroComprasMes').value;
-            const dia = document.getElementById('filtroComprasDia').value;
-            const horaInicial = document.getElementById('filtroComprasHoraInicial').value;
-            const horaFinal = document.getElementById('filtroComprasHoraFinal').value;
+            const filtroAnio = document.getElementById('filtroComprasAnio').value;
+            const filtroMes = document.getElementById('filtroComprasMes').value;
             
-            const comprasFiltradas = todasLasCompras.filter(compra => {
-                const fecha = compra.fechaRegistro ? compra.fechaRegistro.toDate() : new Date();
-                const compraAnio = fecha.getFullYear().toString();
-                const compraMes = (fecha.getMonth() + 1).toString();
-                const compraDia = fecha.getDate().toString();
-                const compraHora = fecha.toTimeString().slice(0, 5);
-                
-                const anioMatch = !anio || compraAnio === anio;
-                const mesMatch = !mes || compraMes === mes;
-                const diaMatch = !dia || compraDia === dia;
-                const horaInicialMatch = !horaInicial || compraHora >= horaInicial;
-                const horaFinalMatch = !horaFinal || compraHora <= horaFinal;
-                
-                return anioMatch && mesMatch && diaMatch && horaInicialMatch && horaFinalMatch;
+            let comprasFiltradas = todasLasCompras;
+
+            if (filtroAnio) {
+                comprasFiltradas = comprasFiltradas.filter(compra => new Date(compra.fecha).getFullYear() === parseInt(filtroAnio));
+            }
+            
+            if (filtroMes) {
+                comprasFiltradas = comprasFiltradas.filter(compra => (new Date(compra.fecha).getMonth() + 1) === parseInt(filtroMes));
+            }
+            
+            renderizarCompras(comprasFiltradas);
+        }
+
+        function renderizarCompras(compras) {
+            const tableBody = document.getElementById('listaComprasTableBody');
+            tableBody.innerHTML = '';
+            let totalInversion = 0;
+            compras.forEach(compra => {
+                totalInversion += compra.totalCompra;
+                tableBody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${compra.fecha}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${compra.nombreProducto}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">${compra.cantidad}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${compra.costo.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${compra.totalCompra.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${compra.numeroFactura || 'N/A'}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${compra.usuario}</td>
+                    </tr>
+                `;
             });
-            
-            const tbody = document.getElementById('listaComprasTableBody');
-            tbody.innerHTML = '';
-            if (comprasFiltradas.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">No se encontraron compras.</td></tr>';
+            const summaryFooter = document.getElementById('comprasSummaryFooter');
+            summaryFooter.innerHTML = `
+                <tr class="bg-gray-50 font-semibold">
+                    <td colspan="4" class="text-right px-3 py-2 border-t border-gray-200 text-gray-800">Total de Inversión:</td>
+                    <td class="px-3 py-2 border-t border-gray-200 text-right text-gray-800">$${totalInversion.toFixed(2)}</td>
+                    <td colspan="2" class="px-3 py-2 border-t border-gray-200"></td>
+                </tr>
+            `;
+        }
+
+        function cargarOpcionesDeProductosEnCompras() {
+            const select = document.getElementById('productoCompra');
+            select.innerHTML = '<option value="">Seleccione un producto</option>';
+            todosLosProductosYServicios.filter(p => p.tipo === 'producto').forEach(p => {
+                select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+            });
+        }
+
+        async function guardarCompra() {
+            const fechaCompra = document.getElementById('fechaCompra').value;
+            const productoId = document.getElementById('productoCompra').value;
+            const cantidad = parseInt(document.getElementById('cantidadCompra').value);
+            const costo = parseFloat(document.getElementById('costoCompra').value);
+            const fechaVencimiento = document.getElementById('fechaVencimientoCompra').value;
+            const usuario = document.getElementById('usuarioCompra').value;
+
+            if (!fechaCompra || !productoId || isNaN(cantidad) || cantidad <= 0 || isNaN(costo) || costo < 0) {
+                mostrarMensaje('❌ Por favor, complete todos los campos de la compra correctamente.', 'bg-red-500');
                 return;
             }
 
-            let totalInversion = 0;
-            comprasFiltradas.forEach(compra => {
-                const fecha = new Date(compra.fecha).toLocaleDateString('es-ES');
-                const producto = todosLosProductosYServicios.find(p => p.id === compra.producto)?.nombreOriginal || 'Desconocido';
-                const row = document.createElement('tr');
-                row.className = 'text-gray-700';
-                row.innerHTML = `
-                    <td class="px-3 py-2">${fecha}</td>
-                    <td class="px-3 py-2">${producto}</td>
-                    <td class="px-3 py-2 text-center">${compra.cantidad}</td>
-                    <td class="px-3 py-2 text-right">$${compra.costoUnitario.toFixed(2)}</td>
-                    <td class="px-3 py-2 text-right">$${compra.total.toFixed(2)}</td>
-                    <td class="px-3 py-2">${compra.facturaProveedor}</td>
-                    <td class="px-3 py-2">${compra.usuario}</td>
-                `;
-                tbody.appendChild(row);
-                totalInversion += compra.total;
-            });
-            
-            const tfoot = document.getElementById('comprasSummaryFooter');
-            tfoot.innerHTML = `
-                <tr class="bg-gray-100 font-bold text-lg text-gray-800">
-                    <td colspan="4" class="px-3 py-2 text-right">Total Inversión:</td>
-                    <td colspan="3" class="px-3 py-2 text-right">$${totalInversion.toFixed(2)}</td>
-                </tr>
-            `;
-            cargarAniosFiltroCompras(todasLasCompras);
+            try {
+                const producto = todosLosProductosYServicios.find(p => p.id === productoId);
+                if (!producto) {
+                    mostrarMensaje('❌ Producto no encontrado.', 'bg-red-500');
+                    return;
+                }
+                const totalCompra = cantidad * costo;
+                
+                await db.collection('compras').add({
+                    fecha: fechaCompra,
+                    productoId,
+                    nombreProducto: producto.nombre,
+                    cantidad,
+                    costo,
+                    totalCompra,
+                    fechaVencimiento,
+                    usuario,
+                    fechaRegistro: new Date()
+                });
+
+                // Actualizar el stock del producto
+                const nuevoStock = producto.stock + cantidad;
+                await db.collection('productosYServicios').doc(productoId).update({
+                    stock: nuevoStock
+                });
+
+                mostrarMensaje('✅ Compra registrada y stock actualizado con éxito.');
+                document.getElementById('formCompra').reset();
+                cargarCompras();
+                cargarProductosServicios();
+            } catch (error) {
+                console.error("Error al guardar la compra:", error);
+                mostrarMensaje('❌ Ocurrió un error al registrar la compra.', 'bg-red-500');
+            }
         }
 
-        function cargarAniosFiltroCompras(compras) {
-            const selectAnio = document.getElementById('filtroComprasAnio');
-            const anios = [...new Set(compras.map(c => (c.fechaRegistro ? c.fechaRegistro.toDate().getFullYear() : new Date().getFullYear())))].sort().reverse();
-            selectAnio.innerHTML = '<option value="">Todos</option>';
-            anios.forEach(anio => {
-                const option = document.createElement('option');
-                option.value = anio;
-                option.textContent = anio;
-                selectAnio.appendChild(option);
+        // ---------------------------------------------
+        // FUNCIONES DEL DASHBOARD
+        // ---------------------------------------------
+        async function cargarDashboardData() {
+            try {
+                // Productos con mayor stock
+                const productosConStock = todosLosProductosYServicios.filter(p => p.tipo === 'producto').sort((a, b) => b.stock - a.stock).slice(0, 5);
+                const topStockList = document.getElementById('topStockProductsList');
+                topStockList.innerHTML = productosConStock.length > 0 ? productosConStock.map(p => `<li>${p.nombre} (${p.stock} uds)</li>`).join('') : '<li>No hay productos con stock.</li>';
+                
+                // Productos por vencer
+                const today = new Date();
+                const expiringProducts = todosLosProductosYServicios.filter(p => {
+                    if (p.fechaVencimiento) {
+                        const vencimiento = new Date(p.fechaVencimiento);
+                        const diffTime = vencimiento.getTime() - today.getTime();
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        return diffDays <= 30 && diffDays >= 0;
+                    }
+                    return false;
+                });
+                const expiringList = document.getElementById('expiringProductsList');
+                expiringList.innerHTML = expiringProducts.length > 0 ? expiringProducts.map(p => `<li>${p.nombre} (Vence en ${Math.ceil((new Date(p.fechaVencimiento).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))} días)</li>`).join('') : '<li>No hay productos próximos a vencer.</li>';
+
+                // Productos más vendidos
+                const ventasPorProducto = {};
+                const ventasPorVendedor = {};
+                const facturasSnapshot = await db.collection('facturas').get();
+                facturasSnapshot.forEach(doc => {
+                    const venta = doc.data();
+                    venta.items.forEach(item => {
+                        ventasPorProducto[item.descripcion] = (ventasPorProducto[item.descripcion] || 0) + item.cantidad;
+                    });
+                    ventasPorVendedor[venta.vendedor] = (ventasPorVendedor[venta.vendedor] || 0) + venta.total;
+                });
+
+                const sortedProducts = Object.entries(ventasPorProducto).sort(([, a], [, b]) => b - a).slice(0, 5);
+                const topSellingList = document.getElementById('topSellingProductsList');
+                topSellingList.innerHTML = sortedProducts.length > 0 ? sortedProducts.map(([producto, cantidad]) => `<li>${producto}: ${cantidad} unidades</li>`).join('') : '<li>No hay ventas registradas.</li>';
+
+                const sortedUsers = Object.entries(ventasPorVendedor).sort(([, a], [, b]) => b - a).slice(0, 5);
+                const topSellingUsersList = document.getElementById('topSellingUsersList');
+                topSellingUsersList.innerHTML = sortedUsers.length > 0 ? sortedUsers.map(([usuario, total]) => `<li>${usuario}: $${total.toFixed(2)}</li>`).join('') : '<li>No hay ventas registradas.</li>';
+
+            } catch (error) {
+                console.error("Error al cargar datos del dashboard:", error);
+                mostrarMensaje('❌ Error al cargar los datos del dashboard.', 'bg-red-500');
+            }
+        }
+
+        // Cargar años para los filtros
+        function cargarAniosFiltros() {
+            const anios = new Set();
+            todasLasFacturas.forEach(f => anios.add(f.fechaCreacion.toDate().getFullYear()));
+            todasLasCompras.forEach(c => anios.add(new Date(c.fecha).getFullYear()));
+
+            const filtroVentasAnio = document.getElementById('filtroVentasAnio');
+            const filtroComprasAnio = document.getElementById('filtroComprasAnio');
+            filtroVentasAnio.innerHTML = '<option value="">Todos</option>';
+            filtroComprasAnio.innerHTML = '<option value="">Todos</option>';
+
+            const sortedAnios = Array.from(anios).sort((a, b) => b - a);
+            sortedAnios.forEach(anio => {
+                filtroVentasAnio.innerHTML += `<option value="${anio}">${anio}</option>`;
+                filtroComprasAnio.innerHTML += `<option value="${anio}">${anio}</option>`;
             });
+        }
+
+        async function cargarDatosIniciales() {
+            await Promise.all([
+                cargarFacturas(),
+                cargarClientes(),
+                cargarProductosServicios(),
+                cargarCompras()
+            ]);
+            cargarAniosFiltros();
+            cargarDashboardData();
         }
         
-        async function cargarDashboardData() {
-            const topStockList = document.getElementById('topStockProductsList');
-            const expiringList = document.getElementById('expiringProductsList');
-            const topSellingList = document.getElementById('topSellingProductsList');
-            const topSellingUsersList = document.getElementById('topSellingUsersList');
-
-            topStockList.innerHTML = '<li>Cargando...</li>';
-            expiringList.innerHTML = '<li>Cargando...</li>';
-            topSellingList.innerHTML = '<li>Cargando...</li>';
-            topSellingUsersList.innerHTML = '<li>Cargando...</li>';
-
-            const productosSnapshot = await db.collection('productosYServicios').where('tipo', '==', 'producto').orderBy('stock', 'desc').limit(5).get();
-            const topStockProducts = productosSnapshot.docs.map(doc => doc.data());
-            
-            topStockList.innerHTML = '';
-            if (topStockProducts.length > 0) {
-                topStockProducts.forEach(p => {
+        document.getElementById('descripcion').addEventListener('input', function() {
+            const input = this.value.toLowerCase();
+            const sugerenciasUl = document.getElementById('sugerencias');
+            if (input.length > 0) {
+                const sugerencias = todosLosProductosYServicios.filter(p => p.nombre.toLowerCase().includes(input));
+                sugerenciasUl.innerHTML = '';
+                sugerencias.forEach(sug => {
                     const li = document.createElement('li');
-                    li.textContent = `${p.nombreOriginal}: ${p.stock} unidades`;
-                    topStockList.appendChild(li);
+                    li.textContent = sug.nombre;
+                    li.classList.add('px-4', 'py-2', 'cursor-pointer', 'hover:bg-gray-100');
+                    li.addEventListener('click', () => {
+                        document.getElementById('descripcion').value = sug.nombre;
+                        document.getElementById('precio').value = sug.precio;
+                        sugerenciasUl.classList.add('hidden');
+                    });
+                    sugerenciasUl.appendChild(li);
                 });
+                sugerenciasUl.classList.remove('hidden');
             } else {
-                topStockList.innerHTML = '<li>No hay productos con stock.</li>';
+                sugerenciasUl.classList.add('hidden');
             }
-
-            const expiringProducts = todosLosProductosYServicios.filter(p => {
-                if (p.proximoVencimiento && p.proximoVencimiento !== 'N/A') {
-                    const hoy = new Date();
-                    const fechaVencimiento = new Date(p.proximoVencimiento);
-                    const diferenciaDias = (fechaVencimiento - hoy) / (1000 * 60 * 60 * 24);
-                    return diferenciaDias <= 30 && diferenciaDias >= 0;
-                }
-                return false;
-            }).sort((a, b) => new Date(a.proximoVencimiento) - new Date(b.proximoVencimiento));
-
-            expiringList.innerHTML = '';
-            if (expiringProducts.length > 0) {
-                expiringProducts.forEach(p => {
-                    const li = document.createElement('li');
-                    li.textContent = `${p.nombreOriginal} (${p.stock} uds): Vence el ${p.proximoVencimiento}`;
-                    expiringList.appendChild(li);
-                });
-            } else {
-                expiringList.innerHTML = '<li>No hay productos por vencer pronto.</li>';
+        });
+        
+        document.addEventListener('click', function(event) {
+            const sugerenciasUl = document.getElementById('sugerencias');
+            const descripcionInput = document.getElementById('descripcion');
+            if (!sugerenciasUl.contains(event.target) && event.target !== descripcionInput) {
+                sugerenciasUl.classList.add('hidden');
             }
-
-            const ventasSnapshot = await db.collection('facturas').get();
-            const ventas = ventasSnapshot.docs.map(doc => doc.data());
-
-            const ventasPorProducto = {};
-            const ventasPorVendedor = {};
-
-            ventas.forEach(venta => {
-                venta.items.forEach(item => {
-                    ventasPorProducto[item.descripcion] = (ventasPorProducto[item.descripcion] || 0) + item.cantidad;
-                });
-                ventasPorVendedor[venta.vendedor] = (ventasPorVendedor[venta.vendedor] || 0) + venta.total;
-            });
-
-            const sortedProducts = Object.entries(ventasPorProducto).sort(([, a], [, b]) => b - a).slice(0, 5);
-            topSellingList.innerHTML = '';
-            if (sortedProducts.length > 0) {
-                sortedProducts.forEach(([producto, cantidad]) => {
-                    const li = document.createElement('li');
-                    li.textContent = `${producto}: ${cantidad} unidades`;
-                    topSellingList.appendChild(li);
-                });
-            } else {
-                topSellingList.innerHTML = '<li>No hay ventas registradas.</li>';
-            }
-
-            const sortedUsers = Object.entries(ventasPorVendedor).sort(([, a], [, b]) => b - a).slice(0, 5);
-            topSellingUsersList.innerHTML = '';
-            if (sortedUsers.length > 0) {
-                sortedUsers.forEach(([usuario, total]) => {
-                    const li = document.createElement('li');
-                    li.textContent = `${usuario}: $${total.toFixed(2)}`;
-                    topSellingUsersList.appendChild(li);
-                });
-            } else {
-                topSellingUsersList.innerHTML = '<li>No hay ventas registradas.</li>';
-            }
-        }
+        });
 
     </script>
 </body>
