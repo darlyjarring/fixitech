@@ -647,9 +647,11 @@
                 }
             });
         }
-
-        function padInvoiceNumber(num) {
-            return String(num).padStart(8, '0');
+        
+        function formatFacturaNumber(num) {
+            const year = new Date().getFullYear().toString().slice(-2);
+            const paddedCounter = String(num).padStart(6, '0');
+            return paddedCounter + year;
         }
 
         async function guardarFactura() {
@@ -671,7 +673,8 @@
             try {
                 let numeroFactura = null;
                 if (estado === 'Facturado' && (!todaLaInformacionFacturaEnEdicion || !todaLaInformacionFacturaEnEdicion.numeroFactura)) {
-                    numeroFactura = padInvoiceNumber(await generarNumeroFactura());
+                    const counter = await generarNumeroFactura();
+                    numeroFactura = formatFacturaNumber(counter);
                 } else if (todaLaInformacionFacturaEnEdicion && todaLaInformacionFacturaEnEdicion.numeroFactura) {
                     numeroFactura = todaLaInformacionFacturaEnEdicion.numeroFactura;
                 }
