@@ -595,14 +595,14 @@
     const password = document.getElementById('password').value;
 
     console.log("Intentando iniciar sesión con:");
-    console.log("Usuario (email):", usuario);
+    console.log("Usuario (usuario):", usuario);
     console.log("Contraseña:", password);
 
     try {
-        const snapshot = await db.collection('usuarios').where('email', '==', usuario).get();
+        const snapshot = await db.collection('usuarios').where('usuario', '==', usuario).get();
 
         if (snapshot.empty) {
-            console.log("Resultado de la consulta: No se encontraron usuarios con ese email.");
+            console.log("Resultado de la consulta: No se encontraron usuarios con ese usuario.");
             mostrarMensaje('❌ Usuario o contraseña incorrectos.', 'bg-red-500');
             return;
         }
