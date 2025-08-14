@@ -937,21 +937,29 @@
             const nombre = document.getElementById('nombreCliente').value;
             const telefono = document.getElementById('telefono').value;
             const direccion = document.getElementById('direccion').value;
-
+        
             if (!cedula || !nombre) {
                 mostrarMensaje('❌ Se necesita la cédula y el nombre para guardar un cliente.', 'bg-red-500');
                 return;
             }
-
+        
             try {
                 const clienteRef = db.collection('clientes').doc(cedula);
                 const doc = await clienteRef.get();
                 
+                // Datos a guardar, incluyendo la cédula
+                const clienteData = { 
+                    cedula, 
+                    nombre, 
+                    telefono, 
+                    direccion 
+                };
+                
                 if (doc.exists) {
-                    await clienteRef.update({ cedula, nombre, telefono, direccion });
+                    await clienteRef.update(clienteData);
                     mostrarMensaje(`✅ Cliente ${nombre} actualizado con éxito.`);
                 } else {
-                    await clienteRef.set({ nombre, telefono, direccion });
+                    await clienteRef.set(clienteData);
                     mostrarMensaje(`✅ Cliente ${nombre} guardado con éxito.`);
                 }
                 
