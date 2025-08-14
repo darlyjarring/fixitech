@@ -637,14 +637,10 @@
             const counterRef = db.collection('contadores').doc('facturas');
             return db.runTransaction(async transaction => {
                 const counterDoc = await transaction.get(counterRef);
-                if (!counterDoc.exists) {
-                    await transaction.set(counterRef, { valor: 1 });
-                    return 1;
-                } else {
-                    const nuevoValor = counterDoc.data().valor + 1;
-                    await transaction.update(counterRef, { valor: nuevoValor });
-                    return nuevoValor;
-                }
+                const currentValor = counterDoc.exists ? (counterDoc.data().valor || 0) : 0;
+                const nuevoValor = currentValor + 1;
+                await transaction.set(counterRef, { valor: nuevoValor });
+                return nuevoValor;
             });
         }
         
@@ -763,7 +759,7 @@
             facturas.forEach(factura => {
                 const fecha = factura.fechaCreacion.toDate().toLocaleDateString();
                 const hora = factura.fechaCreacion.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const numeroDisplay = factura.numeroFactura ? `#${factura.numeroFactura}` : 'Pendiente';
+                const numeroDisplay = factura.numeroFactura ? `${factura.numeroFactura}` : 'Pendiente';
                 const estadoDisplay = factura.estado;
 
                 const editButton = (factura.estado !== 'Facturado') ? 
@@ -804,7 +800,7 @@
                 facturaEnEdicionId = facturaId;
                 todaLaInformacionFacturaEnEdicion = facturaData;
 
-                document.getElementById('formFacturaTitle').textContent = `Editar Venta #${facturaId.slice(0, 5)}`;
+                document.getElementById('formFacturaTitle').textContent = `Editar Venta ${facturaData.numeroFactura || facturaId.slice(0, 5)}`;
                 document.getElementById('guardarFacturaBtn').textContent = '💾 Actualizar Venta';
                 
                 document.getElementById('cedulaCliente').value = facturaData.cedulaCliente || '';
@@ -849,7 +845,7 @@
             const jsPDF = window.jspdf.jsPDF;
             const doc = new jsPDF();
             
-            doc.text(`Factura #${data.numeroFactura || facturaId.slice(0, 5)}`, 14, 20);
+            doc.text(`Factura N° ${data.numeroFactura || facturaId.slice(0, 5)}`, 14, 20);
             doc.text(`Cliente: ${data.nombreCliente}`, 14, 30);
             doc.text(`Cédula: ${data.cedulaCliente}`, 14, 40);
             doc.text(`Fecha: ${data.fechaCreacion.toDate().toLocaleDateString()}`, 14, 50);
