@@ -504,12 +504,12 @@
             const secciones = ['dashboardSection', 'nuevaVentaSection', 'gestionFacturasSection', 'gestionClientesSection', 'gestionProductosSection', 'gestionComprasSection'];
             secciones.forEach(id => {
                 const seccion = document.getElementById(id);
-                if (seccion) { // <-- Aquí está la corrección principal
+                if (seccion) {
                     seccion.classList.add('hidden');
                 }
             });
             const seccionAMostrar = document.getElementById(sectionId);
-            if (seccionAMostrar) { // <-- Y aquí también
+            if (seccionAMostrar) {
                 seccionAMostrar.classList.remove('hidden');
             }
         }
@@ -868,7 +868,8 @@
                 headStyles: { fillColor: [200, 200, 200] }
             });
 
-            doc.save(`Factura-${data.numeroFactura || facturaId.slice(0, 5)}.pdf`);
+            // Reemplazamos doc.save por doc.output para mostrar en una nueva ventana
+            doc.output('dataurlnewwindow');
         }
 
         function limpiarFormularioFactura() {
