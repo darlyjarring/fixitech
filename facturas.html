@@ -554,6 +554,13 @@
         };
 
             function mostrarSeccion(sectionId) {
+                
+                const seccionesAdmin = ['gestionClientesSection', 'gestionProductosSection', 'gestionComprasSection', 'gestionUsuariosSection'];
+
+                if (usuarioRol === 'vendedor' && seccionesAdmin.includes(sectionId)) {
+                    mostrarMensaje('❌ No tienes permisos para acceder a esta sección.', 'bg-red-500');
+                    return;
+                }
                 const secciones = ['dashboardSection', 'nuevaVentaSection', 'gestionFacturasSection', 'gestionClientesSection', 'gestionProductosSection', 'gestionComprasSection'];
                 secciones.forEach(id => {
                     const seccion = document.getElementById(id);
@@ -570,6 +577,12 @@
                 if (sectionId === 'gestionClientesSection') {
                     cargarClientes();
                 }
+                if (sectionId === 'gestionComprasSection') {
+                        cargarCompras();
+                }
+                if (sectionId === 'gestionFacturasSection') {
+                    cargarFacturas();
+                }
             }
 
         function iniciarNuevaVenta() {
@@ -578,42 +591,64 @@
         }
 
         async function login() {
-            const usuario = document.getElementById('usuario').value;
-            const password = document.getElementById('password').value;
-            const errorElement = document.getElementById('error');
-            const doc = await db.collection('usuarios').doc(usuario).get();
-
-            if (doc.exists && doc.data().password === password) {
-                errorElement.classList.add('hidden');
-                currentLoggedInUser = {
-                    username: usuario,
-                    rol: doc.data().rol,
-                    nombre: doc.data().nombre,
-                };
-                document.getElementById('loginSection').classList.add('hidden');
-                document.getElementById('sidebar').classList.remove('hidden');
-                document.getElementById('main-content').classList.remove('hidden');
-                
-                if (currentLoggedInUser.rol === 'admin') {
-                    document.getElementById('menu-dashboard').classList.remove('hidden');
-                    document.getElementById('menu-productos').classList.remove('hidden');
-                    document.getElementById('menu-compras').classList.remove('hidden');
-                    mostrarSeccion('dashboardSection');
-                } else {
-                    mostrarSeccion('nuevaVentaSection');
+            const email = document.getElementById('emailLogin').value;
+            const password = document.getElementById('passwordLogin').value;
+        
+            try {
+                const snapshot = await db.collection('usuarios').where('email', '==', email).get();
+                if (snapshot.empty) {
+                    mostrarMensaje('❌ Usuario o contraseña incorrectos.', 'bg-red-500');
+                    return;
                 }
-
-                document.getElementById('userNameDisplay').textContent = currentLoggedInUser.nombre;
-                document.getElementById('userRoleDisplay').textContent = currentLoggedInUser.rol.toUpperCase();
-                document.getElementById('vendedor').value = currentLoggedInUser.nombre;
-                document.getElementById('usuarioCompra').value = currentLoggedInUser.nombre;
+        
+                const userData = snapshot.docs[0].data();
+                if (userData.password !== password) {
+                    mostrarMensaje('❌ Usuario o contraseña incorrectos.', 'bg-red-500');
+                    return;
+                }
+        
+                usuarioActual = userData;
+                localStorage.setItem('usuarioActual', JSON.stringify(userData));
+        
+                // Asignar el rol del usuario a una variable global para uso en la sesión
+                usuarioRol = userData.rol; 
+        
+                document.getElementById('app').classList.remove('hidden');
+                document.getElementById('loginPage').classList.add('hidden');
+                document.getElementById('usuarioActualNombre').textContent = `Usuario: ${usuarioActual.nombre} (${usuarioActual.rol})`;
+        
+                cargarDatosIniciales();
                 
-                await cargarDatosIniciales();
-            } else {
-                errorElement.classList.remove('hidden');
+                // Controlar la visibilidad de las secciones del menú basado en el rol
+                controlarMenuPorRol();
+        
+            } catch (error) {
+                console.error("Error al iniciar sesión:", error);
+                mostrarMensaje('❌ Ocurrió un error al iniciar sesión. Por favor, inténtalo de nuevo.', 'bg-red-500');
             }
         }
 
+
+        function controlarMenuPorRol() {
+            const menuItemsAdmin = ['gestionClientesMenuItem', 'gestionProductosMenuItem', 'gestionComprasMenuItem', 'gestionUsuariosMenuItem'];
+        
+            if (usuarioRol === 'vendedor') {
+                menuItemsAdmin.forEach(itemId => {
+                    const item = document.getElementById(itemId);
+                    if (item) {
+                        item.classList.add('hidden');
+                    }
+                });
+            } else { // Administrador
+                menuItemsAdmin.forEach(itemId => {
+                    const item = document.getElementById(itemId);
+                    if (item) {
+                        item.classList.remove('hidden');
+                    }
+                });
+            }
+        }
+        
         function logout() {
             currentLoggedInUser = null;
             document.getElementById('loginSection').classList.remove('hidden');
