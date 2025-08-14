@@ -1,36 +1,40 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login - Fixitech</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Login - Fixitech</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center h-screen">
-  <div class="bg-white p-8 rounded shadow-md w-full max-w-sm">
-    <h2 class="text-2xl font-bold mb-4 text-center">Login Fixitech</h2>
-    <input type="text" id="usuario" placeholder="Usuario" class="w-full mb-3 p-2 border rounded" />
-    <input type="password" id="password" placeholder="Contraseña" class="w-full mb-4 p-2 border rounded" />
-    <button onclick="login()" class="w-full bg-teal-600 text-white py-2 rounded hover:bg-teal-700">Ingresar</button>
-    <p id="error" class="text-red-600 mt-4 text-center hidden">Credenciales incorrectas</p>
-  </div>
-<!-- Firebase SDKs necesarios -->
-<script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
-<script src="firebase.js"></script>
-  <script>
-    async function login() {
-      const usuario = document.getElementById('usuario').value;
-      const password = document.getElementById('password').value;
-      const db = firebase.firestore();
-      const doc = await db.collection('usuarios').doc(usuario).get();
-      if (doc.exists && doc.data().password === password) {
-        localStorage.setItem('usuario', usuario);
-        window.location.href = 'dashboard.html';
-      } else {
-        document.getElementById('error').classList.remove('hidden');
-      }
-    }
-  </script>
+    <div class="bg-white p-8 rounded shadow-md w-full max-w-sm">
+        <h2 class="text-2xl font-bold mb-4 text-center">Login Fixitech</h2>
+        <input type="text" id="usuario" placeholder="Usuario" class="w-full mb-3 p-2 border rounded" />
+        <input type="password" id="password" placeholder="Contraseña" class="w-full mb-4 p-2 border rounded" />
+        <button onclick="login()" class="w-full bg-teal-600 text-white py-2 rounded hover:bg-teal-700">Ingresar</button>
+        <p id="error" class="text-red-600 mt-4 text-center hidden">Credenciales incorrectas</p>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
+    <script src="firebase.js"></script>
+    <script>
+        async function login() {
+            const usuario = document.getElementById('usuario').value;
+            const password = document.getElementById('password').value;
+            const db = firebase.firestore();
+            const doc = await db.collection('usuarios').doc(usuario).get();
+            
+            if (doc.exists && doc.data().password === password) {
+                const userRole = doc.data().rol;
+                const userName = doc.data().nombre; // Asume que tienes un campo 'nombre'
+                localStorage.setItem('usuario', usuario);
+                localStorage.setItem('nombreUsuario', userName);
+                localStorage.setItem('rolUsuario', userRole);
+                window.location.href = 'facturas.html';
+            } else {
+                document.getElementById('error').classList.remove('hidden');
+            }
+        }
+    </script>
 </body>
 </html>
