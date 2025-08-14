@@ -591,48 +591,53 @@
         }
 
         async function login() {
-    const usuario = document.getElementById('usuario').value;
-    const password = document.getElementById('password').value;
-
-    console.log("Intentando iniciar sesión con:");
-    console.log("Usuario (usuario):", usuario);
-    console.log("Contraseña:", password);
-
-    try {
-        const snapshot = await db.collection('usuarios').where('usuario', '==', usuario).get();
-
-        if (snapshot.empty) {
-            console.log("Resultado de la consulta: No se encontraron usuarios con ese usuario.");
-            mostrarMensaje('❌ Usuario o contraseña incorrectos.', 'bg-red-500');
-            return;
-        }
-
-        const userData = snapshot.docs[0].data();
-        console.log("Usuario encontrado en Firestore:", userData);
-        console.log("Contraseña de la base de datos:", userData.password);
-
-        if (userData.password !== password) {
-            console.log("Contraseña proporcionada no coincide. ¡Revisa mayúsculas/minúsculas y espacios!");
-            mostrarMensaje('❌ Usuario o contraseña incorrectos.', 'bg-red-500');
-            return;
-        }
-
-        // Si el login es exitoso
-        console.log("✅ Inicio de sesión exitoso.");
-        usuarioActual = userData;
-        localStorage.setItem('usuarioActual', JSON.stringify(userData));
-        
-        document.getElementById('app').classList.remove('hidden');
-        document.getElementById('loginSection').classList.add('hidden');
-        document.getElementById('usuarioActualNombre').textContent = `Usuario: ${usuarioActual.nombre}`;
-        
-    } catch (error) {
-        console.error("Error al iniciar sesión:", error);
-        mostrarMensaje('❌ Ocurrió un error al iniciar sesión. Por favor, inténtalo de nuevo.', 'bg-red-500');
-    }
-}
-
-
+                const usuario = document.getElementById('usuario').value;
+                const password = document.getElementById('password').value;
+                const errorElement = document.getElementById('error');
+            
+                try {
+                    const doc = await db.collection('usuarios').doc(usuario).get();
+            
+                    if (doc.exists && doc.data().password === password) {
+                        errorElement.classList.add('hidden');
+                        usuarioActual = {
+                            id: doc.id,
+                            email: doc.id,
+                            rol: doc.data().rol,
+                            nombre: doc.data().nombre,
+                        };
+                        localStorage.setItem('usuarioActual', JSON.stringify(usuarioActual));
+            
+                        document.getElementById('loginSection').classList.add('hidden');
+                        document.getElementById('sidebar').classList.remove('hidden');
+                        document.getElementById('main-content').classList.remove('hidden');
+            
+                        // Actualiza el nombre y rol del usuario en la interfaz
+                        document.getElementById('userNameDisplay').textContent = usuarioActual.nombre;
+                        document.getElementById('userRoleDisplay').textContent = usuarioActual.rol.toUpperCase();
+                        
+                        // Asigna el nombre a los campos de compra y venta
+                        document.getElementById('vendedor').value = usuarioActual.nombre;
+                        document.getElementById('usuarioCompra').value = usuarioActual.nombre;
+            
+                        // Controla el menú de navegación y la sección inicial según el rol
+                        controlarMenuPorRol();
+                        if (usuarioActual.rol === 'admin') {
+                            mostrarSeccion('dashboardSection');
+                        } else {
+                            mostrarSeccion('nuevaVentaSection');
+                        }
+                        
+                        await cargarDatosIniciales();
+                    } else {
+                        errorElement.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error("Error al iniciar sesión:", error);
+                    errorElement.textContent = "Error al conectar. Inténtalo de nuevo.";
+                    errorElement.classList.remove('hidden');
+                }
+            }
 
         
         
