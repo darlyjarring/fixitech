@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
     <style>
         body {
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -20,6 +22,9 @@
         .menu-item.active {
             background-color: #3f83f8;
             color: white;
+        }
+        .expiring-soon {
+            background-color: #fbd38d; /* yellow-200 */
         }
         @media print {
             body * {
@@ -472,7 +477,7 @@
                     <tbody id="listaComprasTableBody" class="bg-white divide-y divide-gray-200">
                         </tbody>
                     <tfoot id="comprasSummaryFooter">
-                        </tfoot>
+                    </tfoot>
                 </table>
             </div>
         </div>
@@ -481,30 +486,24 @@
 
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
-    <script src="firebase.js"></script> 
+    <script src="firebase.js"></script>
     <script>
         const db = firebase.firestore();
         let items = [];
-        let todasLasFacturas = []; 
-        let facturaEnEdicionId = null; 
-        let todaLaInformacionFacturaEnEdicion = null; 
-        
-        let todosLosClientes = []; 
-        let todosLosProductosYServicios = []; 
-        let productoServicioEnEdicionId = null; 
+        let todasLasFacturas = [];
+        let facturaEnEdicionId = null;
+        let todaLaInformacionFacturaEnEdicion = null;
+        let todosLosClientes = [];
+        let todosLosProductosYServicios = [];
+        let productoServicioEnEdicionId = null;
+        let todasLasCompras = [];
+        let currentLoggedInUser = null;
 
-        let todasLasCompras = []; 
-        
-        let currentLoggedInUser = null; 
-        
-        // --- LÓGICA DE LOGIN INTEGRADA ---
         async function login() {
             const usuario = document.getElementById('usuario').value;
             const password = document.getElementById('password').value;
             const errorElement = document.getElementById('error');
-
             const doc = await db.collection('usuarios').doc(usuario).get();
-            
             if (doc.exists && doc.data().password === password) {
                 errorElement.classList.add('hidden');
                 currentLoggedInUser = {
@@ -513,14 +512,12 @@
                     nombre: doc.data().nombre,
                 };
                 
-                // Ocultar login y mostrar el sistema
                 document.getElementById('loginSection').classList.add('hidden');
                 document.getElementById('sidebar').classList.remove('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
                 document.getElementById('userNameDisplay').textContent = currentLoggedInUser.nombre;
                 document.getElementById('userRoleDisplay').textContent = currentLoggedInUser.rol.toUpperCase();
-                
-                // Configurar permisos y sección inicial
+
                 if (currentLoggedInUser.rol === 'admin') {
                     document.getElementById('menu-dashboard').classList.remove('hidden');
                     document.getElementById('menu-productos').classList.remove('hidden');
@@ -533,993 +530,958 @@
                     mostrarSeccion('nuevaVentaSection');
                 }
                 document.getElementById('vendedor').value = currentLoggedInUser.nombre;
-
+                document.getElementById('usuarioCompra').value = currentLoggedInUser.nombre;
             } else {
                 errorElement.classList.remove('hidden');
             }
         }
-        
+
         function logout() {
             currentLoggedInUser = null;
             document.getElementById('loginSection').classList.remove('hidden');
             document.getElementById('sidebar').classList.add('hidden');
             document.getElementById('main-content').classList.add('hidden');
-            document.getElementById('usuario').value = '';
-            document.getElementById('password').value = '';
-            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            document.getElementById('loginForm').reset();
+            items = [];
+            actualizarTablaItems();
         }
 
-        function mostrarMensaje(mensaje, colorClass = 'bg-blue-500') {
-            const container = document.createElement('div');
-            container.className = `fixed bottom-4 left-1/2 -translate-x-1/2 p-4 rounded-md shadow-lg text-white ${colorClass} transition-all duration-300 z-50`;
-            container.textContent = mensaje;
-            document.body.appendChild(container);
-            setTimeout(() => {
-                container.classList.add('opacity-0', 'translate-y-4');
-                container.addEventListener('transitionend', () => container.remove());
-            }, 3000);
+        function mostrarSeccion(seccionId) {
+            document.querySelectorAll('#main-content > div').forEach(div => {
+                div.classList.add('hidden');
+            });
+            document.getElementById(seccionId).classList.remove('hidden');
+
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[onclick="mostrarSeccion('${seccionId}')"]`).classList.add('active');
+
+            if (seccionId === 'nuevaVentaSection') {
+                resetFormFactura();
+            } else if (seccionId === 'gestionFacturasSection') {
+                cargarFacturas();
+            } else if (seccionId === 'gestionClientesSection') {
+                cargarClientes();
+            } else if (seccionId === 'gestionProductosSection') {
+                cargarProductosYServicios();
+            } else if (seccionId === 'gestionComprasSection') {
+                cargarProductosCompra();
+                cargarCompras();
+            } else if (seccionId === 'dashboardSection') {
+                cargarDashboardData();
+            }
         }
 
-        function limpiarFormulario() {
+        function resetFormFactura() {
+            document.getElementById('formFactura').reset();
             document.getElementById('cedulaCliente').value = '';
             document.getElementById('nombreCliente').value = '';
             document.getElementById('telefono').value = '';
             document.getElementById('direccion').value = '';
-            document.getElementById('fechaIngreso').value = new Date().toISOString().split('T')[0];
-            document.getElementById('fechaEntrega').value = new Date().toISOString().split('T')[0];
-            document.getElementById('estado').value = 'En espera';
-            items = [];
-            actualizarTabla();
-            
+            document.getElementById('descripcion').value = '';
+            document.getElementById('cantidad').value = '1';
+            document.getElementById('precio').value = '';
+            document.getElementById('fechaIngreso').valueAsDate = new Date();
+            document.getElementById('fechaEntrega').valueAsDate = new Date();
+            document.getElementById('vendedor').value = currentLoggedInUser.nombre;
             facturaEnEdicionId = null;
             todaLaInformacionFacturaEnEdicion = null;
             document.getElementById('formFacturaTitle').textContent = 'Datos del Cliente y Nueva Venta';
             document.getElementById('guardarFacturaBtn').textContent = '💾 Guardar Venta';
+            items = [];
+            actualizarTablaItems();
         }
-
-        function limpiarFormularioCompra() {
-            document.getElementById('fechaCompra').value = new Date().toISOString().split('T')[0];
-            document.getElementById('productoCompra').value = '';
-            document.getElementById('cantidadCompra').value = '1';
-            document.getElementById('costoCompra').value = '';
-            document.getElementById('facturaCompra').value = '';
-            document.getElementById('usuarioCompra').value = currentLoggedInUser.nombre;
-        }
-
-        function limpiarFormularioProductoServicio() {
-            document.getElementById('nombreProducto').value = '';
-            document.getElementById('tipoProducto').value = 'producto';
-            document.getElementById('precioProducto').value = '';
-            document.getElementById('stockProducto').value = '0';
-            document.getElementById('fechaVencimientoProducto').value = '';
-            document.getElementById('stockInputDiv').classList.remove('hidden');
-            productoServicioEnEdicionId = null;
-            document.getElementById('formProductoServicioTitle').textContent = 'Gestión de Productos y Servicios';
-            document.getElementById('guardarProductoBtn').textContent = '💾 Guardar Producto/Servicio';
-        }
-
-
-        async function mostrarSeccion(sectionId) {
-            document.querySelectorAll('div[id$="Section"]').forEach(section => {
-                section.classList.add('hidden');
-            });
-            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
-            document.querySelector(`a[onclick="mostrarSeccion('${sectionId}')"]`).classList.add('active');
-
-            document.getElementById(sectionId).classList.remove('hidden');
-
-            if (sectionId === 'nuevaVentaSection') {
-                if (facturaEnEdicionId === null) { 
-                    limpiarFormulario();
-                    document.getElementById('vendedor').value = currentLoggedInUser.nombre;
-                }
-                if (todosLosProductosYServicios.length === 0) {
-                     await cargarProductosServicios();
-                }
-            } else if (sectionId === 'gestionFacturasSection') {
-                cargarFacturas(); 
-                facturaEnEdicionId = null; 
-                todaLaInformacionFacturaEnEdicion = null;
-            } else if (sectionId === 'gestionClientesSection') {
-                cargarClientes();
-            } else if (sectionId === 'gestionProductosSection') {
-                limpiarFormularioProductoServicio();
-                cargarProductosServicios();
-            } else if (sectionId === 'gestionComprasSection') {
-                limpiarFormularioCompra();
-                cargarProductosParaCompras(); 
-                cargarCompras(); 
-            } else if (sectionId === 'dashboardSection') {
-                cargarDashboard();
-            }
-        }
-
-
-        // Inicializar las fechas a la fecha actual y mostrar la sección de nueva venta
-        document.addEventListener('DOMContentLoaded', () => {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('fechaIngreso').value = today;
-            document.getElementById('fechaEntrega').value = today;
-            document.getElementById('fechaCompra').value = today; 
-            actualizarTabla(); 
-        });
-        
-        // Autocompletado de items
-        const descripcionInput = document.getElementById('descripcion');
-        const sugerenciasUl = document.getElementById('sugerencias');
-
-        descripcionInput.addEventListener('input', () => {
-            const query = descripcionInput.value.toLowerCase();
-            sugerenciasUl.innerHTML = '';
-
-            if (query.length < 2) {
-                sugerenciasUl.classList.add('hidden');
-                return;
-            }
-
-            const resultados = todosLosProductosYServicios.filter(item => 
-                item.nombre.toLowerCase().includes(query)
-            );
-
-            if (resultados.length > 0) {
-                resultados.forEach(item => {
-                    const li = document.createElement('li');
-                    li.className = 'p-2 cursor-pointer hover:bg-gray-100';
-                    li.textContent = `${item.nombre} - $${item.precio.toFixed(2)}`;
-                    li.addEventListener('click', () => {
-                        descripcionInput.value = item.nombre;
-                        document.getElementById('precio').value = item.precio;
-                        document.getElementById('cantidad').value = 1;
-                        sugerenciasUl.classList.add('hidden');
-                    });
-                    sugerenciasUl.appendChild(li);
-                });
-                sugerenciasUl.classList.remove('hidden');
-            } else {
-                sugerenciasUl.classList.add('hidden');
-            }
-        });
-        // Ocultar sugerencias al hacer clic fuera
-        document.addEventListener('click', (e) => {
-            if (!sugerenciasUl.contains(e.target) && !descripcionInput.contains(e.target)) {
-                sugerenciasUl.classList.add('hidden');
-            }
-        });
-
 
         function agregarItem() {
-            const descripcionInput = document.getElementById('descripcion');
-            const cantidadInput = document.getElementById('cantidad');
-            const precioInput = document.getElementById('precio');
+            const descripcion = document.getElementById('descripcion').value.trim();
+            const cantidad = parseFloat(document.getElementById('cantidad').value);
+            const precio = parseFloat(document.getElementById('precio').value);
+            const stockSugerencia = document.querySelector('#sugerencias li.selected')?.dataset.stock || null;
 
-            const descripcion = descripcionInput.value.trim();
-            const cantidad = parseInt(cantidadInput.value);
-            const precio = parseFloat(precioInput.value);
-
-            if (!descripcion || isNaN(cantidad) || cantidad <= 0 || isNaN(precio) || precio < 0) {
-                mostrarMensaje('Por favor, ingresa una descripción válida, una cantidad positiva y un precio unitario no negativo.', 'bg-red-500');
+            if (descripcion === '' || isNaN(cantidad) || cantidad <= 0 || isNaN(precio) || precio < 0) {
+                alert('Por favor, ingresa una descripción, cantidad y precio válidos.');
                 return;
             }
 
-            const subtotal = cantidad * precio;
-            items.push({ descripcion, cantidad, precio, subtotal });
+            // Validar stock solo para productos
+            const productoSeleccionado = todosLosProductosYServicios.find(p => p.nombre.toLowerCase() === descripcion.toLowerCase());
+            if (productoSeleccionado && productoSeleccionado.tipo === 'producto') {
+                const stockTotal = productoSeleccionado.stock;
+                const cantidadEnCarrito = items.filter(item => item.descripcion.toLowerCase() === descripcion.toLowerCase()).reduce((acc, item) => acc + item.cantidad, 0);
+                if ((cantidad + cantidadEnCarrito) > stockTotal) {
+                    alert(`No hay suficiente stock para el producto "${descripcion}". Stock disponible: ${stockTotal}`);
+                    return;
+                }
+            }
 
-            // Limpiar campos después de agregar
-            descripcionInput.value = '';
-            cantidadInput.value = '1';
-            precioInput.value = '';
-            descripcionInput.focus();
+            const itemExistente = items.find(item => item.descripcion.toLowerCase() === descripcion.toLowerCase());
+            if (itemExistente) {
+                itemExistente.cantidad += cantidad;
+                itemExistente.subtotal = itemExistente.cantidad * itemExistente.precio;
+            } else {
+                items.push({
+                    descripcion,
+                    cantidad,
+                    precio,
+                    subtotal: cantidad * precio,
+                });
+            }
 
-            actualizarTabla();
+            actualizarTablaItems();
+            document.getElementById('descripcion').value = '';
+            document.getElementById('cantidad').value = '1';
+            document.getElementById('precio').value = '';
+            document.getElementById('descripcion').focus();
         }
 
-        function actualizarTabla() {
+        function actualizarTablaItems() {
             const tabla = document.getElementById('tablaItems');
-            const totalEl = document.getElementById('total');
+            const totalElement = document.getElementById('total');
             tabla.innerHTML = '';
             let total = 0;
 
-            if (items.length === 0) {
-                tabla.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No hay ítems agregados aún.</td></tr>`;
-                totalEl.textContent = `$0.00`;
-                return;
-            }
-
             items.forEach((item, index) => {
-                total += item.subtotal;
-                tabla.innerHTML += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-3 py-2 border-b border-gray-200">${item.descripcion}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-center">${item.cantidad}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.precio.toFixed(2)}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.subtotal.toFixed(2)}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-center">
-                            <button onclick="eliminarItem(${index})" class="text-red-600 hover:text-red-800 transition duration-150 ease-in-out" title="Eliminar Ítem">✖</button>
-                        </td>
-                    </tr>
+                const row = document.createElement('tr');
+                row.className = 'text-gray-700';
+                row.innerHTML = `
+                    <td class="px-3 py-2 whitespace-nowrap">${item.descripcion}</td>
+                    <td class="px-3 py-2 text-center">${item.cantidad}</td>
+                    <td class="px-3 py-2 text-right">$${item.precio.toFixed(2)}</td>
+                    <td class="px-3 py-2 text-right">$${item.subtotal.toFixed(2)}</td>
+                    <td class="px-3 py-2 text-center">
+                        <button type="button" onclick="eliminarItem(${index})" class="text-red-500 hover:text-red-700">
+                            🗑️
+                        </button>
+                    </td>
                 `;
+                tabla.appendChild(row);
+                total += item.subtotal;
             });
-            totalEl.textContent = `$${total.toFixed(2)}`;
+            totalElement.textContent = `$${total.toFixed(2)}`;
         }
 
         function eliminarItem(index) {
-            if (confirm('¿Estás seguro de que quieres eliminar este ítem?')) {
-                items.splice(index, 1);
-                actualizarTabla();
-            }
-        }
-
-        function formatInvoiceNumber(number) {
-            const year = new Date().getFullYear();
-            const paddedNumber = String(number).padStart(6, '0');
-            return `${paddedNumber}${year.toString().substring(2)}`;
+            items.splice(index, 1);
+            actualizarTablaItems();
         }
 
         async function guardarFactura() {
-            const clienteCedula = document.getElementById('cedulaCliente').value.trim();
-            const clienteNombre = document.getElementById('nombreCliente').value.trim();
+            if (items.length === 0) {
+                alert('La venta no puede estar vacía.');
+                return;
+            }
+
+            const cedulaCliente = document.getElementById('cedulaCliente').value.trim();
+            const nombreCliente = document.getElementById('nombreCliente').value.trim() || 'Consumidor Final';
             const telefono = document.getElementById('telefono').value.trim();
             const direccion = document.getElementById('direccion').value.trim();
             const fechaIngreso = document.getElementById('fechaIngreso').value;
             const fechaEntrega = document.getElementById('fechaEntrega').value;
             const estado = document.getElementById('estado').value;
-            const vendedor = document.getElementById('vendedor').value.trim();
-            const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+            const vendedor = currentLoggedInUser.nombre;
+            const total = parseFloat(document.getElementById('total').textContent.replace('$', ''));
 
-            if (!vendedor || (!clienteCedula && !clienteNombre)) {
-                mostrarMensaje('Por favor, ingresa el Vendedor y al menos la Cédula o el Nombre del cliente.', 'bg-red-500');
-                return;
-            }
-            if (!telefono || !direccion || !fechaIngreso || !fechaEntrega) {
-                mostrarMensaje('Por favor, completa el Teléfono, Dirección y las Fechas.', 'bg-red-500');
-                return;
-            }
-            if (items.length === 0) {
-                mostrarMensaje('La venta debe contener al menos un ítem.', 'bg-red-500');
-                return;
-            }
-            if (new Date(fechaIngreso) > new Date(fechaEntrega)) {
-                mostrarMensaje('La fecha de entrega no puede ser anterior a la fecha de ingreso.', 'bg-red-500');
-                return;
-            }
-
-            let message = '';
-            let docRef;
-
-            if (facturaEnEdicionId) {
-                docRef = db.collection('facturas').doc(facturaEnEdicionId);
-            } else {
-                docRef = db.collection('facturas').doc();
-            }
-            
             try {
-                if (estado === 'Facturado') {
-                    await db.runTransaction(async (transaction) => {
-                        const counterRef = db.collection('contadores').doc('facturas');
-                        const counterDoc = await transaction.get(counterRef);
-                        const pedidoDoc = await transaction.get(docRef);
+                // Deducción de stock de productos con lógica FEFO (First-Expiry, First-Out)
+                for (const item of items) {
+                    const productoRef = db.collection('productosYServicios').where('nombre', '==', item.descripcion).limit(1);
+                    const snapshot = await productoRef.get();
+                    if (!snapshot.empty && snapshot.docs[0].data().tipo === 'producto') {
+                        const productoDoc = snapshot.docs[0];
+                        const lotesRef = db.collection('productosYServicios').doc(productoDoc.id).collection('lotes');
+                        const lotesSnapshot = await lotesRef.orderBy('fechaVencimiento').get();
+                        
+                        let cantidadPendiente = item.cantidad;
+                        
+                        for (const loteDoc of lotesSnapshot.docs) {
+                            const loteData = loteDoc.data();
+                            if (cantidadPendiente > 0 && loteData.cantidad > 0) {
+                                const cantidadADeducir = Math.min(cantidadPendiente, loteData.cantidad);
+                                const nuevoStockLote = loteData.cantidad - cantidadADeducir;
 
-                        if (pedidoDoc.exists) {
-                            const stockPromises = items.map(item => {
-                                const producto = todosLosProductosYServicios.find(p => p.nombre === item.descripcion && p.tipo === 'producto');
-                                if (producto) {
-                                    const productoRef = db.collection('productosYServicios').doc(producto.id);
-                                    return transaction.get(productoRef);
+                                if (nuevoStockLote === 0) {
+                                    await loteDoc.ref.delete();
+                                } else {
+                                    await loteDoc.ref.update({ cantidad: nuevoStockLote });
                                 }
-                                return Promise.resolve(null);
-                            });
-                            const stockDocs = await Promise.all(stockPromises);
-
-                            stockDocs.forEach((stockDoc, index) => {
-                                if (stockDoc && stockDoc.exists) {
-                                    const stockActual = stockDoc.data().stock || 0;
-                                    const cantidadVendida = items[index].cantidad;
-                                    const nuevoStock = stockActual - cantidadVendida;
-                                    if (nuevoStock < 0) {
-                                        throw new Error(`No hay suficiente stock para el producto "${items[index].descripcion}". Stock actual: ${stockActual}.`);
-                                    }
-                                    transaction.update(stockDoc.ref, { stock: nuevoStock });
-                                }
-                            });
+                                cantidadPendiente -= cantidadADeducir;
+                            }
                         }
-                        
-                        let currentNumber = counterDoc.exists ? (counterDoc.data().ultimoNumero || 0) : 0;
-                        const newNumber = currentNumber + 1;
-                        const invoiceNumber = formatInvoiceNumber(newNumber);
-                        
-                        transaction.update(counterRef, { ultimoNumero: newNumber });
-                        
-                        const data = {
-                            numeroFactura: invoiceNumber,
-                            clienteCedula: clienteCedula || null,
-                            clienteNombre: clienteNombre || null, 
-                            telefono,
-                            direccion,
-                            fechaIngreso,
-                            fechaEntrega,
-                            estado,
-                            items: items.map(item => ({ descripcion: item.descripcion, cantidad: item.cantidad, precio: item.precio, subtotal: item.subtotal })),
-                            total: parseFloat(total.toFixed(2)),
-                            facturadoPor: vendedor,
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                        };
-                        transaction.set(docRef, data);
-                    });
-                    message = facturaEnEdicionId ? `✅ Pedido facturado y stock actualizado con éxito.` : `✅ Factura guardada y stock actualizado con éxito.`;
-                } else {
-                    const data = {
-                        numeroFactura: null,
-                        clienteCedula: clienteCedula || null,
-                        clienteNombre: clienteNombre || null, 
-                        telefono,
-                        direccion,
-                        fechaIngreso,
-                        fechaEntrega,
-                        estado,
-                        items: items.map(item => ({ descripcion: item.descripcion, cantidad: item.cantidad, precio: item.precio, subtotal: item.subtotal })),
-                        total: parseFloat(total.toFixed(2)),
-                        facturadoPor: vendedor,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-                    await docRef.set(data);
-                    message = facturaEnEdicionId ? `✅ Pedido actualizado con éxito.` : `✅ Pedido de venta guardado con éxito.`;
+                        if (cantidadPendiente > 0) {
+                            alert(`Error: No hay suficiente stock disponible para el producto "${item.descripcion}".`);
+                            return;
+                        }
+                    }
                 }
 
-                mostrarMensaje(message);
-                limpiarFormulario();
-                cargarFacturas(); 
+                // Guardar la factura
+                const factura = {
+                    cliente: {
+                        cedula: cedulaCliente,
+                        nombre: nombreCliente,
+                        telefono: telefono,
+                        direccion: direccion,
+                    },
+                    items: items,
+                    total: total,
+                    fechaIngreso: fechaIngreso,
+                    fechaEntrega: fechaEntrega,
+                    estado: estado,
+                    vendedor: vendedor,
+                    fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
+                };
 
-            } catch (error) {
-                console.error("Error al guardar/actualizar la venta: ", error);
-                mostrarMensaje("❌ Hubo un error al guardar/actualizar la venta. Por favor, inténtalo de nuevo. Detalles: " + error.message, 'bg-red-500');
+                let docId;
+                if (facturaEnEdicionId) {
+                    docId = facturaEnEdicionId;
+                    await db.collection('facturas').doc(docId).update(factura);
+                    alert('Factura actualizada exitosamente.');
+                } else {
+                    const docRef = await db.collection('facturas').add(factura);
+                    docId = docRef.id;
+                    alert('Factura guardada exitosamente.');
+                }
+                
+                resetFormFactura();
+                cargarFacturas();
+                cargarProductosYServicios(); // Recargar la lista de productos para ver el stock actualizado
+            } catch (e) {
+                console.error("Error al guardar la factura: ", e);
+                alert('Ocurrió un error al guardar la factura. Por favor, intenta de nuevo.');
             }
-        }
-        
-        async function cargarFacturaParaEdicion(facturaId) {
-            const factura = todasLasFacturas.find(f => f.id === facturaId);
-            if (!factura) {
-                mostrarMensaje('Venta no encontrada para editar.', 'bg-red-500');
-                return;
-            }
-
-            if (factura.estado === 'Facturado') {
-                mostrarMensaje('No se pueden editar las ventas que ya han sido facturadas.', 'bg-red-500');
-                return;
-            }
-
-            facturaEnEdicionId = facturaId;
-            todaLaInformacionFacturaEnEdicion = factura;
-
-            document.getElementById('cedulaCliente').value = factura.clienteCedula || '';
-            document.getElementById('nombreCliente').value = factura.clienteNombre || '';
-            document.getElementById('telefono').value = factura.telefono || '';
-            document.getElementById('direccion').value = factura.direccion || '';
-            document.getElementById('fechaIngreso').value = factura.fechaIngreso;
-            document.getElementById('fechaEntrega').value = factura.fechaEntrega;
-            document.getElementById('estado').value = factura.estado;
-            document.getElementById('vendedor').value = factura.facturadoPor;
-
-            items = factura.items;
-            actualizarTabla();
-
-            document.getElementById('formFacturaTitle').textContent = `Editando Venta`;
-            document.getElementById('guardarFacturaBtn').textContent = '💾 Actualizar Venta';
-
-            mostrarSeccion('nuevaVentaSection');
         }
 
         async function cargarFacturas() {
-            const tableBody = document.getElementById('listaFacturasTableBody');
-            tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">Cargando ventas...</td></tr>';
-            todasLasFacturas = [];
-            try {
-                const querySnapshot = await db.collection('facturas').orderBy('timestamp', 'desc').get();
-                if (querySnapshot.empty) {
-                    tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">No hay ventas registradas.</td></tr>';
-                    return;
-                }
-                
-                querySnapshot.forEach(doc => {
-                    const data = doc.data();
-                    todasLasFacturas.push({ id: doc.id, ...data });
-                });
-                
-                const anosUnicos = [...new Set(todasLasFacturas.map(f => new Date(f.timestamp.toDate()).getFullYear().toString()))].sort().reverse();
-                const filtroVentasAnio = document.getElementById('filtroVentasAnio');
-                filtroVentasAnio.innerHTML = '<option value="">Todos</option>';
-                anosUnicos.forEach(ano => {
-                    const option = document.createElement('option');
-                    option.value = ano;
-                    option.textContent = ano;
-                    filtroVentasAnio.appendChild(option);
-                });
-
-                filtrarFacturas();
-            } catch (error) {
-                console.error("Error al cargar las facturas: ", error);
-                tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-red-500">Error al cargar las ventas.</td></tr>';
-            }
+            const tbody = document.getElementById('listaFacturasTableBody');
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">Cargando...</td></tr>';
+            
+            let facturasRef = db.collection('facturas').orderBy('fechaCreacion', 'desc');
+            
+            const snapshot = await facturasRef.get();
+            todasLasFacturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            filtrarFacturas();
         }
 
         function filtrarFacturas() {
-            const tableBody = document.getElementById('listaFacturasTableBody');
-            tableBody.innerHTML = '';
+            const anio = document.getElementById('filtroVentasAnio').value;
+            const mes = document.getElementById('filtroVentasMes').value;
+            const horaInicial = document.getElementById('filtroVentasHoraInicial').value;
+            const horaFinal = document.getElementById('filtroVentasHoraFinal').value;
             
-            const filtroAnio = document.getElementById('filtroVentasAnio').value;
-            const filtroMes = document.getElementById('filtroVentasMes').value;
-            const filtroHoraInicial = document.getElementById('filtroVentasHoraInicial').value;
-            const filtroHoraFinal = document.getElementById('filtroVentasHoraFinal').value;
-
             const facturasFiltradas = todasLasFacturas.filter(factura => {
-                const timestamp = factura.timestamp ? new Date(factura.timestamp.toDate()) : null;
-                if (!timestamp) return false;
+                const fecha = factura.fechaCreacion ? factura.fechaCreacion.toDate() : new Date();
+                const facturaAnio = fecha.getFullYear().toString();
+                const facturaMes = (fecha.getMonth() + 1).toString();
+                const facturaHora = fecha.toTimeString().slice(0, 5);
 
-                const facturaAnio = timestamp.getFullYear().toString();
-                const facturaMes = (timestamp.getMonth() + 1).toString();
-                const facturaHora = timestamp.toTimeString().split(' ')[0];
-
-                const anioMatch = !filtroAnio || facturaAnio === filtroAnio;
-                const mesMatch = !filtroMes || facturaMes === filtroMes;
-                const horaInicialMatch = !filtroHoraInicial || facturaHora >= filtroHoraInicial;
-                const horaFinalMatch = !filtroHoraFinal || facturaHora <= filtroHoraFinal;
-
+                const anioMatch = !anio || facturaAnio === anio;
+                const mesMatch = !mes || facturaMes === mes;
+                const horaInicialMatch = !horaInicial || facturaHora >= horaInicial;
+                const horaFinalMatch = !horaFinal || facturaHora <= horaFinal;
+                
                 return anioMatch && mesMatch && horaInicialMatch && horaFinalMatch;
             });
 
+            const tbody = document.getElementById('listaFacturasTableBody');
+            tbody.innerHTML = '';
             if (facturasFiltradas.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">No se encontraron ventas con los filtros aplicados.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">No se encontraron facturas.</td></tr>';
                 return;
             }
 
             facturasFiltradas.forEach(factura => {
-                const fecha = factura.timestamp ? factura.timestamp.toDate().toLocaleString() : 'N/A';
-                const numeroFacturaDisplay = factura.numeroFactura || `<span class="bg-yellow-100 text-yellow-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded">Pendiente</span>`;
-                const accionesHTML = factura.estado === 'Facturado'
-                    ? `<button onclick="verDetalleFactura('${factura.id}')" class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out mr-2" title="Ver Detalle">👁️</button>`
-                    : `<button onclick="verDetalleFactura('${factura.id}')" class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out mr-2" title="Ver Detalle">👁️</button>
-                       <button onclick="cargarFacturaParaEdicion('${factura.id}')" class="text-green-600 hover:text-green-800 transition duration-150 ease-in-out mr-2" title="Editar">✏️</button>`;
-
-                tableBody.innerHTML += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-3 py-2 border-b border-gray-200">${numeroFacturaDisplay}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${factura.clienteNombre || factura.clienteCedula || 'N/A'}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${factura.total.toFixed(2)}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${factura.facturadoPor || 'N/A'}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">
-                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                factura.estado === 'Facturado' ? 'bg-green-100 text-green-800' :
-                                factura.estado === 'En espera' ? 'bg-yellow-100 text-yellow-800' :
-                                factura.estado === 'Entregado' ? 'bg-blue-100 text-blue-800' :
-                                'bg-gray-100 text-gray-800'
-                            }">
-                                ${factura.estado}
-                            </span>
-                        </td>
-                        <td class="px-3 py-2 border-b border-gray-200">${fecha}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-center">
-                            ${accionesHTML}
-                        </td>
-                    </tr>
+                const fecha = factura.fechaCreacion ? factura.fechaCreacion.toDate().toLocaleDateString('es-ES') : 'N/A';
+                const row = document.createElement('tr');
+                row.className = 'text-gray-700';
+                row.innerHTML = `
+                    <td class="px-3 py-2">${factura.id.substring(0, 6)}...</td>
+                    <td class="px-3 py-2">${factura.cliente.nombre}</td>
+                    <td class="px-3 py-2 text-right">$${factura.total.toFixed(2)}</td>
+                    <td class="px-3 py-2">${factura.vendedor}</td>
+                    <td class="px-3 py-2">${factura.estado}</td>
+                    <td class="px-3 py-2">${fecha}</td>
+                    <td class="px-3 py-2 text-center">
+                        <button onclick="editarFactura('${factura.id}')" class="text-blue-500 hover:text-blue-700 mx-1">
+                            ✏️
+                        </button>
+                        <button onclick="eliminarFactura('${factura.id}')" class="text-red-500 hover:text-red-700 mx-1">
+                            🗑️
+                        </button>
+                        <button onclick="generarPDF('${factura.id}')" class="text-green-500 hover:text-green-700 mx-1">
+                            📄
+                        </button>
+                    </td>
                 `;
+                tbody.appendChild(row);
+            });
+            cargarAniosFiltro(todasLasFacturas);
+        }
+
+        function cargarAniosFiltro(facturas) {
+            const selectAnio = document.getElementById('filtroVentasAnio');
+            const anios = [...new Set(facturas.map(f => (f.fechaCreacion ? f.fechaCreacion.toDate().getFullYear() : new Date().getFullYear())))].sort().reverse();
+            selectAnio.innerHTML = '<option value="">Todos</option>';
+            anios.forEach(anio => {
+                const option = document.createElement('option');
+                option.value = anio;
+                option.textContent = anio;
+                selectAnio.appendChild(option);
             });
         }
-        
-        async function verDetalleFactura(facturaId) {
-            const facturaDoc = await db.collection('facturas').doc(facturaId).get();
-            if (!facturaDoc.exists) {
-                mostrarMensaje('Venta no encontrada.', 'bg-red-500');
+
+        async function editarFactura(id) {
+            const factura = todasLasFacturas.find(f => f.id === id);
+            if (!factura) {
+                alert('Factura no encontrada.');
                 return;
             }
-            const data = facturaDoc.data();
+            
+            facturaEnEdicionId = id;
+            todaLaInformacionFacturaEnEdicion = factura;
+
+            document.getElementById('cedulaCliente').value = factura.cliente.cedula || '';
+            document.getElementById('nombreCliente').value = factura.cliente.nombre || 'Consumidor Final';
+            document.getElementById('telefono').value = factura.cliente.telefono || '';
+            document.getElementById('direccion').value = factura.cliente.direccion || '';
+            document.getElementById('fechaIngreso').value = factura.fechaIngreso || '';
+            document.getElementById('fechaEntrega').value = factura.fechaEntrega || '';
+            document.getElementById('estado').value = factura.estado || '';
+            document.getElementById('vendedor').value = factura.vendedor || '';
+
+            items = factura.items || [];
+            actualizarTablaItems();
+
+            document.getElementById('formFacturaTitle').textContent = `Editar Venta #${id.substring(0, 6)}...`;
+            document.getElementById('guardarFacturaBtn').textContent = '🔄 Actualizar Venta';
+            mostrarSeccion('nuevaVentaSection');
+        }
+
+        async function eliminarFactura(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar esta factura? Esta acción no se puede deshacer.')) {
+                try {
+                    const facturaRef = db.collection('facturas').doc(id);
+                    const facturaDoc = await facturaRef.get();
+                    const facturaData = facturaDoc.data();
+                    
+                    // Devolver stock a los lotes
+                    for (const item of facturaData.items) {
+                        const productoRef = db.collection('productosYServicios').where('nombre', '==', item.descripcion).limit(1);
+                        const snapshot = await productoRef.get();
+                        if (!snapshot.empty && snapshot.docs[0].data().tipo === 'producto') {
+                            const productoDoc = snapshot.docs[0];
+                            const lotesRef = db.collection('productosYServicios').doc(productoDoc.id).collection('lotes');
+                            const lotesSnapshot = await lotesRef.get();
+                            
+                            let cantidadADevolver = item.cantidad;
+                            
+                            for (const loteDoc of lotesSnapshot.docs) {
+                                if (cantidadADevolver > 0) {
+                                    const loteData = loteDoc.data();
+                                    const cantidadDevuelta = Math.min(cantidadADevolver, loteData.cantidad);
+                                    await loteDoc.ref.update({ cantidad: loteData.cantidad + cantidadDevuelta });
+                                    cantidadADevolver -= cantidadDevuelta;
+                                }
+                            }
+                            if (cantidadADevolver > 0) {
+                                await lotesRef.add({ cantidad: cantidadADevolver, fechaVencimiento: '2099-12-31' }); // Lote de emergencia
+                            }
+                        }
+                    }
+
+                    await facturaRef.delete();
+                    alert('Factura eliminada correctamente.');
+                    cargarFacturas();
+                    cargarProductosYServicios(); // Recargar la lista de productos
+                } catch (e) {
+                    console.error("Error al eliminar la factura: ", e);
+                    alert('Ocurrió un error al eliminar la factura. Por favor, intenta de nuevo.');
+                }
+            }
+        }
+
+        function generarPDF(id) {
+            const factura = todasLasFacturas.find(f => f.id === id);
+            if (!factura) {
+                alert('Factura no encontrada.');
+                return;
+            }
+
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            const title = data.numeroFactura ? `Factura N° ${data.numeroFactura}` : `Pedido N° ${facturaId.substring(0, 8)}`;
-            doc.text(title, 15, 15);
-            
-            let y = 25;
-            doc.setFontSize(10);
-            doc.text(`Cliente: ${data.clienteNombre || 'N/A'}`, 15, y);
-            doc.text(`Cédula: ${data.clienteCedula || 'N/A'}`, 15, y + 5);
-            doc.text(`Fecha de Ingreso: ${data.fechaIngreso}`, 100, y);
-            doc.text(`Fecha de Entrega: ${data.fechaEntrega}`, 100, y + 5);
-            doc.text(`Vendedor: ${data.facturadoPor || 'N/A'}`, 15, y + 10);
-            
-            y += 20;
+            doc.setFontSize(22);
+            doc.text("Factura", 105, 20, null, null, "center");
+
+            doc.setFontSize(12);
+            doc.text(`N° de Factura: ${id.substring(0, 6)}`, 14, 30);
+            doc.text(`Fecha: ${factura.fechaCreacion.toDate().toLocaleDateString('es-ES')}`, 14, 37);
+            doc.text(`Vendedor: ${factura.vendedor}`, 14, 44);
+
+            doc.text(`Cliente: ${factura.cliente.nombre}`, 14, 58);
+            if (factura.cliente.cedula) doc.text(`Cédula: ${factura.cliente.cedula}`, 14, 65);
+            if (factura.cliente.telefono) doc.text(`Teléfono: ${factura.cliente.telefono}`, 14, 72);
+            if (factura.cliente.direccion) doc.text(`Dirección: ${factura.cliente.direccion}`, 14, 79);
+
+            const tableColumn = ["Descripción", "Cantidad", "Precio Unitario", "Subtotal"];
+            const tableRows = factura.items.map(item => [
+                item.descripcion,
+                item.cantidad,
+                `$${item.precio.toFixed(2)}`,
+                `$${item.subtotal.toFixed(2)}`
+            ]);
+
             doc.autoTable({
-                startY: y,
-                head: [['Descripción', 'Cantidad', 'Precio Unitario', 'Subtotal']],
-                body: data.items.map(item => [item.descripcion, item.cantidad, `$${item.precio.toFixed(2)}`, `$${item.subtotal.toFixed(2)}`]),
-                foot: [['', '', 'Total:', `$${data.total.toFixed(2)}`]],
-                theme: 'striped'
+                head: [tableColumn],
+                body: tableRows,
+                startY: 90,
+                styles: { cellPadding: 2, fontSize: 10, cellWidth: 'wrap' },
+                headStyles: { fillColor: [20, 100, 160], textColor: 255 },
+                columnStyles: {
+                    0: { cellWidth: 80 },
+                    1: { halign: 'center' },
+                    2: { halign: 'right' },
+                    3: { halign: 'right' },
+                }
             });
 
-            const popup = window.open('', '_blank', 'width=800,height=600');
-            const pdfUrl = doc.output('datauristring');
-            popup.document.write(`
-                <iframe width='100%' height='100%' src='${pdfUrl}'></iframe>
-            `);
+            const finalY = doc.autoTable.previous.finalY;
+            doc.setFontSize(14);
+            doc.text(`Total: $${factura.total.toFixed(2)}`, 195, finalY + 10, null, null, "right");
+            
+            doc.save(`factura-${id.substring(0, 6)}.pdf`);
         }
 
-        async function guardarClienteDesdeFactura() {
-            const cedula = document.getElementById('cedulaCliente').value.trim();
-            const nombre = document.getElementById('nombreCliente').value.trim();
-            const telefono = document.getElementById('telefono').value.trim();
-            const direccion = document.getElementById('direccion').value.trim();
-
-            if (!cedula || !nombre) {
-                mostrarMensaje('Por favor, ingresa la cédula y el nombre del cliente para registrar.', 'bg-red-500');
-                return;
-            }
-
-            try {
-                const clienteExistente = await db.collection('clientes').doc(cedula).get();
-                const clienteData = {
-                    nombre,
-                    telefono,
-                    direccion,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                };
-
-                await db.collection('clientes').doc(cedula).set(clienteData, { merge: true });
-                if (clienteExistente.exists) {
-                    mostrarMensaje('Cliente actualizado con éxito.');
-                } else {
-                    mostrarMensaje('Cliente registrado con éxito.');
-                }
-            } catch (error) {
-                console.error("Error al registrar/actualizar el cliente: ", error);
-                mostrarMensaje("Error al registrar/actualizar el cliente. Por favor, inténtalo de nuevo.", 'bg-red-500');
-            }
-        }
-        
-        async function buscarClientePorCedula() {
-            const cedulaInput = document.getElementById('cedulaCliente').value.trim();
-            const nombreInput = document.getElementById('nombreCliente');
-            const telefonoInput = document.getElementById('telefono');
-            const direccionInput = document.getElementById('direccion');
-
-            if (cedulaInput.length === 0) {
-                return;
-            }
-
-            try {
-                const clienteDoc = await db.collection('clientes').doc(cedulaInput).get();
-                if (clienteDoc.exists) {
-                    const data = clienteDoc.data();
-                    nombreInput.value = data.nombre || '';
-                    telefonoInput.value = data.telefono || '';
-                    direccionInput.value = data.direccion || '';
-                    mostrarMensaje('Cliente encontrado.', 'bg-green-500');
-                } else {
-                    telefonoInput.value = '';
-                    direccionInput.value = '';
-                    mostrarMensaje('Cliente no encontrado. Puedes ingresarlo y guardarlo.', 'bg-yellow-500');
-                }
-            } catch (error) {
-                console.error("Error al buscar cliente: ", error);
-                mostrarMensaje("Error al buscar el cliente.", 'bg-red-500');
-            }
-        }
-        
-
+        // --- Clientes ---
         async function cargarClientes() {
-            const tableBody = document.getElementById('listaClientesTableBody');
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">Cargando clientes...</td></tr>';
-            todosLosClientes = [];
-            try {
-                const querySnapshot = await db.collection('clientes').get();
-                if (querySnapshot.empty) {
-                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">No hay clientes registrados.</td></tr>';
-                    return;
-                }
-                
-                querySnapshot.forEach(doc => {
-                    todosLosClientes.push({ id: doc.id, ...doc.data() });
-                });
-                
-                filtrarClientes();
-            } catch (error) {
-                console.error("Error al cargar los clientes: ", error);
-                tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-red-500">Error al cargar los clientes.</td></tr>';
-            }
+            const tbody = document.getElementById('listaClientesTableBody');
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Cargando...</td></tr>';
+            
+            const snapshot = await db.collection('clientes').get();
+            todosLosClientes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            filtrarClientes();
         }
 
         function filtrarClientes() {
-            const filtroNombre = document.getElementById('filtroClienteNombre').value.toLowerCase();
-            const tableBody = document.getElementById('listaClientesTableBody');
-            tableBody.innerHTML = '';
-            
+            const filtro = document.getElementById('filtroClienteNombre').value.toLowerCase();
             const clientesFiltrados = todosLosClientes.filter(cliente => 
-                (cliente.nombre && cliente.nombre.toLowerCase().includes(filtroNombre)) ||
-                (cliente.id && cliente.id.toLowerCase().includes(filtroNombre))
+                (cliente.nombre && cliente.nombre.toLowerCase().includes(filtro)) ||
+                (cliente.cedula && cliente.cedula.toLowerCase().includes(filtro))
             );
-
+            
+            const tbody = document.getElementById('listaClientesTableBody');
+            tbody.innerHTML = '';
             if (clientesFiltrados.length === 0) {
-                 tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">No se encontraron clientes con los filtros aplicados.</td></tr>';
-                 return;
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">No se encontraron clientes.</td></tr>';
+                return;
             }
 
             clientesFiltrados.forEach(cliente => {
-                tableBody.innerHTML += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-3 py-2 border-b border-gray-200">${cliente.id}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${cliente.nombre || 'N/A'}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${cliente.telefono || 'N/A'}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${cliente.direccion || 'N/A'}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-center">
-                            <button onclick="editarCliente('${cliente.id}')" class="text-green-600 hover:text-green-800 transition duration-150 ease-in-out" title="Editar">✏️</button>
-                        </td>
-                    </tr>
+                const row = document.createElement('tr');
+                row.className = 'text-gray-700';
+                row.innerHTML = `
+                    <td class="px-3 py-2">${cliente.cedula}</td>
+                    <td class="px-3 py-2">${cliente.nombre || 'N/A'}</td>
+                    <td class="px-3 py-2">${cliente.telefono || 'N/A'}</td>
+                    <td class="px-3 py-2">${cliente.direccion || 'N/A'}</td>
+                    <td class="px-3 py-2 text-center">
+                        <button onclick="editarCliente('${cliente.id}')" class="text-blue-500 hover:text-blue-700 mx-1">
+                            ✏️
+                        </button>
+                        <button onclick="eliminarCliente('${cliente.id}')" class="text-red-500 hover:text-red-700 mx-1">
+                            🗑️
+                        </button>
+                    </td>
                 `;
+                tbody.appendChild(row);
             });
         }
 
-        async function editarCliente(clienteId) {
-            mostrarMensaje('Esta función está pendiente de implementar.', 'bg-gray-500');
-        }
-
-        function toggleStockInput() {
-            const tipo = document.getElementById('tipoProducto').value;
-            const stockInputDiv = document.getElementById('stockInputDiv');
-            if (tipo === 'servicio') {
-                stockInputDiv.classList.add('hidden');
-                document.getElementById('stockProducto').value = 0;
-            } else {
-                stockInputDiv.classList.remove('hidden');
+        async function buscarClientePorCedula() {
+            const cedula = document.getElementById('cedulaCliente').value;
+            if (cedula.length > 0) {
+                const cliente = todosLosClientes.find(c => c.cedula === cedula);
+                if (cliente) {
+                    document.getElementById('nombreCliente').value = cliente.nombre || '';
+                    document.getElementById('telefono').value = cliente.telefono || '';
+                    document.getElementById('direccion').value = cliente.direccion || '';
+                } else {
+                    document.getElementById('nombreCliente').value = '';
+                    document.getElementById('telefono').value = '';
+                    document.getElementById('direccion').value = '';
+                }
             }
         }
 
+        async function guardarClienteDesdeFactura() {
+            const cedula = document.getElementById('cedulaCliente').value;
+            const nombre = document.getElementById('nombreCliente').value;
+            const telefono = document.getElementById('telefono').value;
+            const direccion = document.getElementById('direccion').value;
+
+            if (!cedula || !nombre) {
+                alert('La cédula y el nombre son campos requeridos.');
+                return;
+            }
+
+            try {
+                const clienteRef = db.collection('clientes').doc(cedula);
+                await clienteRef.set({
+                    nombre,
+                    telefono,
+                    direccion,
+                    cedula,
+                });
+                alert('Cliente guardado exitosamente.');
+            } catch (e) {
+                console.error("Error al guardar cliente: ", e);
+                alert('Ocurrió un error al guardar el cliente.');
+            }
+        }
+        
+        // --- Productos y Servicios ---
+        function toggleStockInput() {
+            const tipo = document.getElementById('tipoProducto').value;
+            const stockDiv = document.getElementById('stockInputDiv');
+            const fechaDiv = document.getElementById('fechaVencimientoProducto').parentNode;
+            if (tipo === 'producto') {
+                stockDiv.classList.remove('hidden');
+                fechaDiv.classList.remove('hidden');
+            } else {
+                stockDiv.classList.add('hidden');
+                fechaDiv.classList.add('hidden');
+            }
+        }
+        
         async function guardarProductoServicio() {
             const nombre = document.getElementById('nombreProducto').value.trim();
             const tipo = document.getElementById('tipoProducto').value;
             const precio = parseFloat(document.getElementById('precioProducto').value);
-            const stock = tipo === 'producto' ? parseInt(document.getElementById('stockProducto').value) : 0;
-            const fechaVencimiento = document.getElementById('fechaVencimientoProducto').value || null;
-
-            if (!nombre || isNaN(precio) || precio < 0 || (tipo === 'producto' && (isNaN(stock) || stock < 0))) {
-                mostrarMensaje('Por favor, completa todos los campos correctamente.', 'bg-red-500');
+            const stock = parseFloat(document.getElementById('stockProducto').value);
+            const fechaVencimiento = document.getElementById('fechaVencimientoProducto').value;
+            const esNuevo = !productoServicioEnEdicionId;
+        
+            if (!nombre || isNaN(precio) || precio < 0) {
+                alert('Por favor, ingresa un nombre y un precio de venta válidos.');
                 return;
             }
-
-            try {
-                const data = {
-                    nombre,
-                    tipo,
-                    precio,
-                    stock: stock,
-                    fechaVencimiento,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                };
-
-                if (productoServicioEnEdicionId) {
-                    await db.collection('productosYServicios').doc(productoServicioEnEdicionId).set(data, { merge: true });
-                    mostrarMensaje('Producto/Servicio actualizado con éxito.');
-                } else {
-                    await db.collection('productosYServicios').add(data);
-                    mostrarMensaje('Producto/Servicio guardado con éxito.');
-                }
-
-                limpiarFormularioProductoServicio();
-                cargarProductosServicios();
-            } catch (error) {
-                console.error("Error al guardar/actualizar el producto/servicio: ", error);
-                mostrarMensaje("Error al guardar/actualizar el producto/servicio. " + error.message, 'bg-red-500');
-            }
-        }
-
-        async function cargarProductosServicios() {
-            const tableBody = document.getElementById('listaProductosTableBody');
-            tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Cargando productos y servicios...</td></tr>';
-            todosLosProductosYServicios = [];
-            try {
-                const querySnapshot = await db.collection('productosYServicios').get();
-                if (querySnapshot.empty) {
-                    tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">No hay productos ni servicios registrados.</td></tr>';
+        
+            if (tipo === 'producto') {
+                if (isNaN(stock) || stock < 0 || !fechaVencimiento) {
+                    alert('Para los productos, el stock inicial y la fecha de vencimiento son obligatorios.');
                     return;
                 }
-                
-                querySnapshot.forEach(doc => {
-                    todosLosProductosYServicios.push({ id: doc.id, ...doc.data() });
-                });
-                
-                tableBody.innerHTML = '';
-                todosLosProductosYServicios.forEach(item => {
-                    const stockDisplay = item.tipo === 'producto' ? item.stock : 'N/A';
-                    const vencimientoDisplay = item.fechaVencimiento || 'N/A';
-                    tableBody.innerHTML += `
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-3 py-2 border-b border-gray-200">${item.nombre}</td>
-                            <td class="px-3 py-2 border-b border-gray-200">${item.tipo}</td>
-                            <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.precio.toFixed(2)}</td>
-                            <td class="px-3 py-2 border-b border-gray-200 text-center">${stockDisplay}</td>
-                            <td class="px-3 py-2 border-b border-gray-200">${vencimientoDisplay}</td>
-                            <td class="px-3 py-2 border-b border-gray-200 text-center">
-                                <button onclick="editarProductoServicio('${item.id}')" class="text-green-600 hover:text-green-800 transition duration-150 ease-in-out" title="Editar">✏️</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            } catch (error) {
-                console.error("Error al cargar los productos y servicios: ", error);
-                tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-red-500">Error al cargar los datos.</td></tr>';
+            }
+        
+            try {
+                const productoRef = esNuevo ? db.collection('productosYServicios').doc() : db.collection('productosYServicios').doc(productoServicioEnEdicionId);
+                const productoId = esNuevo ? productoRef.id : productoServicioEnEdicionId;
+        
+                if (esNuevo) {
+                    const nuevoProducto = {
+                        nombre: nombre.toLowerCase(),
+                        nombreOriginal: nombre,
+                        tipo: tipo,
+                        precio: precio,
+                        fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
+                    };
+                    await productoRef.set(nuevoProducto);
+                    
+                    if (tipo === 'producto' && stock > 0) {
+                        await productoRef.collection('lotes').add({
+                            cantidad: stock,
+                            fechaVencimiento: fechaVencimiento,
+                            fechaEntrada: firebase.firestore.FieldValue.serverTimestamp(),
+                        });
+                    }
+                } else {
+                    const productoData = {
+                        nombre: nombre.toLowerCase(),
+                        nombreOriginal: nombre,
+                        tipo: tipo,
+                        precio: precio,
+                    };
+                    await productoRef.update(productoData);
+                }
+        
+                alert(`Producto/Servicio ${esNuevo ? 'guardado' : 'actualizado'} exitosamente.`);
+                document.getElementById('formProductoServicio').reset();
+                document.getElementById('guardarProductoBtn').textContent = '💾 Guardar Producto/Servicio';
+                document.getElementById('formProductoServicioTitle').textContent = 'Gestión de Productos y Servicios';
+                productoServicioEnEdicionId = null;
+                cargarProductosYServicios();
+            } catch (e) {
+                console.error("Error al guardar el producto/servicio: ", e);
+                alert('Ocurrió un error al guardar el producto/servicio.');
             }
         }
+        
+        async function cargarProductosYServicios() {
+            const tbody = document.getElementById('listaProductosTableBody');
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Cargando...</td></tr>';
+            
+            const snapshot = await db.collection('productosYServicios').get();
+            const productosConStock = [];
 
-        function editarProductoServicio(itemId) {
-            const item = todosLosProductosYServicios.find(p => p.id === itemId);
-            if (!item) {
-                mostrarMensaje('Ítem no encontrado para editar.', 'bg-red-500');
+            for (const doc of snapshot.docs) {
+                const producto = { id: doc.id, ...doc.data() };
+                let stockTotal = 0;
+                let fechaVencimientoCercana = 'N/A';
+
+                if (producto.tipo === 'producto') {
+                    const lotesSnapshot = await doc.ref.collection('lotes').orderBy('fechaVencimiento').get();
+                    if (!lotesSnapshot.empty) {
+                        lotesSnapshot.docs.forEach(loteDoc => {
+                            stockTotal += loteDoc.data().cantidad;
+                        });
+                        fechaVencimientoCercana = lotesSnapshot.docs[0].data().fechaVencimiento;
+                    }
+                }
+                productosConStock.push({ ...producto, stock: stockTotal, fechaVencimiento: fechaVencimientoCercana });
+            }
+
+            todosLosProductosYServicios = productosConStock;
+            mostrarProductosEnTabla(productosConStock);
+        }
+
+        function mostrarProductosEnTabla(productos) {
+            const tbody = document.getElementById('listaProductosTableBody');
+            tbody.innerHTML = '';
+            if (productos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No se encontraron productos o servicios.</td></tr>';
                 return;
             }
 
-            productoServicioEnEdicionId = itemId;
+            productos.forEach(producto => {
+                const hoy = new Date();
+                const fechaVencimiento = producto.fechaVencimiento !== 'N/A' ? new Date(producto.fechaVencimiento) : null;
+                const diferenciaDias = fechaVencimiento ? Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24)) : null;
+                
+                let rowClass = 'text-gray-700';
+                let vencimientoTexto = producto.fechaVencimiento !== 'N/A' ? producto.fechaVencimiento : 'N/A';
+                
+                if (diferenciaDias !== null && diferenciaDias <= 30 && diferenciaDias > 0) {
+                    rowClass = 'expiring-soon';
+                }
+                if (diferenciaDias !== null && diferenciaDias <= 0) {
+                    vencimientoTexto = `VENCIDO (${producto.fechaVencimiento})`;
+                    rowClass = 'bg-red-200';
+                }
 
-            document.getElementById('nombreProducto').value = item.nombre;
-            document.getElementById('tipoProducto').value = item.tipo;
-            document.getElementById('precioProducto').value = item.precio;
-            document.getElementById('stockProducto').value = item.stock;
-            document.getElementById('fechaVencimientoProducto').value = item.fechaVencimiento || '';
-            toggleStockInput();
+                const row = document.createElement('tr');
+                row.className = rowClass;
+                row.innerHTML = `
+                    <td class="px-3 py-2">${producto.nombreOriginal}</td>
+                    <td class="px-3 py-2">${producto.tipo}</td>
+                    <td class="px-3 py-2 text-right">$${producto.precio.toFixed(2)}</td>
+                    <td class="px-3 py-2 text-center">${producto.tipo === 'producto' ? producto.stock : 'N/A'}</td>
+                    <td class="px-3 py-2">${producto.tipo === 'producto' ? vencimientoTexto : 'N/A'}</td>
+                    <td class="px-3 py-2 text-center">
+                        <button onclick="editarProductoServicio('${producto.id}')" class="text-blue-500 hover:text-blue-700 mx-1">
+                            ✏️
+                        </button>
+                        <button onclick="eliminarProductoServicio('${producto.id}')" class="text-red-500 hover:text-red-700 mx-1">
+                            🗑️
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
 
-            document.getElementById('formProductoServicioTitle').textContent = `Editando: ${item.nombre}`;
-            document.getElementById('guardarProductoBtn').textContent = '💾 Actualizar';
+        async function editarProductoServicio(id) {
+            const producto = todosLosProductosYServicios.find(p => p.id === id);
+            if (!producto) {
+                alert('Producto/Servicio no encontrado.');
+                return;
+            }
+            
+            productoServicioEnEdicionId = id;
+            document.getElementById('nombreProducto').value = producto.nombreOriginal;
+            document.getElementById('tipoProducto').value = producto.tipo;
+            document.getElementById('precioProducto').value = producto.precio;
+            
+            if (producto.tipo === 'producto') {
+                document.getElementById('stockInputDiv').classList.remove('hidden');
+                document.getElementById('fechaVencimientoProducto').parentNode.classList.remove('hidden');
+            } else {
+                document.getElementById('stockInputDiv').classList.add('hidden');
+                document.getElementById('fechaVencimientoProducto').parentNode.classList.add('hidden');
+            }
 
-            mostrarSeccion('gestionProductosSection');
+            document.getElementById('stockProducto').value = producto.stock || 0;
+            document.getElementById('fechaVencimientoProducto').value = producto.fechaVencimiento === 'N/A' ? '' : producto.fechaVencimiento;
+            document.getElementById('guardarProductoBtn').textContent = '🔄 Actualizar Producto/Servicio';
+            document.getElementById('formProductoServicioTitle').textContent = `Editar ${producto.nombreOriginal}`;
+        }
+        
+        async function eliminarProductoServicio(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este producto/servicio? Esta acción es irreversible.')) {
+                try {
+                    const productoRef = db.collection('productosYServicios').doc(id);
+                    await productoRef.delete();
+                    alert('Producto/Servicio eliminado correctamente.');
+                    cargarProductosYServicios();
+                } catch (e) {
+                    console.error("Error al eliminar el producto/servicio: ", e);
+                    alert('Ocurrió un error al eliminar el producto/servicio.');
+                }
+            }
+        }
+
+        // --- Sugerencias de Productos en Venta ---
+        document.getElementById('descripcion').addEventListener('input', (e) => {
+            const input = e.target.value.toLowerCase();
+            const sugerenciasUl = document.getElementById('sugerencias');
+            sugerenciasUl.innerHTML = '';
+            
+            if (input.length > 0) {
+                const sugerencias = todosLosProductosYServicios.filter(p => p.nombre.includes(input));
+                if (sugerencias.length > 0) {
+                    sugerenciasUl.classList.remove('hidden');
+                    sugerencias.forEach(p => {
+                        const li = document.createElement('li');
+                        li.textContent = p.nombreOriginal;
+                        li.className = 'p-2 cursor-pointer hover:bg-gray-200';
+                        li.dataset.precio = p.precio;
+                        li.dataset.stock = p.stock;
+                        li.dataset.tipo = p.tipo;
+                        li.onclick = () => {
+                            document.getElementById('descripcion').value = p.nombreOriginal;
+                            document.getElementById('precio').value = p.precio;
+                            sugerenciasUl.classList.add('hidden');
+                        };
+                        sugerenciasUl.appendChild(li);
+                    });
+                } else {
+                    sugerenciasUl.classList.add('hidden');
+                }
+            } else {
+                sugerenciasUl.classList.add('hidden');
+            }
+        });
+
+        // --- Compras ---
+        async function cargarProductosCompra() {
+            const select = document.getElementById('productoCompra');
+            select.innerHTML = '<option value="">Seleccione un producto</option>';
+
+            const productos = todosLosProductosYServicios.filter(p => p.tipo === 'producto');
+            productos.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = p.nombreOriginal;
+                select.appendChild(option);
+            });
         }
         
         async function guardarCompra() {
             const fechaCompra = document.getElementById('fechaCompra').value;
             const productoId = document.getElementById('productoCompra').value;
-            const cantidad = parseInt(document.getElementById('cantidadCompra').value);
+            const cantidad = parseFloat(document.getElementById('cantidadCompra').value);
             const costo = parseFloat(document.getElementById('costoCompra').value);
-            const numeroFactura = document.getElementById('facturaCompra').value.trim();
-            const usuario = document.getElementById('usuarioCompra').value.trim();
-            
-            if (!fechaCompra || !productoId || isNaN(cantidad) || cantidad <= 0 || isNaN(costo) || costo < 0 || !numeroFactura || !usuario) {
-                mostrarMensaje('Por favor, completa todos los campos del formulario de compra correctamente.', 'bg-red-500');
+            const facturaProveedor = document.getElementById('facturaCompra').value;
+            const usuario = currentLoggedInUser.nombre;
+
+            if (!fechaCompra || !productoId || isNaN(cantidad) || cantidad <= 0 || isNaN(costo) || costo < 0) {
+                alert('Por favor, completa todos los campos de la compra.');
                 return;
             }
 
             try {
-                const comprasRef = db.collection('compras');
-                const facturaExistente = await comprasRef.where('numeroFactura', '==', numeroFactura).limit(1).get();
-                if (!facturaExistente.empty) {
-                    mostrarMensaje(`El número de factura "${numeroFactura}" ya ha sido registrado.`, 'bg-red-500');
+                // Registrar la compra en la colección 'compras'
+                const compra = {
+                    productoId: productoId,
+                    cantidad: cantidad,
+                    costo: costo,
+                    facturaProveedor: facturaProveedor,
+                    usuario: usuario,
+                    fecha: firebase.firestore.Timestamp.fromDate(new Date(fechaCompra)),
+                    fechaRegistro: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                await db.collection('compras').add(compra);
+
+                // Agregar nuevo lote al producto en la colección 'productosYServicios'
+                const productoRef = db.collection('productosYServicios').doc(productoId);
+                const fechaVencimiento = document.getElementById('fechaVencimientoProducto').value;
+                if (!fechaVencimiento) {
+                    alert("Por favor, ingresa la fecha de vencimiento del nuevo lote.");
                     return;
                 }
-
-                const newCompraRef = comprasRef.doc(); 
-
-                await db.runTransaction(async (transaction) => {
-                    const productoRef = db.collection('productosYServicios').doc(productoId);
-                    const productoDoc = await transaction.get(productoRef);
-                    if (!productoDoc.exists) {
-                        throw new Error("El producto seleccionado no existe.");
-                    }
-                    const stockActual = productoDoc.data().stock || 0;
-                    const nuevoStock = stockActual + cantidad;
-                    
-                    transaction.update(productoRef, { stock: nuevoStock });
-                    
-                    const nombreProducto = productoDoc.data().nombre;
-                    const compraData = {
-                        fecha: fechaCompra,
-                        productoId,
-                        nombreProducto,
-                        cantidad,
-                        costo,
-                        totalCompra: cantidad * costo,
-                        numeroFactura,
-                        usuario,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-                    transaction.set(newCompraRef, compraData); 
-                });
-
-                mostrarMensaje('✅ Compra registrada y stock actualizado con éxito.');
-                limpiarFormularioCompra();
-                cargarCompras(); 
                 
-            } catch (error) {
-                console.error("Error al registrar la compra: ", error);
-                mostrarMensaje("❌ Error al registrar la compra. " + error.message, 'bg-red-500');
-            }
-        }
-        
-        async function cargarProductosParaCompras() {
-            const select = document.getElementById('productoCompra');
-            select.innerHTML = '<option value="">Cargando...</option>';
-            try {
-                const querySnapshot = await db.collection('productosYServicios').where('tipo', '==', 'producto').get();
-                select.innerHTML = '<option value="">Selecciona un producto</option>';
-                querySnapshot.docs.forEach(doc => {
-                    const data = doc.data();
-                    const option = document.createElement('option');
-                    option.value = doc.id;
-                    option.textContent = data.nombre;
-                    select.appendChild(option);
+                await productoRef.collection('lotes').add({
+                    cantidad: cantidad,
+                    fechaVencimiento: fechaVencimiento,
+                    fechaEntrada: firebase.firestore.FieldValue.serverTimestamp(),
                 });
-            } catch (error) {
-                console.error("Error al cargar productos para el formulario de compras: ", error);
-                select.innerHTML = '<option value="">Error al cargar</option>';
+
+                alert('Compra registrada y stock actualizado exitosamente.');
+                document.getElementById('formCompra').reset();
+                document.getElementById('usuarioCompra').value = currentLoggedInUser.nombre;
+                cargarCompras();
+                cargarProductosYServicios();
+            } catch (e) {
+                console.error("Error al registrar la compra: ", e);
+                alert('Ocurrió un error al registrar la compra. Por favor, intenta de nuevo.');
             }
         }
         
         async function cargarCompras() {
-            const tableBody = document.getElementById('listaComprasTableBody');
-            const summaryFooter = document.getElementById('comprasSummaryFooter');
-            tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">Cargando compras...</td></tr>';
-            summaryFooter.innerHTML = '';
-            todasLasCompras = [];
-
-            try {
-                const querySnapshot = await db.collection('compras').orderBy('timestamp', 'desc').get();
-                if (querySnapshot.empty) {
-                    tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">No hay compras registradas.</td></td>';
-                    return;
-                }
-                
-                querySnapshot.forEach(doc => {
-                    todasLasCompras.push({ id: doc.id, ...doc.data() });
-                });
-                
-                const anosUnicos = [...new Set(todasLasCompras.map(c => new Date(c.timestamp.toDate()).getFullYear().toString()))].sort().reverse();
-                const filtroComprasAnio = document.getElementById('filtroComprasAnio');
-                filtroComprasAnio.innerHTML = '<option value="">Todos</option>';
-                anosUnicos.forEach(ano => {
-                    const option = document.createElement('option');
-                    option.value = ano;
-                    option.textContent = ano;
-                    filtroComprasAnio.appendChild(option);
-                });
-                
-                filtrarCompras();
-            } catch (error) {
-                console.error("Error al cargar las compras: ", error);
-                tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-red-500">Error al cargar las compras.</td></tr>';
-            }
+            const tbody = document.getElementById('listaComprasTableBody');
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">Cargando...</td></tr>';
+            
+            let comprasRef = db.collection('compras').orderBy('fecha', 'desc');
+            
+            const snapshot = await comprasRef.get();
+            todasLasCompras = await Promise.all(snapshot.docs.map(async doc => {
+                const data = doc.data();
+                const productoDoc = await db.collection('productosYServicios').doc(data.productoId).get();
+                return {
+                    id: doc.id,
+                    ...data,
+                    productoNombre: productoDoc.exists ? productoDoc.data().nombreOriginal : 'N/A',
+                };
+            }));
+            
+            filtrarCompras();
         }
 
         function filtrarCompras() {
-            const tableBody = document.getElementById('listaComprasTableBody');
-            const summaryFooter = document.getElementById('comprasSummaryFooter');
+            const anio = document.getElementById('filtroComprasAnio').value;
+            const mes = document.getElementById('filtroComprasMes').value;
+            const dia = document.getElementById('filtroComprasDia').value;
+            const horaInicial = document.getElementById('filtroComprasHoraInicial').value;
+            const horaFinal = document.getElementById('filtroComprasHoraFinal').value;
             
-            tableBody.innerHTML = '';
-            summaryFooter.innerHTML = '';
-            
-            let totalGeneral = 0;
-            let totalUnidades = 0;
-            
-            const filtroAnio = document.getElementById('filtroComprasAnio').value;
-            const filtroMes = document.getElementById('filtroComprasMes').value;
-            const filtroDia = document.getElementById('filtroComprasDia').value;
-            const filtroHoraInicial = document.getElementById('filtroComprasHoraInicial').value;
-            const filtroHoraFinal = document.getElementById('filtroComprasHoraFinal').value;
-
-
             const comprasFiltradas = todasLasCompras.filter(compra => {
-                const timestamp = compra.timestamp ? new Date(compra.timestamp.toDate()) : null;
-                if (!timestamp) return false;
+                const fecha = compra.fecha ? compra.fecha.toDate() : new Date();
+                const compraAnio = fecha.getFullYear().toString();
+                const compraMes = (fecha.getMonth() + 1).toString();
+                const compraDia = fecha.getDate().toString();
+                const compraHora = fecha.toTimeString().slice(0, 5);
 
-                const compraAnio = timestamp.getFullYear().toString();
-                const compraMes = (timestamp.getMonth() + 1).toString();
-                const compraDia = timestamp.getDate().toString();
-                const compraHora = timestamp.toTimeString().split(' ')[0];
-                
-                const anioMatch = !filtroAnio || compraAnio === filtroAnio;
-                const mesMatch = !filtroMes || compraMes === filtroMes;
-                const diaMatch = !filtroDia || compraDia === filtroDia;
-                const horaInicialMatch = !filtroHoraInicial || compraHora >= filtroHoraInicial;
-                const horaFinalMatch = !filtroHoraFinal || compraHora <= filtroHoraFinal;
+                const anioMatch = !anio || compraAnio === anio;
+                const mesMatch = !mes || compraMes === mes;
+                const diaMatch = !dia || compraDia === dia;
+                const horaInicialMatch = !horaInicial || compraHora >= horaInicial;
+                const horaFinalMatch = !horaFinal || compraHora <= horaFinal;
                 
                 return anioMatch && mesMatch && diaMatch && horaInicialMatch && horaFinalMatch;
             });
             
+            const tbody = document.getElementById('listaComprasTableBody');
+            tbody.innerHTML = '';
             if (comprasFiltradas.length === 0) {
-                 tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">No se encontraron compras con los filtros aplicados.</td></tr>';
-                 return;
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">No se encontraron compras.</td></tr>';
+                return;
             }
 
+            let totalCompra = 0;
             comprasFiltradas.forEach(compra => {
-                totalGeneral += compra.totalCompra;
-                totalUnidades += compra.cantidad;
-                tableBody.innerHTML += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-3 py-2 border-b border-gray-200">${compra.timestamp.toDate().toLocaleString()}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${compra.nombreProducto}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-center">${compra.cantidad}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${compra.costo.toFixed(2)}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${compra.totalCompra.toFixed(2)}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${compra.numeroFactura}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${compra.usuario}</td>
-                    </tr>
+                const totalItem = compra.cantidad * compra.costo;
+                totalCompra += totalItem;
+                const fecha = compra.fecha ? compra.fecha.toDate().toLocaleDateString('es-ES') : 'N/A';
+                const row = document.createElement('tr');
+                row.className = 'text-gray-700';
+                row.innerHTML = `
+                    <td class="px-3 py-2">${fecha}</td>
+                    <td class="px-3 py-2">${compra.productoNombre}</td>
+                    <td class="px-3 py-2 text-center">${compra.cantidad}</td>
+                    <td class="px-3 py-2 text-right">$${compra.costo.toFixed(2)}</td>
+                    <td class="px-3 py-2 text-right">$${totalItem.toFixed(2)}</td>
+                    <td class="px-3 py-2">${compra.facturaProveedor}</td>
+                    <td class="px-3 py-2">${compra.usuario}</td>
                 `;
+                tbody.appendChild(row);
             });
-            
-            summaryFooter.innerHTML = `
-                <tr class="bg-gray-50 font-semibold">
-                    <td colspan="2" class="text-right px-3 py-2 border-t border-gray-200 text-gray-800">Totales:</td>
-                    <td class="px-3 py-2 border-t border-gray-200 text-center text-gray-800">${totalUnidades}</td>
-                    <td class="border-t border-gray-200"></td>
-                    <td class="px-3 py-2 border-t border-gray-200 text-right text-gray-800">$${totalGeneral.toFixed(2)}</td>
-                    <td colspan="2" class="border-t border-gray-200"></td>
+            document.getElementById('comprasSummaryFooter').innerHTML = `
+                <tr class="bg-gray-200 font-bold">
+                    <td colspan="4" class="px-3 py-2 text-right">Total Compras:</td>
+                    <td class="px-3 py-2 text-right">$${totalCompra.toFixed(2)}</td>
+                    <td colspan="2"></td>
                 </tr>
             `;
+            cargarAniosFiltroCompras(todasLasCompras);
+        }
+
+        function cargarAniosFiltroCompras(compras) {
+            const selectAnio = document.getElementById('filtroComprasAnio');
+            const anios = [...new Set(compras.map(c => (c.fecha ? c.fecha.toDate().getFullYear() : new Date().getFullYear())))].sort().reverse();
+            selectAnio.innerHTML = '<option value="">Todos</option>';
+            anios.forEach(anio => {
+                const option = document.createElement('option');
+                option.value = anio;
+                option.textContent = anio;
+                selectAnio.appendChild(option);
+            });
         }
         
-        async function cargarDashboard() {
-            const topStockList = document.getElementById('topStockProductsList');
-            const expiringList = document.getElementById('expiringProductsList');
-            const topSellingList = document.getElementById('topSellingProductsList');
-            const topSellingUsersList = document.getElementById('topSellingUsersList');
-
-            topStockList.innerHTML = '<li>Cargando...</li>';
-            expiringList.innerHTML = '<li>Cargando...</li>';
-            topSellingList.innerHTML = '<li>Cargando...</li>';
-            topSellingUsersList.innerHTML = '<li>Cargando...</li>';
-
-            // Productos con mayor stock
-            const productosQuery = await db.collection('productosYServicios').where('tipo', '==', 'producto').orderBy('stock', 'desc').limit(5).get();
-            topStockList.innerHTML = '';
-            productosQuery.forEach(doc => {
-                const data = doc.data();
-                topStockList.innerHTML += `<li>${data.nombre} (${data.stock} uds)</li>`;
-            });
-            if (productosQuery.empty) topStockList.innerHTML = '<li>No hay productos en stock.</li>';
-
-            // Productos por vencer (dentro de 30 días)
-            const today = new Date();
-            const thirtyDaysLater = new Date();
-            thirtyDaysLater.setDate(today.getDate() + 30);
+        // --- Dashboard ---
+        async function cargarDashboardData() {
+            await cargarProductosYServicios();
+            await cargarFacturas();
             
-            const productosVencimientoQuery = await db.collection('productosYServicios')
-                .where('fechaVencimiento', '>', today.toISOString().split('T')[0])
-                .where('fechaVencimiento', '<=', thirtyDaysLater.toISOString().split('T')[0])
-                .get();
-
-            expiringList.innerHTML = '';
-            productosVencimientoQuery.forEach(doc => {
-                const data = doc.data();
-                expiringList.innerHTML += `<li>${data.nombre} (vence el ${data.fechaVencimiento})</li>`;
-            });
-            if (productosVencimientoQuery.empty) expiringList.innerHTML = '<li>No hay productos por vencer.</li>';
-
-            // Productos más vendidos
-            const ventasQuery = await db.collection('facturas').where('estado', '==', 'Facturado').get();
-            const ventasPorProducto = {};
-            const ventasPorUsuario = {};
-            
-            ventasQuery.forEach(factura => {
-                const data = factura.data();
-                data.items.forEach(item => {
-                    ventasPorProducto[item.descripcion] = (ventasPorProducto[item.descripcion] || 0) + item.cantidad;
-                });
-                const vendedor = data.facturadoPor || 'N/A';
-                ventasPorUsuario[vendedor] = (ventasPorUsuario[vendedor] || 0) + data.total;
-            });
-            
-            const sortedProductos = Object.entries(ventasPorProducto).sort(([, a], [, b]) => b - a).slice(0, 5);
-            topSellingList.innerHTML = '';
-            if (sortedProductos.length > 0) {
-                sortedProductos.forEach(([producto, cantidad]) => {
-                    topSellingList.innerHTML += `<li>${producto} (${cantidad} uds)</li>`;
-                });
+            // Productos por Vencer
+            const expiringProductsList = document.getElementById('expiringProductsList');
+            const expiringProducts = todosLosProductosYServicios
+                .filter(p => p.tipo === 'producto' && p.fechaVencimiento !== 'N/A')
+                .sort((a, b) => new Date(a.fechaVencimiento) - new Date(b.fechaVencimiento))
+                .slice(0, 5);
+                
+            if (expiringProducts.length > 0) {
+                expiringProductsList.innerHTML = expiringProducts.map(p => {
+                    const hoy = new Date();
+                    const fechaVencimiento = new Date(p.fechaVencimiento);
+                    const diasRestantes = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
+                    return `<li>${p.nombreOriginal} - ${p.stock} unid. (Vence en ${diasRestantes} días)</li>`;
+                }).join('');
             } else {
-                topSellingList.innerHTML = '<li>No hay ventas registradas.</li>';
+                expiringProductsList.innerHTML = '<li>No hay productos próximos a vencer.</li>';
             }
 
-            // Vendedores con más ventas
-            const sortedUsers = Object.entries(ventasPorUsuario).sort(([, a], [, b]) => b - a).slice(0, 5);
-            topSellingUsersList.innerHTML = '';
-            if (sortedUsers.length > 0) {
-                sortedUsers.forEach(([usuario, totalVentas]) => {
-                    topSellingUsersList.innerHTML += `<li>${usuario}: $${totalVentas.toFixed(2)}</li>`;
+            // Productos con Mayor Stock
+            const topStockProductsList = document.getElementById('topStockProductsList');
+            const topStockProducts = todosLosProductosYServicios
+                .filter(p => p.tipo === 'producto')
+                .sort((a, b) => b.stock - a.stock)
+                .slice(0, 5);
+            
+            if (topStockProducts.length > 0) {
+                topStockProductsList.innerHTML = topStockProducts.map(p => `<li>${p.nombreOriginal} - ${p.stock} unidades</li>`).join('');
+            } else {
+                topStockProductsList.innerHTML = '<li>No hay productos registrados.</li>';
+            }
+
+            // Productos Más Vendidos y Vendedores con Más Ventas
+            const ventasPorProducto = {};
+            const ventasPorVendedor = {};
+
+            todasLasFacturas.forEach(factura => {
+                factura.items.forEach(item => {
+                    ventasPorProducto[item.descripcion] = (ventasPorProducto[item.descripcion] || 0) + item.cantidad;
                 });
+                ventasPorVendedor[factura.vendedor] = (ventasPorVendedor[factura.vendedor] || 0) + factura.total;
+            });
+
+            // Productos Más Vendidos
+            const topSellingProductsList = document.getElementById('topSellingProductsList');
+            const sortedProducts = Object.entries(ventasPorProducto).sort(([, a], [, b]) => b - a).slice(0, 5);
+            if (sortedProducts.length > 0) {
+                topSellingProductsList.innerHTML = sortedProducts.map(([nombre, cantidad]) => `<li>${nombre} - ${cantidad} unid.</li>`).join('');
+            } else {
+                topSellingProductsList.innerHTML = '<li>No hay ventas registradas.</li>';
+            }
+
+            // Vendedores con Más Ventas
+            const topSellingUsersList = document.getElementById('topSellingUsersList');
+            const sortedUsers = Object.entries(ventasPorVendedor).sort(([, a], [, b]) => b - a).slice(0, 5);
+            if (sortedUsers.length > 0) {
+                topSellingUsersList.innerHTML = sortedUsers.map(([nombre, totalVendido]) => `<li>${nombre} - $${totalVendido.toFixed(2)}</li>`).join('');
             } else {
                 topSellingUsersList.innerHTML = '<li>No hay ventas registradas.</li>';
             }
         }
+
     </script>
 </body>
 </html>
