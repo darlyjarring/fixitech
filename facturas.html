@@ -629,27 +629,9 @@
 
 
 
-        function controlarMenuPorRol() {
-            const menuItemsAdmin = ['gestionClientesMenuItem', 'gestionProductosMenuItem', 'gestionComprasMenuItem', 'gestionUsuariosMenuItem'];
         
-            if (usuarioRol === 'vendedor') {
-                menuItemsAdmin.forEach(itemId => {
-                    const item = document.getElementById(itemId);
-                    if (item) {
-                        item.classList.add('hidden');
-                    }
-                });
-            } else { // Administrador
-                menuItemsAdmin.forEach(itemId => {
-                    const item = document.getElementById(itemId);
-                    if (item) {
-                        item.classList.remove('hidden');
-                    }
-                });
-            }
-        }
         
-        function logout() {
+            function logout() {
             currentLoggedInUser = null;
             document.getElementById('loginSection').classList.remove('hidden');
             document.getElementById('sidebar').classList.add('hidden');
@@ -663,6 +645,15 @@
             document.getElementById('tablaItems').innerHTML = '';
             actualizarTotal();
         }
+
+        function mostrarMensaje(texto, color = 'bg-green-600') {
+            const mensaje = document.createElement('div');
+            mensaje.textContent = texto;
+            mensaje.className = `fixed top-5 right-5 ${color} text-white px-4 py-2 rounded shadow-lg z-50`;
+            document.body.appendChild(mensaje);
+            setTimeout(() => mensaje.remove(), 3000);
+        }
+
 
         function mostrarMensaje(texto, color = 'bg-green-600') {
             const mensaje = document.createElement('div');
