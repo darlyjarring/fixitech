@@ -612,7 +612,7 @@
             }
 
             const productoSeleccionado = todosLosProductosYServicios.find(p => p.nombre.toLowerCase() === descripcion.toLowerCase());
-            if (productoSeleccionado && productoSeleccionado.tipo === 'producto') {
+            if (productoSeleccionado && productoSeleccionado.tipo === 'producto' && !facturaEnEdicionId) {
                 const stockTotal = productoSeleccionado.stock;
                 const cantidadEnCarrito = items.filter(item => item.descripcion.toLowerCase() === descripcion.toLowerCase()).reduce((acc, item) => acc + item.cantidad, 0);
                 if ((cantidad + cantidadEnCarrito) > stockTotal) {
@@ -689,61 +689,132 @@
             const total = parseFloat(document.getElementById('total').textContent.replace('$', ''));
 
             try {
-                for (const item of items) {
-                    const productoSeleccionado = todosLosProductosYServicios.find(p => p.nombreOriginal.toLowerCase() === item.descripcion.toLowerCase());
+                let docId;
+                let numeroFactura;
+                let facturaData;
 
-                    if (productoSeleccionado && productoSeleccionado.tipo === 'producto') {
-                        const lotesRef = db.collection('productosYServicios').doc(productoSeleccionado.id).collection('lotes');
-                        const lotesSnapshot = await lotesRef.orderBy('fechaVencimiento').get();
-                        
-                        let cantidadPendiente = item.cantidad;
-                        
-                        for (const loteDoc of lotesSnapshot.docs) {
-                            const loteData = loteDoc.data();
-                            if (cantidadPendiente > 0 && loteData.cantidad > 0) {
-                                const cantidadADeducir = Math.min(cantidadPendiente, loteData.cantidad);
-                                const nuevoStockLote = loteData.cantidad - cantidadADeducir;
-
-                                if (nuevoStockLote === 0) {
-                                    await loteDoc.ref.delete();
-                                } else {
-                                    await loteDoc.ref.update({ cantidad: nuevoStockLote });
-                                }
-                                cantidadPendiente -= cantidadADeducir;
+                if (facturaEnEdicionId) {
+                    if (todaLaInformacionFacturaEnEdicion.estado !== 'En espera' && todaLaInformacionFacturaEnEdicion.estado !== 'Entregado') {
+                        alert('No se puede editar una factura con estado "Facturado".');
+                        return;
+                    }
+                    docId = facturaEnEdicionId;
+                    numeroFactura = todaLaInformacionFacturaEnEdicion.numeroFactura;
+                    
+                    const oldItems = todaLaInformacionFacturaEnEdicion.items;
+                    const newItems = items;
+                    
+                    for (const oldItem of oldItems) {
+                        const productoRef = db.collection('productosYServicios').where('nombreOriginal', '==', oldItem.descripcion).limit(1);
+                        const snapshot = await productoRef.get();
+                        if (!snapshot.empty && snapshot.docs[0].data().tipo === 'producto') {
+                            const productoDoc = snapshot.docs[0];
+                            const productoId = productoDoc.id;
+                            const lotesRef = db.collection('productosYServicios').doc(productoId).collection('lotes');
+                            const ultimoLoteSnapshot = await lotesRef.orderBy('fechaEntrada', 'desc').limit(1).get();
+                            if (!ultimoLoteSnapshot.empty) {
+                                const ultimoLoteDoc = ultimoLoteSnapshot.docs[0];
+                                await ultimoLoteDoc.ref.update({ cantidad: firebase.firestore.FieldValue.increment(oldItem.cantidad) });
                             }
                         }
-                        if (cantidadPendiente > 0) {
-                            alert(`Error: No hay suficiente stock disponible para el producto "${item.descripcion}".`);
-                            return;
+                    }
+
+                    for (const newItem of newItems) {
+                        const productoRef = db.collection('productosYServicios').where('nombreOriginal', '==', newItem.descripcion).limit(1);
+                        const snapshot = await productoRef.get();
+                        if (!snapshot.empty && snapshot.docs[0].data().tipo === 'producto') {
+                            const productoDoc = snapshot.docs[0];
+                            const productoId = productoDoc.id;
+                            const lotesRef = db.collection('productosYServicios').doc(productoId).collection('lotes');
+                            const lotesSnapshot = await lotesRef.orderBy('fechaVencimiento').get();
+                            let cantidadPendiente = newItem.cantidad;
+                            
+                            for (const loteDoc of lotesSnapshot.docs) {
+                                const loteData = loteDoc.data();
+                                if (cantidadPendiente > 0 && loteData.cantidad > 0) {
+                                    const cantidadADeducir = Math.min(cantidadPendiente, loteData.cantidad);
+                                    await loteDoc.ref.update({ cantidad: loteData.cantidad - cantidadADeducir });
+                                    cantidadPendiente -= cantidadADeducir;
+                                }
+                            }
                         }
                     }
-                }
 
-                const factura = {
-                    cliente: {
-                        cedula: cedulaCliente,
-                        nombre: nombreCliente,
-                        telefono: telefono,
-                        direccion: direccion,
-                    },
-                    items: items,
-                    total: total,
-                    fechaIngreso: fechaIngreso,
-                    fechaEntrega: fechaEntrega,
-                    estado: estado,
-                    vendedor: vendedor,
-                    fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
-                };
-
-                let docId;
-                if (facturaEnEdicionId) {
-                    docId = facturaEnEdicionId;
-                    await db.collection('facturas').doc(docId).update(factura);
+                    facturaData = {
+                        cliente: {
+                            cedula: cedulaCliente,
+                            nombre: nombreCliente,
+                            telefono: telefono,
+                            direccion: direccion,
+                        },
+                        items: items,
+                        total: total,
+                        fechaIngreso: fechaIngreso,
+                        fechaEntrega: fechaEntrega,
+                        estado: estado,
+                        vendedor: vendedor,
+                        ultimaActualizacion: firebase.firestore.FieldValue.serverTimestamp(),
+                        numeroFactura: numeroFactura
+                    };
+                    await db.collection('facturas').doc(docId).update(facturaData);
                     alert('Factura actualizada exitosamente.');
                 } else {
-                    const docRef = await db.collection('facturas').add(factura);
-                    docId = docRef.id;
+                    const counterRef = db.collection('config').doc('factura_counter');
+                    await db.runTransaction(async (transaction) => {
+                        const counterDoc = await transaction.get(counterRef);
+                        const newCounter = counterDoc.data().currentValue + 1;
+                        transaction.update(counterRef, { currentValue: newCounter });
+                        numeroFactura = newCounter;
+                        
+                        for (const item of items) {
+                            const productoSeleccionado = todosLosProductosYServicios.find(p => p.nombreOriginal.toLowerCase() === item.descripcion.toLowerCase());
+                            if (productoSeleccionado && productoSeleccionado.tipo === 'producto') {
+                                const lotesRef = db.collection('productosYServicios').doc(productoSeleccionado.id).collection('lotes');
+                                const lotesSnapshot = await lotesRef.orderBy('fechaVencimiento').get();
+                                let cantidadPendiente = item.cantidad;
+                                
+                                for (const loteDoc of lotesSnapshot.docs) {
+                                    const loteData = loteDoc.data();
+                                    if (cantidadPendiente > 0 && loteData.cantidad > 0) {
+                                        const cantidadADeducir = Math.min(cantidadPendiente, loteData.cantidad);
+                                        const nuevoStockLote = loteData.cantidad - cantidadADeducir;
+                                        if (nuevoStockLote === 0) {
+                                            transaction.delete(loteDoc.ref);
+                                        } else {
+                                            transaction.update(loteDoc.ref, { cantidad: nuevoStockLote });
+                                        }
+                                        cantidadPendiente -= cantidadADeducir;
+                                    }
+                                }
+                                if (cantidadPendiente > 0) {
+                                    throw new Error(`No hay suficiente stock disponible para el producto "${item.descripcion}".`);
+                                }
+                                await db.collection('productosYServicios').doc(productoSeleccionado.id).update({ stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
+                            }
+                        }
+
+                        facturaData = {
+                            numeroFactura: numeroFactura,
+                            cliente: {
+                                cedula: cedulaCliente,
+                                nombre: nombreCliente,
+                                telefono: telefono,
+                                direccion: direccion,
+                            },
+                            items: items,
+                            total: total,
+                            fechaIngreso: fechaIngreso,
+                            fechaEntrega: fechaEntrega,
+                            estado: estado,
+                            vendedor: vendedor,
+                            fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
+                        };
+                        const docRef = db.collection('facturas').doc();
+                        transaction.set(docRef, facturaData);
+                        docId = docRef.id;
+                    });
                     alert('Factura guardada exitosamente.');
+                    generarPDF(docId, false, facturaData);
                 }
                 
                 resetFormFactura();
@@ -798,7 +869,7 @@
                 const row = document.createElement('tr');
                 row.className = 'text-gray-700';
                 row.innerHTML = `
-                    <td class="px-3 py-2">${factura.id.substring(0, 6)}...</td>
+                    <td class="px-3 py-2">${(factura.numeroFactura || factura.id).toString().padStart(8, '0')}</td>
                     <td class="px-3 py-2">${factura.cliente.nombre}</td>
                     <td class="px-3 py-2 text-right">$${factura.total.toFixed(2)}</td>
                     <td class="px-3 py-2">${factura.vendedor}</td>
@@ -839,6 +910,10 @@
                 alert('Factura no encontrada.');
                 return;
             }
+            if (factura.estado !== 'En espera' && factura.estado !== 'Entregado') {
+                alert('Solo se pueden editar facturas con estado "En espera" o "Entregado".');
+                return;
+            }
             
             facturaEnEdicionId = id;
             todaLaInformacionFacturaEnEdicion = factura;
@@ -855,12 +930,21 @@
             items = factura.items || [];
             actualizarTablaItems();
 
-            document.getElementById('formFacturaTitle').textContent = `Editar Venta #${id.substring(0, 6)}...`;
+            document.getElementById('formFacturaTitle').textContent = `Editar Venta #${(factura.numeroFactura || factura.id).toString().padStart(8, '0')}...`;
             document.getElementById('guardarFacturaBtn').textContent = '🔄 Actualizar Venta';
             mostrarSeccion('nuevaVentaSection');
         }
 
         async function eliminarFactura(id) {
+            const factura = todasLasFacturas.find(f => f.id === id);
+            if (!factura) {
+                alert('Factura no encontrada.');
+                return;
+            }
+            if (factura.estado !== 'En espera' && factura.estado !== 'Entregado') {
+                alert('Solo se pueden eliminar facturas con estado "En espera" o "Entregado".');
+                return;
+            }
             if (confirm('¿Estás seguro de que quieres eliminar esta factura? Esta acción no se puede deshacer.')) {
                 try {
                     const facturaRef = db.collection('facturas').doc(id);
@@ -885,6 +969,7 @@
                             } else {
                                 await lotesRef.add({ cantidad: cantidadADevolver, fechaVencimiento: '2099-12-31', fechaEntrada: firebase.firestore.FieldValue.serverTimestamp() });
                             }
+                            await db.collection('productosYServicios').doc(productoDoc.id).update({ stock: firebase.firestore.FieldValue.increment(item.cantidad) });
                         }
                     }
 
@@ -901,7 +986,7 @@
 
         async function mostrarFactura() {
             const factura = {
-                id: "PREVIEW-FACTURA",
+                numeroFactura: "PREVIEW",
                 cliente: {
                     cedula: document.getElementById('cedulaCliente').value.trim(),
                     nombre: document.getElementById('nombreCliente').value.trim() || 'Consumidor Final',
@@ -914,14 +999,21 @@
                 estado: document.getElementById('estado').value,
                 vendedor: document.getElementById('vendedor').value,
             };
-            generarPDF(factura.id, true, factura);
+            generarPDF(null, true, factura);
         }
 
-        function generarPDF(id, isPreview = false, facturaData = null) {
-            const factura = facturaData || todasLasFacturas.find(f => f.id === id);
-            if (!factura) {
-                alert('Factura no encontrada.');
-                return;
+        async function generarPDF(id, isPreview = false, facturaData = null) {
+            let factura;
+            if (isPreview) {
+                factura = facturaData;
+            } else {
+                const doc = await db.collection('facturas').doc(id).get();
+                if (!doc.exists) {
+                    alert('Factura no encontrada.');
+                    return;
+                }
+                factura = { id: doc.id, ...doc.data() };
+                factura.fechaCreacion = factura.fechaCreacion.toDate();
             }
 
             const { jsPDF } = window.jspdf;
@@ -931,7 +1023,7 @@
             doc.text("Factura de Venta", 105, 20, null, null, "center");
 
             doc.setFontSize(12);
-            doc.text(`N° Factura: ${factura.id}`, 14, 35);
+            doc.text(`N° Factura: ${ (factura.numeroFactura || factura.id).toString().padStart(8, '0')}`, 14, 35);
             doc.text(`Fecha: ${factura.fechaCreacion.toLocaleDateString('es-ES')}`, 14, 42);
             doc.text(`Vendedor: ${factura.vendedor}`, 14, 49);
 
@@ -975,11 +1067,7 @@
             doc.setFontSize(14);
             doc.text(`Total: $${factura.total.toFixed(2)}`, 196, finalY + 15, null, null, "right");
 
-            if (isPreview) {
-                window.open(doc.output('dataurlnewwindow'));
-            } else {
-                doc.save(`Factura_${factura.id}.pdf`);
-            }
+            window.open(doc.output('dataurlnewwindow'));
         }
         
         async function guardarCompra() {
