@@ -612,16 +612,16 @@
             document.getElementById('sidebar').classList.remove('hidden');
             document.getElementById('main-content').classList.remove('hidden');
 
-            // Actualiza el nombre y rol del usuario en la interfaz
             document.getElementById('userNameDisplay').textContent = usuarioActual.nombre;
             document.getElementById('userRoleDisplay').textContent = usuarioActual.rol.toUpperCase();
             
-            // Asigna el nombre a los campos de compra y venta
             document.getElementById('vendedor').value = usuarioActual.nombre;
             document.getElementById('usuarioCompra').value = usuarioActual.nombre;
 
-            // Controla el menú de navegación y la sección inicial según el rol
+            // Llama a esta función para mostrar u ocultar las opciones del menú
             controlarMenuPorRol();
+            
+            // Redirecciona al dashboard si es admin, de lo contrario a ventas
             if (usuarioActual.rol === 'admin') {
                 mostrarSeccion('dashboardSection');
             } else {
@@ -639,9 +639,9 @@
     }
 }
 
-        // Esta función debe existir en tu código. Si no la tienes, agrégala.
+// NUEVA FUNCIÓN PARA CONTROLAR EL MENÚ SEGÚN EL ROL
 function controlarMenuPorRol() {
-    const menuItemsAdmin = ['menu-dashboard', 'menu-productos', 'menu-compras', 'menu-usuarios'];
+    const menuItemsAdmin = ['menu-dashboard', 'menu-productos', 'menu-compras', 'menu-facturas', 'menu-clientes', 'menu-usuarios'];
     
     if (usuarioActual.rol === 'vendedor') {
         menuItemsAdmin.forEach(itemId => {
@@ -659,6 +659,8 @@ function controlarMenuPorRol() {
         });
     }
 }
+
+        
         
             function logout() {
             currentLoggedInUser = null;
