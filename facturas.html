@@ -632,6 +632,25 @@
             const total = items.reduce((sum, item) => sum + item.subtotal, 0);
             document.getElementById('total').textContent = `$${total.toFixed(2)}`;
         }
+        
+        async function generarNumeroFactura() {
+            const counterRef = db.collection('contadores').doc('facturas');
+            return db.runTransaction(async transaction => {
+                const counterDoc = await transaction.get(counterRef);
+                if (!counterDoc.exists) {
+                    await transaction.set(counterRef, { valor: 1 });
+                    return 1;
+                } else {
+                    const nuevoValor = counterDoc.data().valor + 1;
+                    await transaction.update(counterRef, { valor: nuevoValor });
+                    return nuevoValor;
+                }
+            });
+        }
+
+        function padInvoiceNumber(num) {
+            return String(num).padStart(8, '0');
+        }
 
         async function guardarFactura() {
             const cedulaCliente = document.getElementById('cedulaCliente').value;
@@ -650,6 +669,13 @@
             }
 
             try {
+                let numeroFactura = null;
+                if (estado === 'Facturado' && (!todaLaInformacionFacturaEnEdicion || !todaLaInformacionFacturaEnEdicion.numeroFactura)) {
+                    numeroFactura = padInvoiceNumber(await generarNumeroFactura());
+                } else if (todaLaInformacionFacturaEnEdicion && todaLaInformacionFacturaEnEdicion.numeroFactura) {
+                    numeroFactura = todaLaInformacionFacturaEnEdicion.numeroFactura;
+                }
+
                 const facturaData = {
                     cedulaCliente,
                     nombreCliente,
@@ -661,6 +687,7 @@
                     vendedor,
                     items,
                     total,
+                    numeroFactura,
                     fechaCreacion: new Date()
                 };
 
@@ -733,19 +760,24 @@
             facturas.forEach(factura => {
                 const fecha = factura.fechaCreacion.toDate().toLocaleDateString();
                 const hora = factura.fechaCreacion.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const numeroDisplay = factura.numeroFactura ? `#${factura.numeroFactura}` : 'Pendiente';
+                const estadoDisplay = factura.estado;
+
+                const editButton = (factura.estado !== 'Facturado') ? 
+                    `<button onclick="editarFactura('${factura.id}')" class="text-blue-500 hover:text-blue-700 mx-1" title="Editar">
+                        ✏️
+                    </button>` : '';
 
                 tableBody.innerHTML += `
                     <tr class="hover:bg-gray-50">
-                        <td class="px-3 py-2 border-b border-gray-200">#${factura.id.slice(0, 5)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${numeroDisplay}</td>
                         <td class="px-3 py-2 border-b border-gray-200">${factura.nombreCliente}</td>
                         <td class="px-3 py-2 border-b border-gray-200 text-right">$${factura.total.toFixed(2)}</td>
                         <td class="px-3 py-2 border-b border-gray-200">${factura.vendedor}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${factura.estado}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${estadoDisplay}</td>
                         <td class="px-3 py-2 border-b border-gray-200">${fecha} ${hora}</td>
                         <td class="px-3 py-2 border-b border-gray-200 text-center">
-                            <button onclick="editarFactura('${factura.id}')" class="text-blue-500 hover:text-blue-700 mx-1" title="Editar">
-                                ✏️
-                            </button>
+                            ${editButton}
                             <button onclick="eliminarFactura('${factura.id}')" class="text-red-500 hover:text-red-700 mx-1" title="Eliminar">
                                 🗑️
                             </button>
@@ -762,6 +794,10 @@
             const facturaDoc = await db.collection('facturas').doc(facturaId).get();
             if (facturaDoc.exists) {
                 const facturaData = facturaDoc.data();
+                if (facturaData.estado === 'Facturado') {
+                    mostrarMensaje('❌ No se puede editar una factura ya facturada.', 'bg-red-500');
+                    return;
+                }
                 facturaEnEdicionId = facturaId;
                 todaLaInformacionFacturaEnEdicion = facturaData;
 
@@ -810,7 +846,7 @@
             const jsPDF = window.jspdf.jsPDF;
             const doc = new jsPDF();
             
-            doc.text(`Factura #${facturaId.slice(0, 5)}`, 14, 20);
+            doc.text(`Factura #${data.numeroFactura || facturaId.slice(0, 5)}`, 14, 20);
             doc.text(`Cliente: ${data.nombreCliente}`, 14, 30);
             doc.text(`Cédula: ${data.cedulaCliente}`, 14, 40);
             doc.text(`Fecha: ${data.fechaCreacion.toDate().toLocaleDateString()}`, 14, 50);
@@ -833,7 +869,7 @@
                 headStyles: { fillColor: [200, 200, 200] }
             });
 
-            doc.save(`Factura-${facturaId.slice(0, 5)}.pdf`);
+            doc.save(`Factura-${data.numeroFactura || facturaId.slice(0, 5)}.pdf`);
         }
 
         function limpiarFormularioFactura() {
@@ -865,7 +901,7 @@
             const clientesFiltrados = todosLosClientes.filter(cliente => 
                 cliente.nombre.toLowerCase().includes(filtroNombre) || cliente.cedula.includes(filtroNombre)
             );
-            renderizarClientes(clientesFiltrados);
+            renderizarClientes(clientesFiltradas);
         }
 
         function renderizarClientes(clientes) {
