@@ -906,7 +906,7 @@
             const clientesFiltrados = todosLosClientes.filter(cliente => 
                 cliente.nombre.toLowerCase().includes(filtroNombre) || cliente.cedula.includes(filtroNombre)
             );
-            renderizarClientes(clientesFiltradas);
+            renderizarClientes(clientesFiltrados);
         }
 
         function renderizarClientes(clientes) {
