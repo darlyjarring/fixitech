@@ -590,56 +590,75 @@
             limpiarFormularioFactura();
         }
 
-        async function login() {
-                const usuario = document.getElementById('usuario').value;
-                const password = document.getElementById('password').value;
-                const errorElement = document.getElementById('error');
-            
-                try {
-                    const doc = await db.collection('usuarios').doc(usuario).get();
-            
-                    if (doc.exists && doc.data().password === password) {
-                        errorElement.classList.add('hidden');
-                        usuarioActual = {
-                            id: doc.id,
-                            email: doc.id,
-                            rol: doc.data().rol,
-                            nombre: doc.data().nombre,
-                        };
-                        localStorage.setItem('usuarioActual', JSON.stringify(usuarioActual));
-            
-                        document.getElementById('loginSection').classList.add('hidden');
-                        document.getElementById('sidebar').classList.remove('hidden');
-                        document.getElementById('main-content').classList.remove('hidden');
-            
-                        // Actualiza el nombre y rol del usuario en la interfaz
-                        document.getElementById('userNameDisplay').textContent = usuarioActual.nombre;
-                        document.getElementById('userRoleDisplay').textContent = usuarioActual.rol.toUpperCase();
-                        
-                        // Asigna el nombre a los campos de compra y venta
-                        document.getElementById('vendedor').value = usuarioActual.nombre;
-                        document.getElementById('usuarioCompra').value = usuarioActual.nombre;
-            
-                        // Controla el menú de navegación y la sección inicial según el rol
-                        controlarMenuPorRol();
-                        if (usuarioActual.rol === 'admin') {
-                            mostrarSeccion('dashboardSection');
-                        } else {
-                            mostrarSeccion('nuevaVentaSection');
-                        }
-                        
-                        await cargarDatosIniciales();
-                    } else {
-                        errorElement.classList.remove('hidden');
-                    }
-                } catch (error) {
-                    console.error("Error al iniciar sesión:", error);
-                    errorElement.textContent = "Error al conectar. Inténtalo de nuevo.";
-                    errorElement.classList.remove('hidden');
-                }
-            }
+       async function login() {
+    const usuario = document.getElementById('usuario').value;
+    const password = document.getElementById('password').value;
+    const errorElement = document.getElementById('error');
 
-        
+    try {
+        const doc = await db.collection('usuarios').doc(usuario).get();
+
+        if (doc.exists && doc.data().password === password) {
+            errorElement.classList.add('hidden');
+            usuarioActual = {
+                id: doc.id,
+                email: doc.id,
+                rol: doc.data().rol,
+                nombre: doc.data().nombre,
+            };
+            localStorage.setItem('usuarioActual', JSON.stringify(usuarioActual));
+
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('sidebar').classList.remove('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+
+            // Actualiza el nombre y rol del usuario en la interfaz
+            document.getElementById('userNameDisplay').textContent = usuarioActual.nombre;
+            document.getElementById('userRoleDisplay').textContent = usuarioActual.rol.toUpperCase();
+            
+            // Asigna el nombre a los campos de compra y venta
+            document.getElementById('vendedor').value = usuarioActual.nombre;
+            document.getElementById('usuarioCompra').value = usuarioActual.nombre;
+
+            // Controla el menú de navegación y la sección inicial según el rol
+            controlarMenuPorRol();
+            if (usuarioActual.rol === 'admin') {
+                mostrarSeccion('dashboardSection');
+            } else {
+                mostrarSeccion('nuevaVentaSection');
+            }
+            
+            await cargarDatosIniciales();
+        } else {
+            errorElement.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error("Error al iniciar sesión:", error);
+        errorElement.textContent = "Error al conectar. Inténtalo de nuevo.";
+        errorElement.classList.remove('hidden');
+    }
+}
+
+        // Esta función debe existir en tu código. Si no la tienes, agrégala.
+function controlarMenuPorRol() {
+    const menuItemsAdmin = ['menu-dashboard', 'menu-productos', 'menu-compras', 'menu-usuarios'];
+    
+    if (usuarioActual.rol === 'vendedor') {
+        menuItemsAdmin.forEach(itemId => {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.add('hidden');
+            }
+        });
+    } else { // admin
+        menuItemsAdmin.forEach(itemId => {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.remove('hidden');
+            }
+        });
+    }
+}
         
             function logout() {
             currentLoggedInUser = null;
