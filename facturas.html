@@ -359,7 +359,24 @@
         
         <div id="gestionProductosSection" class="hidden bg-white rounded-lg shadow-md p-6">
             <h2 id="formProductoServicioTitle" class="text-2xl font-semibold mb-6 text-gray-800">Gestión de Productos y Servicios</h2>
-            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div>
+        <label for="filtroNombreProducto" class="block text-sm font-medium text-gray-700">Buscar por Nombre</label>
+        <input type="text" id="filtroNombreProducto" oninput="filtrarProductos()" placeholder="Ej: Memoria RAM" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+    </div>
+    <div>
+        <label for="filtroTipoProducto" class="block text-sm font-medium text-gray-700">Filtrar por Tipo</label>
+        <select id="filtroTipoProducto" onchange="filtrarProductos()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+            <option value="">Todos</option>
+            <option value="producto">Producto</option>
+            <option value="servicio">Servicio</option>
+        </select>
+    </div>
+    <div>
+        <label for="filtroVencimientoProducto" class="block text-sm font-medium text-gray-700">Vencimiento antes de</label>
+        <input type="date" id="filtroVencimientoProducto" onchange="filtrarProductos()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+    </div>
+</div>
             <form id="formProductoServicio" class="space-y-4 mb-6">
                 <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <div>
