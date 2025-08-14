@@ -977,6 +977,20 @@ let clienteEnEdicionId = null;
                 }
         }
 
+
+        async function eliminarCliente(cedula, nombre) {
+            if (confirm(`¿Estás seguro de que quieres eliminar a ${nombre} con cédula ${cedula}? Esta acción no se puede deshacer.`)) {
+                try {
+                    console.log("Intentando eliminar cliente con cédula:", cedula); // Mensaje de depuración
+                    await db.collection('clientes').doc(cedula).delete();
+                    mostrarMensaje(`✅ Cliente ${nombre} eliminado con éxito.`);
+                    cargarClientes(); // Recarga la lista para mostrar el cambio
+                } catch (error) {
+                    console.error("❌ Error al eliminar cliente:", error);
+                    mostrarMensaje('❌ Ocurrió un error al eliminar el cliente.', 'bg-red-500');
+                }
+            }
+        }
                 // Nueva función para guardar los cambios
         async function guardarCliente() {
             const cedula = document.getElementById('editCedula').value;
@@ -1078,22 +1092,53 @@ let clienteEnEdicionId = null;
             try {
                 const snapshot = await db.collection('productosYServicios').get();
                 todosLosProductosYServicios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderizarProductos(todosLosProductosYServicios);
+                filtrarProductos(); // Llama a la nueva función de filtrado
                 cargarOpcionesDeProductosEnCompras();
             } catch (error) {
                 console.error("Error al cargar productos:", error);
             }
         }
 
+        // Nueva función de filtrado
+        function filtrarProductos() {
+            const filtroNombre = document.getElementById('filtroNombreProducto').value.toLowerCase();
+            const filtroTipo = document.getElementById('filtroTipoProducto').value;
+            const filtroVencimiento = document.getElementById('filtroVencimientoProducto').value;
+        
+            let productosFiltrados = todosLosProductosYServicios.filter(producto => {
+                const coincideNombre = producto.nombre.toLowerCase().includes(filtroNombre);
+                const coincideTipo = !filtroTipo || producto.tipo === filtroTipo;
+        
+                const coincideVencimiento = !filtroVencimiento || (producto.fechaVencimiento && producto.fechaVencimiento <= filtroVencimiento);
+        
+                return coincideNombre && coincideTipo && coincideVencimiento;
+            });
+        
+            renderizarProductos(productosFiltrados);
+        }
+        
+        // La función renderizarProductos debe ser reemplazada
         function renderizarProductos(productos) {
             const tableBody = document.getElementById('listaProductosTableBody');
             tableBody.innerHTML = '';
+            const today = new Date();
+            
             productos.forEach(producto => {
                 const fechaVencimiento = producto.fechaVencimiento ? new Date(producto.fechaVencimiento).toLocaleDateString() : 'N/A';
                 const stock = producto.tipo === 'producto' ? producto.stock : 'N/A';
                 
+                let rowClass = '';
+                if (producto.fechaVencimiento) {
+                    const vencimiento = new Date(producto.fechaVencimiento);
+                    const diffTime = vencimiento.getTime() - today.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    if (diffDays <= 30 && diffDays >= 0) {
+                        rowClass = 'expiring-soon';
+                    }
+                }
+                
                 tableBody.innerHTML += `
-                    <tr class="hover:bg-gray-50">
+                    <tr class="hover:bg-gray-50 ${rowClass}">
                         <td class="px-3 py-2 border-b border-gray-200">${producto.nombre}</td>
                         <td class="px-3 py-2 border-b border-gray-200">${producto.tipo}</td>
                         <td class="px-3 py-2 border-b border-gray-200 text-right">$${producto.precio.toFixed(2)}</td>
@@ -1111,7 +1156,6 @@ let clienteEnEdicionId = null;
                 `;
             });
         }
-
         function toggleStockInput() {
             const tipo = document.getElementById('tipoProducto').value;
             const stockDiv = document.getElementById('stockInputDiv');
