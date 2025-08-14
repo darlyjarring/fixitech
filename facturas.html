@@ -87,10 +87,28 @@
 </head>
 <body class="bg-gray-100 flex min-h-screen">
 
-    <div class="sidebar bg-gray-800 text-white flex-shrink-0 fixed h-full p-4 flex flex-col">
+    <div id="loginSection" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+            <h2 class="text-3xl font-bold text-center text-teal-600 mb-6">Iniciar Sesión</h2>
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label for="username" class="block text-gray-700 font-medium mb-2">Nombre de Usuario:</label>
+                    <input type="text" id="username" name="username" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Ej: admin" required>
+                </div>
+                <button type="submit" class="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 transition duration-300">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="sidebar" class="sidebar bg-gray-800 text-white flex-shrink-0 fixed h-full p-4 flex flex-col hidden">
         <h1 class="text-2xl font-bold mb-6 text-center text-teal-400">Sistema de Venta</h1>
         <nav class="flex-grow">
             <ul>
+                <li id="menu-dashboard" class="mb-2 hidden">
+                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('dashboardSection')">
+                        <span class="mr-2">📊</span> Dashboard
+                    </a>
+                </li>
                 <li class="mb-2">
                     <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 active" onclick="mostrarSeccion('nuevaVentaSection')">
                         <span class="mr-2">💰</span> Nueva Venta
@@ -106,24 +124,57 @@
                         <span class="mr-2">🧑‍🤝‍🧑</span> Gestión de Clientes
                     </a>
                 </li>
-                <li class="mb-2">
+                <li id="menu-productos" class="mb-2 hidden">
                     <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('gestionProductosSection')">
                         <span class="mr-2">📦</span> Productos y Servicios
                     </a>
                 </li>
-                <li class="mb-2">
+                <li id="menu-compras" class="mb-2 hidden">
                     <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('gestionComprasSection')">
                         <span class="mr-2">🛒</span> Gestión de Compras
                     </a>
                 </li>
             </ul>
         </nav>
-        <div class="mt-auto text-center text-gray-500 text-sm">
-            © 2024 Mi Empresa
+        <div class="mt-auto text-center text-gray-400 text-sm">
+            <p>Bienvenido, <span id="userNameDisplay" class="font-bold"></span></p>
+            <p>Rol: <span id="userRoleDisplay" class="font-bold"></span></p>
+            <button class="mt-2 text-red-400 hover:text-red-300" onclick="logout()">Cerrar Sesión</button>
         </div>
     </div>
 
-    <div class="main-content flex-grow p-8">
+    <div id="main-content" class="main-content flex-grow p-8 hidden">
+        
+        <div id="dashboardSection" class="hidden bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-3xl font-semibold mb-6 text-gray-800">Dashboard de Gerencia 📊</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-blue-100 p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-bold text-blue-800 mb-4">Productos con Mayor Stock 📦</h3>
+                    <ul id="topStockProductsList" class="space-y-2 text-gray-700">
+                        <li>Cargando...</li>
+                    </ul>
+                </div>
+                <div class="bg-yellow-100 p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-bold text-yellow-800 mb-4">Productos por Vencer ⏳</h3>
+                    <ul id="expiringProductsList" class="space-y-2 text-gray-700">
+                        <li>Cargando...</li>
+                    </ul>
+                </div>
+                <div class="bg-green-100 p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-bold text-green-800 mb-4">Productos Más Vendidos 📈</h3>
+                    <ul id="topSellingProductsList" class="space-y-2 text-gray-700">
+                        <li>Cargando...</li>
+                    </ul>
+                </div>
+                <div class="bg-purple-100 p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-bold text-purple-800 mb-4">Vendedores con Más Ventas 🏆</h3>
+                    <ul id="topSellingUsersList" class="space-y-2 text-gray-700">
+                        <li>Cargando...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
 
         <div id="nuevaVentaSection" class="bg-white rounded-lg shadow-md p-6">
             <h2 id="formFacturaTitle" class="text-2xl font-semibold mb-6 text-gray-800">Datos del Cliente y Nueva Venta</h2>
@@ -196,7 +247,7 @@
                 </div>
             </div>
             
-            <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                     <label for="fechaIngreso" class="block text-sm font-medium text-gray-700">Fecha de Ingreso</label>
                     <input type="date" id="fechaIngreso" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
@@ -213,6 +264,10 @@
                         <option value="Entregado">Entregado</option>
                     </select>
                 </div>
+                <div>
+                    <label for="vendedor" class="block text-sm font-medium text-gray-700">Vendedor</label>
+                    <input type="text" id="vendedor" class="mt-1 p-2 block w-full border border-gray-300 rounded-md bg-gray-200" readonly>
+                </div>
             </div>
             
             <div class="flex justify-end space-x-4 mt-8">
@@ -228,14 +283,38 @@
         <div id="gestionFacturasSection" class="hidden bg-white rounded-lg shadow-md p-6">
             <h2 class="text-2xl font-semibold mb-6 text-gray-800">Gestión de Ventas</h2>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div>
-                    <label for="filtroCliente" class="block text-sm font-medium text-gray-700">Buscar por Cliente (Nombre/Cédula)</label>
-                    <input type="text" id="filtroCliente" oninput="filtrarFacturas()" placeholder="Ej: Juan Pérez" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <label for="filtroVentasAnio" class="block text-sm font-medium text-gray-700">Año</label>
+                    <select id="filtroVentasAnio" onchange="filtrarFacturas()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+                        <option value="">Todos</option>
+                    </select>
                 </div>
                 <div>
-                    <label for="filtroNumeroFactura" class="block text-sm font-medium text-gray-700">Buscar por N° de Factura</label>
-                    <input type="text" id="filtroNumeroFactura" oninput="filtrarFacturas()" placeholder="Ej: 00123424" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <label for="filtroVentasMes" class="block text-sm font-medium text-gray-700">Mes</label>
+                    <select id="filtroVentasMes" onchange="filtrarFacturas()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+                        <option value="">Todos</option>
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filtroVentasHoraInicial" class="block text-sm font-medium text-gray-700">Hora Inicial</label>
+                    <input type="time" id="filtroVentasHoraInicial" onchange="filtrarFacturas()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label for="filtroVentasHoraFinal" class="block text-sm font-medium text-gray-700">Hora Final</label>
+                    <input type="time" id="filtroVentasHoraFinal" onchange="filtrarFacturas()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
                 </div>
             </div>
 
@@ -246,6 +325,7 @@
                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Factura</th>
                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
                             <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendedor</th>
                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
                             <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
@@ -288,7 +368,7 @@
             <h2 id="formProductoServicioTitle" class="text-2xl font-semibold mb-6 text-gray-800">Gestión de Productos y Servicios</h2>
             
             <form id="formProductoServicio" class="space-y-4 mb-6">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <div>
                         <label for="nombreProducto" class="block text-sm font-medium text-gray-700">Nombre</label>
                         <input type="text" id="nombreProducto" placeholder="Nombre del Producto/Servicio" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
@@ -308,6 +388,10 @@
                         <label for="stockProducto" class="block text-sm font-medium text-gray-700">Stock Inicial</label>
                         <input type="number" id="stockProducto" value="0" min="0" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
                     </div>
+                    <div>
+                        <label for="fechaVencimientoProducto" class="block text-sm font-medium text-gray-700">Fecha de Vencimiento</label>
+                        <input type="date" id="fechaVencimientoProducto" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
                 </div>
                 <div class="flex justify-end">
                     <button type="button" id="guardarProductoBtn" onclick="guardarProductoServicio()" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600 transition duration-200">
@@ -324,6 +408,7 @@
                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
                             <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
                             <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vencimiento</th>
                             <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
@@ -364,7 +449,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="usuarioCompra" class="block text-sm font-medium text-gray-700">Registrado por</label>
-                        <input type="text" id="usuarioCompra" placeholder="Tu nombre" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                        <input type="text" id="usuarioCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md bg-gray-200" readonly>
                     </div>
                     <div class="flex items-end justify-end">
                         <button type="button" onclick="guardarCompra()" class="bg-green-500 text-white font-bold py-2 px-4 rounded-md hover:bg-green-600 transition duration-200">
@@ -376,16 +461,16 @@
             
             <h3 class="text-xl font-semibold mb-4">Historial de Compras</h3>
             
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
                 <div>
-                    <label for="filtroAno" class="block text-sm font-medium text-gray-700">Filtrar por Año</label>
-                    <select id="filtroAno" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <label for="filtroComprasAnio" class="block text-sm font-medium text-gray-700">Año</label>
+                    <select id="filtroComprasAnio" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
                         <option value="">Todos</option>
                     </select>
                 </div>
                 <div>
-                    <label for="filtroMes" class="block text-sm font-medium text-gray-700">Filtrar por Mes</label>
-                    <select id="filtroMes" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <label for="filtroComprasMes" class="block text-sm font-medium text-gray-700">Mes</label>
+                    <select id="filtroComprasMes" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
                         <option value="">Todos</option>
                         <option value="1">Enero</option>
                         <option value="2">Febrero</option>
@@ -402,10 +487,16 @@
                     </select>
                 </div>
                 <div>
-                    <label for="filtroDia" class="block text-sm font-medium text-gray-700">Filtrar por Día</label>
-                    <select id="filtroDia" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
-                        <option value="">Todos</option>
-                        </select>
+                    <label for="filtroComprasDia" class="block text-sm font-medium text-gray-700">Día</label>
+                    <input type="number" id="filtroComprasDia" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label for="filtroComprasHoraInicial" class="block text-sm font-medium text-gray-700">Hora Inicial</label>
+                    <input type="time" id="filtroComprasHoraInicial" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label for="filtroComprasHoraFinal" class="block text-sm font-medium text-gray-700">Hora Final</label>
+                    <input type="time" id="filtroComprasHoraFinal" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
                 </div>
             </div>
 
@@ -448,6 +539,52 @@
 
         let todasLasCompras = []; 
         
+        let currentLoggedInUser = null; 
+        const mockUsers = [
+            { username: 'admin', rol: 'admin', nombre: 'Administrador Principal' },
+            { username: 'vendedor1', rol: 'vendedor', nombre: 'Juan Pérez' },
+            { username: 'vendedor2', rol: 'vendedor', nombre: 'María López' },
+        ];
+        
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const user = mockUsers.find(u => u.username === username);
+
+            if (user) {
+                currentLoggedInUser = user;
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('sidebar').classList.remove('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+                document.getElementById('userNameDisplay').textContent = user.nombre;
+                document.getElementById('userRoleDisplay').textContent = user.rol.toUpperCase();
+
+                if (user.rol === 'admin') {
+                    document.getElementById('menu-dashboard').classList.remove('hidden');
+                    document.getElementById('menu-productos').classList.remove('hidden');
+                    document.getElementById('menu-compras').classList.remove('hidden');
+                    mostrarSeccion('dashboardSection');
+                } else {
+                    document.getElementById('menu-dashboard').classList.add('hidden');
+                    document.getElementById('menu-productos').classList.add('hidden');
+                    document.getElementById('menu-compras').classList.add('hidden');
+                    mostrarSeccion('nuevaVentaSection');
+                }
+                document.getElementById('vendedor').value = user.nombre;
+            } else {
+                mostrarMensaje('Usuario no encontrado. Intente con "admin" o "vendedor1".', 'bg-red-500');
+            }
+        });
+        
+        function logout() {
+            currentLoggedInUser = null;
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('sidebar').classList.add('hidden');
+            document.getElementById('main-content').classList.add('hidden');
+            document.getElementById('username').value = '';
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+        }
+
         function mostrarMensaje(mensaje, colorClass = 'bg-blue-500') {
             const container = document.createElement('div');
             container.className = `fixed bottom-4 left-1/2 -translate-x-1/2 p-4 rounded-md shadow-lg text-white ${colorClass} transition-all duration-300 z-50`;
@@ -482,7 +619,7 @@
             document.getElementById('cantidadCompra').value = '1';
             document.getElementById('costoCompra').value = '';
             document.getElementById('facturaCompra').value = '';
-            document.getElementById('usuarioCompra').value = '';
+            document.getElementById('usuarioCompra').value = currentLoggedInUser.nombre;
         }
 
         function limpiarFormularioProductoServicio() {
@@ -490,6 +627,7 @@
             document.getElementById('tipoProducto').value = 'producto';
             document.getElementById('precioProducto').value = '';
             document.getElementById('stockProducto').value = '0';
+            document.getElementById('fechaVencimientoProducto').value = '';
             document.getElementById('stockInputDiv').classList.remove('hidden');
             productoServicioEnEdicionId = null;
             document.getElementById('formProductoServicioTitle').textContent = 'Gestión de Productos y Servicios';
@@ -497,22 +635,20 @@
         }
 
 
-        // Función para mostrar/ocultar secciones
         async function mostrarSeccion(sectionId) {
             document.querySelectorAll('div[id$="Section"]').forEach(section => {
                 section.classList.add('hidden');
             });
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            document.querySelector(`a[onclick="mostrarSeccion('${sectionId}')"]`).classList.add('active');
 
             document.getElementById(sectionId).classList.remove('hidden');
 
-            // Lógica específica al mostrar cada sección
             if (sectionId === 'nuevaVentaSection') {
                 if (facturaEnEdicionId === null) { 
                     limpiarFormulario();
+                    document.getElementById('vendedor').value = currentLoggedInUser.nombre;
                 }
-                document.getElementById('formFacturaTitle').textContent = 'Datos del Cliente y Nueva Venta';
-                document.getElementById('guardarFacturaBtn').textContent = '💾 Guardar Venta';
-                // Asegurar que los productos están cargados para el autocompletado
                 if (todosLosProductosYServicios.length === 0) {
                      await cargarProductosServicios();
                 }
@@ -529,6 +665,8 @@
                 limpiarFormularioCompra();
                 cargarProductosParaCompras(); 
                 cargarCompras(); 
+            } else if (sectionId === 'dashboardSection') {
+                cargarDashboard();
             }
         }
 
@@ -538,9 +676,8 @@
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('fechaIngreso').value = today;
             document.getElementById('fechaEntrega').value = today;
-            document.getElementById('fechaCompra').value = today; // Nueva fecha de compra
-            actualizarTabla(); // Para el formulario de nueva factura (mostrar "No hay ítems...")
-            mostrarSeccion('nuevaVentaSection'); // Muestra la sección de Nueva Venta por defecto
+            document.getElementById('fechaCompra').value = today; 
+            actualizarTabla(); 
         });
         
         // Autocompletado de items
@@ -648,45 +785,10 @@
             }
         }
 
-        // Función auxiliar para formatear el número de factura
         function formatInvoiceNumber(number) {
             const year = new Date().getFullYear();
             const paddedNumber = String(number).padStart(6, '0');
             return `${paddedNumber}${year.toString().substring(2)}`;
-        }
-
-        // Nueva función para actualizar el stock
-        async function actualizarStock(items, tipoOperacion = 'restar') {
-            const batch = db.batch();
-            try {
-                for (const item of items) {
-                    // La descripción en el formulario puede no ser un producto,
-                    // por lo que necesitamos buscar su ID en nuestra lista de productos
-                    const producto = todosLosProductosYServicios.find(p => p.nombre === item.descripcion && p.tipo === 'producto');
-
-                    if (producto) {
-                        const productoRef = db.collection('productosYServicios').doc(producto.id);
-                        const productoDoc = await productoRef.get();
-                        const stockActual = productoDoc.data().stock || 0;
-                        let nuevoStock = stockActual;
-
-                        if (tipoOperacion === 'restar') {
-                            nuevoStock = stockActual - item.cantidad;
-                        } else if (tipoOperacion === 'sumar') {
-                            nuevoStock = stockActual + item.cantidad;
-                        }
-
-                        if (nuevoStock < 0) {
-                             throw new Error(`No hay suficiente stock para el producto "${item.descripcion}". Stock actual: ${stockActual}.`);
-                        }
-                        
-                        batch.update(productoRef, { stock: nuevoStock });
-                    }
-                }
-                await batch.commit();
-            } catch (error) {
-                throw error;
-            }
         }
 
         async function guardarFactura() {
@@ -697,10 +799,11 @@
             const fechaIngreso = document.getElementById('fechaIngreso').value;
             const fechaEntrega = document.getElementById('fechaEntrega').value;
             const estado = document.getElementById('estado').value;
+            const vendedor = document.getElementById('vendedor').value.trim();
             const total = items.reduce((sum, item) => sum + item.subtotal, 0);
 
-            if (!clienteCedula && !clienteNombre) {
-                mostrarMensaje('Por favor, ingresa al menos la Cédula o el Nombre del cliente.', 'bg-red-500');
+            if (!vendedor || (!clienteCedula && !clienteNombre)) {
+                mostrarMensaje('Por favor, ingresa el Vendedor y al menos la Cédula o el Nombre del cliente.', 'bg-red-500');
                 return;
             }
             if (!telefono || !direccion || !fechaIngreso || !fechaEntrega) {
@@ -727,14 +830,11 @@
             
             try {
                 if (estado === 'Facturado') {
-                    // Lógica para facturar, se ejecuta en una transacción
                     await db.runTransaction(async (transaction) => {
-                        // 1. Lecturas
                         const counterRef = db.collection('contadores').doc('facturas');
                         const counterDoc = await transaction.get(counterRef);
                         const pedidoDoc = await transaction.get(docRef);
 
-                        // Si es un pedido que se está facturando, verificamos el stock
                         if (pedidoDoc.exists) {
                             const stockPromises = items.map(item => {
                                 const producto = todosLosProductosYServicios.find(p => p.nombre === item.descripcion && p.tipo === 'producto');
@@ -759,7 +859,6 @@
                             });
                         }
                         
-                        // 2. Escrituras después de todas las lecturas
                         let currentNumber = counterDoc.exists ? (counterDoc.data().ultimoNumero || 0) : 0;
                         const newNumber = currentNumber + 1;
                         const invoiceNumber = formatInvoiceNumber(newNumber);
@@ -777,15 +876,13 @@
                             estado,
                             items: items.map(item => ({ descripcion: item.descripcion, cantidad: item.cantidad, precio: item.precio, subtotal: item.subtotal })),
                             total: parseFloat(total.toFixed(2)),
-                            timestamp: facturaEnEdicionId ? todaLaInformacionFacturaEnEdicion.timestamp : firebase.firestore.FieldValue.serverTimestamp()
+                            facturadoPor: vendedor,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
                         };
                         transaction.set(docRef, data);
                     });
-
                     message = facturaEnEdicionId ? `✅ Pedido facturado y stock actualizado con éxito.` : `✅ Factura guardada y stock actualizado con éxito.`;
-
                 } else {
-                    // Lógica para guardar un pedido (sin transacción)
                     const data = {
                         numeroFactura: null,
                         clienteCedula: clienteCedula || null,
@@ -797,7 +894,8 @@
                         estado,
                         items: items.map(item => ({ descripcion: item.descripcion, cantidad: item.cantidad, precio: item.precio, subtotal: item.subtotal })),
                         total: parseFloat(total.toFixed(2)),
-                        timestamp: facturaEnEdicionId ? todaLaInformacionFacturaEnEdicion.timestamp : firebase.firestore.FieldValue.serverTimestamp()
+                        facturadoPor: vendedor,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     };
                     await docRef.set(data);
                     message = facturaEnEdicionId ? `✅ Pedido actualizado con éxito.` : `✅ Pedido de venta guardado con éxito.`;
@@ -813,7 +911,6 @@
             }
         }
         
-        // Nueva función para cargar la factura en el formulario para edición/facturación
         async function cargarFacturaParaEdicion(facturaId) {
             const factura = todasLasFacturas.find(f => f.id === facturaId);
             if (!factura) {
@@ -821,7 +918,6 @@
                 return;
             }
 
-            // Aquí se añade la restricción para no editar facturas
             if (factura.estado === 'Facturado') {
                 mostrarMensaje('No se pueden editar las ventas que ya han sido facturadas.', 'bg-red-500');
                 return;
@@ -837,6 +933,7 @@
             document.getElementById('fechaIngreso').value = factura.fechaIngreso;
             document.getElementById('fechaEntrega').value = factura.fechaEntrega;
             document.getElementById('estado').value = factura.estado;
+            document.getElementById('vendedor').value = factura.facturadoPor;
 
             items = factura.items;
             actualizarTabla();
@@ -849,12 +946,12 @@
 
         async function cargarFacturas() {
             const tableBody = document.getElementById('listaFacturasTableBody');
-            tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Cargando ventas...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">Cargando ventas...</td></tr>';
             todasLasFacturas = [];
             try {
                 const querySnapshot = await db.collection('facturas').orderBy('timestamp', 'desc').get();
                 if (querySnapshot.empty) {
-                    tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">No hay ventas registradas.</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">No hay ventas registradas.</td></tr>';
                     return;
                 }
                 
@@ -863,43 +960,57 @@
                     todasLasFacturas.push({ id: doc.id, ...data });
                 });
                 
-                filtrarFacturas(); // Mostrar todas al inicio y aplicar filtros si hay
+                const anosUnicos = [...new Set(todasLasFacturas.map(f => new Date(f.timestamp.toDate()).getFullYear().toString()))].sort().reverse();
+                const filtroVentasAnio = document.getElementById('filtroVentasAnio');
+                filtroVentasAnio.innerHTML = '<option value="">Todos</option>';
+                anosUnicos.forEach(ano => {
+                    const option = document.createElement('option');
+                    option.value = ano;
+                    option.textContent = ano;
+                    filtroVentasAnio.appendChild(option);
+                });
+
+                filtrarFacturas();
             } catch (error) {
                 console.error("Error al cargar las facturas: ", error);
-                tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-red-500">Error al cargar las ventas.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-red-500">Error al cargar las ventas.</td></tr>';
             }
         }
 
         function filtrarFacturas() {
-            const filtroCliente = document.getElementById('filtroCliente').value.toLowerCase();
-            const filtroNumeroFactura = document.getElementById('filtroNumeroFactura').value.toLowerCase();
             const tableBody = document.getElementById('listaFacturasTableBody');
             tableBody.innerHTML = '';
+            
+            const filtroAnio = document.getElementById('filtroVentasAnio').value;
+            const filtroMes = document.getElementById('filtroVentasMes').value;
+            const filtroHoraInicial = document.getElementById('filtroVentasHoraInicial').value;
+            const filtroHoraFinal = document.getElementById('filtroVentasHoraFinal').value;
 
             const facturasFiltradas = todasLasFacturas.filter(factura => {
-                const clienteMatch = (factura.clienteNombre && factura.clienteNombre.toLowerCase().includes(filtroCliente)) || 
-                                     (factura.clienteCedula && factura.clienteCedula.toLowerCase().includes(filtroCliente));
-                const numeroFacturaMatch = (factura.numeroFactura && factura.numeroFactura.toLowerCase().includes(filtroNumeroFactura)) ||
-                                          (filtroNumeroFactura === '' && !factura.numeroFactura); // Muestra pedidos si el filtro está vacío
-                return clienteMatch && numeroFacturaMatch;
+                const timestamp = factura.timestamp ? new Date(factura.timestamp.toDate()) : null;
+                if (!timestamp) return false;
+
+                const facturaAnio = timestamp.getFullYear().toString();
+                const facturaMes = (timestamp.getMonth() + 1).toString();
+                const facturaHora = timestamp.toTimeString().split(' ')[0];
+
+                const anioMatch = !filtroAnio || facturaAnio === filtroAnio;
+                const mesMatch = !filtroMes || facturaMes === filtroMes;
+                const horaInicialMatch = !filtroHoraInicial || facturaHora >= filtroHoraInicial;
+                const horaFinalMatch = !filtroHoraFinal || facturaHora <= filtroHoraFinal;
+
+                return anioMatch && mesMatch && horaInicialMatch && horaFinalMatch;
             });
 
             if (facturasFiltradas.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">No se encontraron ventas con los filtros aplicados.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">No se encontraron ventas con los filtros aplicados.</td></tr>';
                 return;
             }
 
             facturasFiltradas.forEach(factura => {
-                const fecha = factura.fechaIngreso ? new Date(factura.fechaIngreso + 'T00:00:00').toLocaleDateString() : 'N/A';
+                const fecha = factura.timestamp ? factura.timestamp.toDate().toLocaleString() : 'N/A';
                 const numeroFacturaDisplay = factura.numeroFactura || `<span class="bg-yellow-100 text-yellow-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded">Pendiente</span>`;
-                const accionesHTML = factura.numeroFactura 
-                    ? `<button onclick="verDetalleFactura('${factura.id}')" class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out mr-2" title="Ver Detalle">👁️</button>
-                       <button onclick="verDetalleFactura('${factura.id}')" class="text-green-600 hover:text-green-800 transition duration-150 ease-in-out mr-2" title="Editar">✏️</button>`
-                    : `<button onclick="verDetalleFactura('${factura.id}')" class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out mr-2" title="Ver Detalle">👁️</button>
-                       <button onclick="cargarFacturaParaEdicion('${factura.id}')" class="bg-green-500 text-white hover:bg-green-600 text-xs font-medium py-1 px-2 rounded transition duration-150 ease-in-out" title="Facturar este Pedido">Facturar</button>`;
-                
-                // Actualizado para distinguir entre ver detalle y editar
-                const accionesHTMLActualizado = factura.estado === 'Facturado'
+                const accionesHTML = factura.estado === 'Facturado'
                     ? `<button onclick="verDetalleFactura('${factura.id}')" class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out mr-2" title="Ver Detalle">👁️</button>`
                     : `<button onclick="verDetalleFactura('${factura.id}')" class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out mr-2" title="Ver Detalle">👁️</button>
                        <button onclick="cargarFacturaParaEdicion('${factura.id}')" class="text-green-600 hover:text-green-800 transition duration-150 ease-in-out mr-2" title="Editar">✏️</button>`;
@@ -909,6 +1020,7 @@
                         <td class="px-3 py-2 border-b border-gray-200">${numeroFacturaDisplay}</td>
                         <td class="px-3 py-2 border-b border-gray-200">${factura.clienteNombre || factura.clienteCedula || 'N/A'}</td>
                         <td class="px-3 py-2 border-b border-gray-200 text-right">$${factura.total.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${factura.facturadoPor || 'N/A'}</td>
                         <td class="px-3 py-2 border-b border-gray-200">
                             <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                                 factura.estado === 'Facturado' ? 'bg-green-100 text-green-800' :
@@ -921,7 +1033,7 @@
                         </td>
                         <td class="px-3 py-2 border-b border-gray-200">${fecha}</td>
                         <td class="px-3 py-2 border-b border-gray-200 text-center">
-                            ${accionesHTMLActualizado}
+                            ${accionesHTML}
                         </td>
                     </tr>
                 `;
@@ -947,8 +1059,9 @@
             doc.text(`Cédula: ${data.clienteCedula || 'N/A'}`, 15, y + 5);
             doc.text(`Fecha de Ingreso: ${data.fechaIngreso}`, 100, y);
             doc.text(`Fecha de Entrega: ${data.fechaEntrega}`, 100, y + 5);
+            doc.text(`Vendedor: ${data.facturadoPor || 'N/A'}`, 15, y + 10);
             
-            y += 15;
+            y += 20;
             doc.autoTable({
                 startY: y,
                 head: [['Descripción', 'Cantidad', 'Precio Unitario', 'Subtotal']],
@@ -996,7 +1109,6 @@
             }
         }
         
-        // Función de búsqueda de cliente (corregida)
         async function buscarClientePorCedula() {
             const cedulaInput = document.getElementById('cedulaCliente').value.trim();
             const nombreInput = document.getElementById('nombreCliente');
@@ -1081,7 +1193,6 @@
 
         async function editarCliente(clienteId) {
             mostrarMensaje('Esta función está pendiente de implementar.', 'bg-gray-500');
-            // Aquí puedes implementar la lógica para cargar el cliente en un formulario de edición
         }
 
         function toggleStockInput() {
@@ -1100,6 +1211,7 @@
             const tipo = document.getElementById('tipoProducto').value;
             const precio = parseFloat(document.getElementById('precioProducto').value);
             const stock = tipo === 'producto' ? parseInt(document.getElementById('stockProducto').value) : 0;
+            const fechaVencimiento = document.getElementById('fechaVencimientoProducto').value || null;
 
             if (!nombre || isNaN(precio) || precio < 0 || (tipo === 'producto' && (isNaN(stock) || stock < 0))) {
                 mostrarMensaje('Por favor, completa todos los campos correctamente.', 'bg-red-500');
@@ -1112,6 +1224,7 @@
                     tipo,
                     precio,
                     stock: stock,
+                    fechaVencimiento,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
@@ -1133,12 +1246,12 @@
 
         async function cargarProductosServicios() {
             const tableBody = document.getElementById('listaProductosTableBody');
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">Cargando productos y servicios...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Cargando productos y servicios...</td></tr>';
             todosLosProductosYServicios = [];
             try {
                 const querySnapshot = await db.collection('productosYServicios').get();
                 if (querySnapshot.empty) {
-                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">No hay productos ni servicios registrados.</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">No hay productos ni servicios registrados.</td></tr>';
                     return;
                 }
                 
@@ -1149,12 +1262,14 @@
                 tableBody.innerHTML = '';
                 todosLosProductosYServicios.forEach(item => {
                     const stockDisplay = item.tipo === 'producto' ? item.stock : 'N/A';
+                    const vencimientoDisplay = item.fechaVencimiento || 'N/A';
                     tableBody.innerHTML += `
                         <tr class="hover:bg-gray-50">
                             <td class="px-3 py-2 border-b border-gray-200">${item.nombre}</td>
                             <td class="px-3 py-2 border-b border-gray-200">${item.tipo}</td>
                             <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.precio.toFixed(2)}</td>
                             <td class="px-3 py-2 border-b border-gray-200 text-center">${stockDisplay}</td>
+                            <td class="px-3 py-2 border-b border-gray-200">${vencimientoDisplay}</td>
                             <td class="px-3 py-2 border-b border-gray-200 text-center">
                                 <button onclick="editarProductoServicio('${item.id}')" class="text-green-600 hover:text-green-800 transition duration-150 ease-in-out" title="Editar">✏️</button>
                             </td>
@@ -1163,7 +1278,7 @@
                 });
             } catch (error) {
                 console.error("Error al cargar los productos y servicios: ", error);
-                tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-red-500">Error al cargar los datos.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-red-500">Error al cargar los datos.</td></tr>';
             }
         }
 
@@ -1180,129 +1295,13 @@
             document.getElementById('tipoProducto').value = item.tipo;
             document.getElementById('precioProducto').value = item.precio;
             document.getElementById('stockProducto').value = item.stock;
+            document.getElementById('fechaVencimientoProducto').value = item.fechaVencimiento || '';
             toggleStockInput();
 
             document.getElementById('formProductoServicioTitle').textContent = `Editando: ${item.nombre}`;
             document.getElementById('guardarProductoBtn').textContent = '💾 Actualizar';
 
             mostrarSeccion('gestionProductosSection');
-        }
-
-        function generarPDF(data, facturaNum) { 
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            let y = 15;
-            const margin = 15;
-            const lineHeight = 7;
-            doc.setFontSize(18);
-            doc.setTextColor(52, 152, 219);
-            const title = data.numeroFactura ? `Factura N° ${data.numeroFactura}` : `Pedido`;
-            doc.text(title, margin, y);
-            y += lineHeight * 2;
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0); 
-            doc.text(`Cliente: ${data.clienteNombre || 'N/A'}`, margin, y);
-            doc.text(`Cédula: ${data.clienteCedula || 'N/A'}`, margin + 80, y);
-            y += lineHeight;
-            doc.text(`Teléfono: ${data.telefono || 'N/A'}`, margin, y);
-            doc.text(`Dirección: ${data.direccion || 'N/A'}`, margin + 80, y);
-            y += lineHeight * 2;
-
-            doc.autoTable({
-                startY: y,
-                head: [['Descripción', 'Cantidad', 'Precio Unitario', 'Subtotal']],
-                body: data.items.map(item => [item.descripcion, item.cantidad, `$${item.precio.toFixed(2)}`, `$${item.subtotal.toFixed(2)}`]),
-                foot: [['', '', 'Total:', `$${data.total.toFixed(2)}`]],
-                theme: 'striped',
-                margin: { left: margin, right: margin }
-            });
-
-            doc.save(`factura_${facturaNum || data.id}.pdf`);
-        }
-
-        async function mostrarFactura() {
-            const clienteCedula = document.getElementById('cedulaCliente').value.trim();
-            const clienteNombre = document.getElementById('nombreCliente').value.trim();
-            const telefono = document.getElementById('telefono').value.trim();
-            const direccion = document.getElementById('direccion').value.trim();
-            const fechaIngreso = document.getElementById('fechaIngreso').value;
-            const fechaEntrega = document.getElementById('fechaEntrega').value;
-            const estado = document.getElementById('estado').value;
-            const total = items.reduce((sum, item) => sum + item.subtotal, 0);
-
-            if (!clienteCedula && !clienteNombre) {
-                mostrarMensaje('Por favor, ingresa al menos la Cédula o el Nombre del cliente.', 'bg-red-500');
-                return;
-            }
-            if (!telefono || !direccion || !fechaIngreso || !fechaEntrega) {
-                mostrarMensaje('Por favor, completa el Teléfono, Dirección y las Fechas.', 'bg-red-500');
-                return;
-            }
-            if (items.length === 0) {
-                mostrarMensaje('La venta debe contener al menos un ítem.', 'bg-red-500');
-                return;
-            }
-            
-            const data = {
-                clienteCedula, clienteNombre, telefono, direccion, fechaIngreso, fechaEntrega, estado, items, total
-            };
-
-            const popup = window.open('', '_blank', 'width=800,height=600');
-            popup.document.write(`
-                <html>
-                <head>
-                    <title>Previsualización</title>
-                    <style>${document.querySelector('style').innerHTML}</style>
-                </head>
-                <body>
-                    <div class="popup-invoice-container">
-                        <h2>Previsualización de ${data.estado === 'Facturado' ? 'Factura' : 'Pedido'}</h2>
-                        <div class="info-section">
-                            <div>
-                                <p><strong>Cliente:</strong> ${data.clienteNombre || 'N/A'}</p>
-                                <p><strong>Cédula:</strong> ${data.clienteCedula || 'N/A'}</p>
-                                <p><strong>Teléfono:</strong> ${data.telefono || 'N/A'}</p>
-                            </div>
-                            <div>
-                                <p><strong>Estado:</strong> ${data.estado}</p>
-                                <p><strong>Fecha Ingreso:</strong> ${data.fechaIngreso}</p>
-                                <p><strong>Fecha Entrega:</strong> ${data.fechaEntrega}</p>
-                            </div>
-                        </div>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Descripción</th>
-                                    <th class="text-center">Cantidad</th>
-                                    <th class="text-right">Precio Unitario</th>
-                                    <th class="text-right">Subtotal</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${data.items.map(item => `
-                                    <tr>
-                                        <td>${item.descripcion}</td>
-                                        <td class="text-center">${item.cantidad}</td>
-                                        <td class="text-right">$${item.precio.toFixed(2)}</td>
-                                        <td class="text-right">$${item.subtotal.toFixed(2)}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                            <tfoot>
-                                <tr class="total-row">
-                                    <td colspan="3" class="text-right">Total:</td>
-                                    <td class="text-right">$${data.total.toFixed(2)}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                        <div class="btn-actions">
-                            <button class="btn-print" onclick="window.print()">Imprimir</button>
-                            <button class="btn-close" onclick="window.close()">Cerrar</button>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `);
         }
         
         async function guardarCompra() {
@@ -1320,19 +1319,15 @@
 
             try {
                 const comprasRef = db.collection('compras');
-                // 1. Verificar si el número de factura ya existe
                 const facturaExistente = await comprasRef.where('numeroFactura', '==', numeroFactura).limit(1).get();
                 if (!facturaExistente.empty) {
                     mostrarMensaje(`El número de factura "${numeroFactura}" ya ha sido registrado.`, 'bg-red-500');
                     return;
                 }
 
-                // Obtener una referencia para el nuevo documento *antes* de la transacción
                 const newCompraRef = comprasRef.doc(); 
 
-                // Usamos una transacción para garantizar que la actualización del stock sea atómica
                 await db.runTransaction(async (transaction) => {
-                    // 2. Obtener el producto para actualizar el stock
                     const productoRef = db.collection('productosYServicios').doc(productoId);
                     const productoDoc = await transaction.get(productoRef);
                     if (!productoDoc.exists) {
@@ -1341,10 +1336,8 @@
                     const stockActual = productoDoc.data().stock || 0;
                     const nuevoStock = stockActual + cantidad;
                     
-                    // 3. Actualizar el stock del producto
                     transaction.update(productoRef, { stock: nuevoStock });
                     
-                    // 4. Guardar la nueva compra usando la referencia creada
                     const nombreProducto = productoDoc.data().nombre;
                     const compraData = {
                         fecha: fechaCompra,
@@ -1407,6 +1400,16 @@
                     todasLasCompras.push({ id: doc.id, ...doc.data() });
                 });
                 
+                const anosUnicos = [...new Set(todasLasCompras.map(c => new Date(c.timestamp.toDate()).getFullYear().toString()))].sort().reverse();
+                const filtroComprasAnio = document.getElementById('filtroComprasAnio');
+                filtroComprasAnio.innerHTML = '<option value="">Todos</option>';
+                anosUnicos.forEach(ano => {
+                    const option = document.createElement('option');
+                    option.value = ano;
+                    option.textContent = ano;
+                    filtroComprasAnio.appendChild(option);
+                });
+                
                 filtrarCompras();
             } catch (error) {
                 console.error("Error al cargar las compras: ", error);
@@ -1415,9 +1418,6 @@
         }
 
         function filtrarCompras() {
-            const filtroAno = document.getElementById('filtroAno').value;
-            const filtroMes = document.getElementById('filtroMes').value;
-            const filtroDia = document.getElementById('filtroDia').value;
             const tableBody = document.getElementById('listaComprasTableBody');
             const summaryFooter = document.getElementById('comprasSummaryFooter');
             
@@ -1426,18 +1426,30 @@
             
             let totalGeneral = 0;
             let totalUnidades = 0;
+            
+            const filtroAnio = document.getElementById('filtroComprasAnio').value;
+            const filtroMes = document.getElementById('filtroComprasMes').value;
+            const filtroDia = document.getElementById('filtroComprasDia').value;
+            const filtroHoraInicial = document.getElementById('filtroComprasHoraInicial').value;
+            const filtroHoraFinal = document.getElementById('filtroComprasHoraFinal').value;
+
 
             const comprasFiltradas = todasLasCompras.filter(compra => {
-                const fecha = new Date(compra.fecha);
-                const ano = fecha.getFullYear().toString();
-                const mes = (fecha.getMonth() + 1).toString();
-                const dia = fecha.getDate().toString();
+                const timestamp = compra.timestamp ? new Date(compra.timestamp.toDate()) : null;
+                if (!timestamp) return false;
+
+                const compraAnio = timestamp.getFullYear().toString();
+                const compraMes = (timestamp.getMonth() + 1).toString();
+                const compraDia = timestamp.getDate().toString();
+                const compraHora = timestamp.toTimeString().split(' ')[0];
                 
-                const anoMatch = filtroAno === '' || ano === filtroAno;
-                const mesMatch = filtroMes === '' || mes === filtroMes;
-                const diaMatch = filtroDia === '' || dia === filtroDia;
+                const anioMatch = !filtroAnio || compraAnio === filtroAnio;
+                const mesMatch = !filtroMes || compraMes === filtroMes;
+                const diaMatch = !filtroDia || compraDia === filtroDia;
+                const horaInicialMatch = !filtroHoraInicial || compraHora >= filtroHoraInicial;
+                const horaFinalMatch = !filtroHoraFinal || compraHora <= filtroHoraFinal;
                 
-                return anoMatch && mesMatch && diaMatch;
+                return anioMatch && mesMatch && diaMatch && horaInicialMatch && horaFinalMatch;
             });
             
             if (comprasFiltradas.length === 0) {
@@ -1450,7 +1462,7 @@
                 totalUnidades += compra.cantidad;
                 tableBody.innerHTML += `
                     <tr class="hover:bg-gray-50">
-                        <td class="px-3 py-2 border-b border-gray-200">${compra.fecha}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${compra.timestamp.toDate().toLocaleString()}</td>
                         <td class="px-3 py-2 border-b border-gray-200">${compra.nombreProducto}</td>
                         <td class="px-3 py-2 border-b border-gray-200 text-center">${compra.cantidad}</td>
                         <td class="px-3 py-2 border-b border-gray-200 text-right">$${compra.costo.toFixed(2)}</td>
@@ -1461,7 +1473,6 @@
                 `;
             });
             
-            // Llenar el pie de tabla
             summaryFooter.innerHTML = `
                 <tr class="bg-gray-50 font-semibold">
                     <td colspan="2" class="text-right px-3 py-2 border-t border-gray-200 text-gray-800">Totales:</td>
@@ -1471,27 +1482,78 @@
                     <td colspan="2" class="border-t border-gray-200"></td>
                 </tr>
             `;
+        }
+        
+        async function cargarDashboard() {
+            const topStockList = document.getElementById('topStockProductsList');
+            const expiringList = document.getElementById('expiringProductsList');
+            const topSellingList = document.getElementById('topSellingProductsList');
+            const topSellingUsersList = document.getElementById('topSellingUsersList');
 
-            // Cargar los años únicos para el filtro
-            const anosUnicos = [...new Set(todasLasCompras.map(c => new Date(c.fecha).getFullYear().toString()))].sort().reverse();
-            const filtroAnoSelect = document.getElementById('filtroAno');
-            filtroAnoSelect.innerHTML = '<option value="">Todos</option>';
-            anosUnicos.forEach(ano => {
-                const option = document.createElement('option');
-                option.value = ano;
-                option.textContent = ano;
-                filtroAnoSelect.appendChild(option);
+            topStockList.innerHTML = '<li>Cargando...</li>';
+            expiringList.innerHTML = '<li>Cargando...</li>';
+            topSellingList.innerHTML = '<li>Cargando...</li>';
+            topSellingUsersList.innerHTML = '<li>Cargando...</li>';
+
+            // Productos con mayor stock
+            const productosQuery = await db.collection('productosYServicios').where('tipo', '==', 'producto').orderBy('stock', 'desc').limit(5).get();
+            topStockList.innerHTML = '';
+            productosQuery.forEach(doc => {
+                const data = doc.data();
+                topStockList.innerHTML += `<li>${data.nombre} (${data.stock} uds)</li>`;
+            });
+            if (productosQuery.empty) topStockList.innerHTML = '<li>No hay productos en stock.</li>';
+
+            // Productos por vencer (dentro de 30 días)
+            const today = new Date();
+            const thirtyDaysLater = new Date();
+            thirtyDaysLater.setDate(today.getDate() + 30);
+            
+            const productosVencimientoQuery = await db.collection('productosYServicios')
+                .where('fechaVencimiento', '>', today.toISOString().split('T')[0])
+                .where('fechaVencimiento', '<=', thirtyDaysLater.toISOString().split('T')[0])
+                .get();
+
+            expiringList.innerHTML = '';
+            productosVencimientoQuery.forEach(doc => {
+                const data = doc.data();
+                expiringList.innerHTML += `<li>${data.nombre} (vence el ${data.fechaVencimiento})</li>`;
+            });
+            if (productosVencimientoQuery.empty) expiringList.innerHTML = '<li>No hay productos por vencer.</li>';
+
+            // Productos más vendidos
+            const ventasQuery = await db.collection('facturas').where('estado', '==', 'Facturado').get();
+            const ventasPorProducto = {};
+            const ventasPorUsuario = {};
+            
+            ventasQuery.forEach(factura => {
+                const data = factura.data();
+                data.items.forEach(item => {
+                    ventasPorProducto[item.descripcion] = (ventasPorProducto[item.descripcion] || 0) + item.cantidad;
+                });
+                const vendedor = data.facturadoPor || 'N/A';
+                ventasPorUsuario[vendedor] = (ventasPorUsuario[vendedor] || 0) + data.total;
             });
             
-            // Seleccionar el año actual si ya está cargado
-            if (filtroAno) {
-                 filtroAnoSelect.value = filtroAno;
+            const sortedProductos = Object.entries(ventasPorProducto).sort(([, a], [, b]) => b - a).slice(0, 5);
+            topSellingList.innerHTML = '';
+            if (sortedProductos.length > 0) {
+                sortedProductos.forEach(([producto, cantidad]) => {
+                    topSellingList.innerHTML += `<li>${producto} (${cantidad} uds)</li>`;
+                });
+            } else {
+                topSellingList.innerHTML = '<li>No hay ventas registradas.</li>';
             }
-            if (filtroMes) {
-                 document.getElementById('filtroMes').value = filtroMes;
-            }
-            if (filtroDia) {
-                 document.getElementById('filtroDia').value = filtroDia;
+
+            // Vendedores con más ventas
+            const sortedUsers = Object.entries(ventasPorUsuario).sort(([, a], [, b]) => b - a).slice(0, 5);
+            topSellingUsersList.innerHTML = '';
+            if (sortedUsers.length > 0) {
+                sortedUsers.forEach(([usuario, totalVentas]) => {
+                    topSellingUsersList.innerHTML += `<li>${usuario}: $${totalVentas.toFixed(2)}</li>`;
+                });
+            } else {
+                topSellingUsersList.innerHTML = '<li>No hay ventas registradas.</li>';
             }
         }
     </script>
