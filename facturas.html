@@ -613,8 +613,11 @@ function mostrarSeccion(sectionId) {
             mostrarSeccion('nuevaVentaSection');
             limpiarFormularioFactura();
         }
+let usuarioActual; 
+// Agrega esta línea al inicio de tu bloque de <script> para declarar la variable globalmente
+let usuarioActual; 
 
-        
+
 async function login() {
     const usuario = document.getElementById('usuario').value;
     const password = document.getElementById('password').value;
