@@ -802,7 +802,7 @@ function controlarMenuPorRol() {
                     items,
                     total,
                     numeroFactura,
-                    fechaCreacion: new Date()
+                    fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
                 if (facturaEnEdicionId) {
@@ -878,8 +878,9 @@ function renderizarFacturas(facturas) {
         fila.classList.add("hover:bg-gray-50");
 
         // Validar y formatear la fecha de manera segura
-        const fechaFormateada = data.fecha && data.fecha.seconds 
-            ? new Date(data.fecha.seconds * 1000).toLocaleDateString()
+        // Validar y formatear la fecha de manera segura
+        const fechaFormateada = data.fechaCreacion && data.fechaCreacion.seconds 
+            ? new Date(data.fechaCreacion.seconds * 1000).toLocaleDateString()
             : 'N/A';
         
         fila.innerHTML = `
