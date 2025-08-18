@@ -624,19 +624,42 @@
 
 
 
-        function mostrarSeccion(sectionId) {
-            const secciones = ['dashboardSection', 'nuevaVentaSection', 'gestionFacturasSection', 'gestionClientesSection', 'gestionProductosSection', 'gestionComprasSection', 'consultaProductosSection'];
-            secciones.forEach(id => {
-                const seccion = document.getElementById(id);
-                if (seccion) { // <-- Aquí está la corrección principal
-                    seccion.classList.add('hidden');
-                }
-            });
-            const seccionAMostrar = document.getElementById(sectionId);
-            if (seccionAMostrar) { // <-- Y aquí también
-                seccionAMostrar.classList.remove('hidden');
-            }
+
+
+            function mostrarSeccion(seccionId) {
+    // 1. Oculta todas las secciones principales
+    const secciones = document.querySelectorAll('.main-content > div');
+    secciones.forEach(seccion => {
+        if (seccion) {
+            seccion.classList.add('hidden');
         }
+    });
+
+    // 2. Muestra la sección deseada
+    const seccionAMostrar = document.getElementById(seccionId);
+    if (seccionAMostrar) {
+        seccionAMostrar.classList.remove('hidden');
+
+        // 3. Llama a la función de renderizado correspondiente a la sección
+        if (seccionId === 'dashboardSection') {
+            cargarDashboardData();
+        } else if (seccionId === 'nuevaVentaSection') {
+            // No requiere una función de renderizado al inicio
+        } else if (seccionId === 'gestionFacturasSection') {
+            renderizarFacturas(todasLasFacturas);
+        } else if (seccionId === 'gestionClientesSection') {
+            renderizarClientes(todosLosClientes);
+        } else if (seccionId === 'gestionProductosSection') {
+            renderizarProductos(todosLosProductosYServicios);
+        } else if (seccionId === 'gestionComprasSection') {
+            // Llama a la función para renderizar el historial de compras
+            renderizarCompras(todasLasCompras);
+        } else if (seccionId === 'consultaProductosSection') {
+            // Llama a la función para renderizar el stock y vencimiento
+            renderizarProductosConsulta(todosLosProductosYServicios);
+        }
+    }
+}
 
         function iniciarNuevaVenta() {
             mostrarSeccion('nuevaVentaSection');
