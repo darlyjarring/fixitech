@@ -578,8 +578,7 @@ function mostrarSeccion(sectionId) {
         }
 
         
-
-       async function login() {
+async function login() {
     const usuario = document.getElementById('usuario').value;
     const password = document.getElementById('password').value;
     const errorElement = document.getElementById('error');
@@ -591,7 +590,6 @@ function mostrarSeccion(sectionId) {
             errorElement.classList.add('hidden');
             usuarioActual = {
                 id: doc.id,
-                email: doc.id,
                 rol: doc.data().rol,
                 nombre: doc.data().nombre,
             };
@@ -600,20 +598,18 @@ function mostrarSeccion(sectionId) {
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('sidebar').classList.remove('hidden');
             document.getElementById('main-content').classList.remove('hidden');
-
             document.getElementById('userNameDisplay').textContent = usuarioActual.nombre;
             document.getElementById('userRoleDisplay').textContent = usuarioActual.rol.toUpperCase();
             
             document.getElementById('vendedor').value = usuarioActual.nombre;
             document.getElementById('usuarioCompra').value = usuarioActual.nombre;
 
-            // Llama a esta función para mostrar u ocultar las opciones del menú
             controlarMenuPorRol();
             
-            // Redirecciona al dashboard si es admin, de lo contrario a ventas
-            if (usuarioActual.rol === 'admin') {
+            // El superusuario y el administrador inician en el dashboard
+            if (usuarioActual.rol === 'admin' || usuarioActual.rol === 'superusuario') {
                 mostrarSeccion('dashboardSection');
-            } else {
+            } else { // El vendedor inicia en "Nueva Venta"
                 mostrarSeccion('nuevaVentaSection');
             }
             
@@ -628,29 +624,43 @@ function mostrarSeccion(sectionId) {
     }
 }
 
+        
+
 // NUEVA FUNCIÓN PARA CONTROLAR EL MENÚ SEGÚN EL ROL
 function controlarMenuPorRol() {
-    const menuItemsAdmin = ['menu-dashboard', 'menu-productos', 'menu-compras', 'menu-facturas', 'menu-clientes', 'menu-usuarios'];
+     // La lista de todos los IDs del menú que deben ser controlados
+    const menuItemsAdmin = ['menu-dashboard', 'menu-facturas', 'menu-clientes', 'menu-productos', 'menu-compras', 'menu-usuarios'];
     
-    if (usuarioActual.rol === 'vendedor') {
-        menuItemsAdmin.forEach(itemId => {
-            const item = document.getElementById(itemId);
-            if (item) {
-                item.classList.add('hidden');
-            }
-        });
-    } else { // admin
+    // Si el rol es 'superusuario', muestra todas las opciones y termina la función
+    if (usuarioActual.rol === 'superusuario') {
         menuItemsAdmin.forEach(itemId => {
             const item = document.getElementById(itemId);
             if (item) {
                 item.classList.remove('hidden');
             }
         });
+        return; 
+    }
+
+    // Si el rol es 'admin', muestra las mismas opciones que antes
+    if (usuarioActual.rol === 'admin') {
+        menuItemsAdmin.forEach(itemId => {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.remove('hidden');
+            }
+        });
+    } else { // Para el rol 'vendedor' u otros
+        menuItemsAdmin.forEach(itemId => {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.add('hidden');
+            }
+        });
     }
 }
 
-
-        
+      
         
             function logout() {
             currentLoggedInUser = null;
@@ -858,41 +868,53 @@ function controlarMenuPorRol() {
             renderizarFacturas(facturasFiltradas);
         }
 
-        function renderizarFacturas(facturas) {
-            const tableBody = document.getElementById('listaFacturasTableBody');
-            tableBody.innerHTML = '';
-            facturas.forEach(factura => {
-                const fecha = factura.fechaCreacion.toDate().toLocaleDateString();
-                const hora = factura.fechaCreacion.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const numeroDisplay = factura.numeroFactura ? `${factura.numeroFactura}` : 'Pendiente';
-                const estadoDisplay = factura.estado;
+function renderizarFacturas(facturas) {
+    const tableBody = document.getElementById('listaFacturasTableBody');
+    tableBody.innerHTML = '';
+    facturas.forEach(factura => {
+        const data = factura.data();
+        const fila = document.createElement('tr');
+        fila.classList.add("hover:bg-gray-50");
+        fila.innerHTML = `
+            <td class="px-3 py-2 border-b border-gray-200">${data.numeroFactura || factura.id}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${data.nombreCliente}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-right">$${data.total.toFixed(2)}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${data.vendedor}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${data.estado}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${new Date(data.fecha.seconds * 1000).toLocaleDateString()}</td>
+        `;
 
-                const editButton = (factura.estado !== 'Facturado') ? 
-                    `<button onclick="editarFactura('${factura.id}')" class="text-blue-500 hover:text-blue-700 mx-1" title="Editar">
-                        ✏️
-                    </button>` : '';
+        // Crea la celda de acciones por separado para aplicar la lógica condicional
+        const accionesCell = document.createElement('td');
+        accionesCell.classList.add("px-3", "py-2", "border-b", "border-gray-200", "text-center");
+        
+        // El botón de editar/visualizar es para todos los roles
+        const btnVisualizar = document.createElement('button');
+        btnVisualizar.textContent = '🔍';
+        btnVisualizar.classList.add("text-blue-500", "hover:text-blue-700", "font-bold", "px-1");
+        btnVisualizar.onclick = () => verDetalleFactura(factura.id);
+        accionesCell.appendChild(btnVisualizar);
 
-                tableBody.innerHTML += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-3 py-2 border-b border-gray-200">${numeroDisplay}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${factura.nombreCliente}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${factura.total.toFixed(2)}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${factura.vendedor}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${estadoDisplay}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${fecha} ${hora}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-center">
-                            ${editButton}
-                            <button onclick="eliminarFactura('${factura.id}')" class="text-red-500 hover:text-red-700 mx-1" title="Eliminar">
-                                🗑️
-                            </button>
-                            <button onclick="imprimirFactura('${factura.id}')" class="text-green-500 hover:text-green-700 mx-1" title="Imprimir">
-                                🖨️
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
+        // El botón de imprimir es para todos los roles
+        const btnImprimir = document.createElement('button');
+        btnImprimir.textContent = '🖨️';
+        btnImprimir.classList.add("text-green-500", "hover:text-green-700", "font-bold", "px-1");
+        btnImprimir.onclick = () => imprimirFactura(factura.id);
+        accionesCell.appendChild(btnImprimir);
+        
+        // El botón de eliminar solo se muestra para superusuarios y administradores
+        if (usuarioActual.rol === 'superusuario' || usuarioActual.rol === 'admin') {
+            const btnEliminar = document.createElement('button');
+            btnEliminar.textContent = '🗑️';
+            btnEliminar.classList.add("text-red-500", "hover:text-red-700", "font-bold", "px-1");
+            btnEliminar.onclick = () => eliminarFactura(factura.id);
+            accionesCell.appendChild(btnEliminar);
         }
+
+        fila.appendChild(accionesCell);
+        tableBody.appendChild(fila);
+    });
+}
 
         async function editarFactura(facturaId) {
             const facturaDoc = await db.collection('facturas').doc(facturaId).get();
@@ -1352,46 +1374,54 @@ let clienteEnEdicionId = null;
         }
 
 
-        function renderizarCompras(compras) {
-            const tableBody = document.getElementById('listaComprasTableBody');
-            tableBody.innerHTML = '';
-            
-            let totalInversion = 0;
-            
-            compras.forEach(compra => {
-                const costo = compra.costo || 0;
-                const total = compra.totalCompra || (compra.cantidad * costo) || 0;
-                
-                totalInversion += total;
-                
-                tableBody.innerHTML += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-3 py-2 border-b border-gray-200">${compra.numeroFactura || 'N/A'}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${compra.nombreProducto || 'N/A'}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-center">${compra.cantidad || 'N/A'}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${parseFloat(costo).toFixed(2)}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${parseFloat(total).toFixed(2)}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${compra.fecha || 'N/A'}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${compra.usuario || 'N/A'}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-right">
-                            <button onclick="editarCompra('${compra.id}')" class="text-blue-500 hover:text-blue-700 font-bold px-2">✏️</button>
-                            <button onclick="eliminarCompra('${compra.id}')" class="text-red-500 hover:text-red-700 font-bold px-2">🗑️</button>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            const summaryFooter = document.getElementById('comprasSummaryFooter');
-            if (summaryFooter) {
-                summaryFooter.innerHTML = `
-                    <tr class="bg-gray-50 font-semibold">
-                        <td colspan="5" class="text-right px-3 py-2 border-t border-gray-200 text-gray-800">Total de Inversión:</td>
-                        <td class="px-3 py-2 border-t border-gray-200 text-right text-gray-800">$${totalInversion.toFixed(2)}</td>
-                        <td colspan="3" class="px-3 py-2 border-t border-gray-200"></td>
-                    </tr>
-                `;
-            }
+      function renderizarCompras(compras) {
+    const tableBody = document.getElementById('listaComprasTableBody');
+    tableBody.innerHTML = '';
+    
+    let totalInversion = 0;
+    
+    compras.forEach(compra => {
+        const costo = compra.costo || 0;
+        const total = compra.totalCompra || (compra.cantidad * costo) || 0;
+        
+        totalInversion += total;
+        
+        let accionesHtml = '';
+        // Condición para mostrar los botones de editar y eliminar
+        if (usuarioActual.rol === 'superusuario' || usuarioActual.rol === 'admin') {
+            accionesHtml = `
+                <button onclick="editarCompra('${compra.id}')" class="text-blue-500 hover:text-blue-700 font-bold px-2">✏️</button>
+                <button onclick="eliminarCompra('${compra.id}')" class="text-red-500 hover:text-red-700 font-bold px-2">🗑️</button>
+            `;
+        } else {
+            accionesHtml = 'N/A';
         }
+        
+        tableBody.innerHTML += `
+            <tr class="hover:bg-gray-50">
+                <td class="px-3 py-2 border-b border-gray-200">${compra.numeroFactura || 'N/A'}</td>
+                <td class="px-3 py-2 border-b border-gray-200">${compra.nombreProducto || 'N/A'}</td>
+                <td class="px-3 py-2 border-b border-gray-200 text-center">${compra.cantidad || 'N/A'}</td>
+                <td class="px-3 py-2 border-b border-gray-200 text-right">$${parseFloat(costo).toFixed(2)}</td>
+                <td class="px-3 py-2 border-b border-gray-200 text-right">$${parseFloat(total).toFixed(2)}</td>
+                <td class="px-3 py-2 border-b border-gray-200">${compra.fecha || 'N/A'}</td>
+                <td class="px-3 py-2 border-b border-gray-200">${compra.usuario || 'N/A'}</td>
+                <td class="px-3 py-2 border-b border-gray-200 text-right">${accionesHtml}</td>
+            </tr>
+        `;
+    });
+    
+    const summaryFooter = document.getElementById('comprasSummaryFooter');
+    if (summaryFooter) {
+        summaryFooter.innerHTML = `
+            <tr class="bg-gray-50 font-semibold">
+                <td colspan="5" class="text-right px-3 py-2 border-t border-gray-200 text-gray-800">Total de Inversión:</td>
+                <td class="px-3 py-2 border-t border-gray-200 text-right text-gray-800">$${totalInversion.toFixed(2)}</td>
+                <td colspan="2" class="px-3 py-2 border-t border-gray-200"></td>
+            </tr>
+        `;
+    }
+}
 
         function cargarOpcionesDeProductosEnCompras() {
             const select = document.getElementById('productoCompra');
