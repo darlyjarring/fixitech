@@ -1448,10 +1448,17 @@ async function editarCompra(id) {
         document.getElementById('numeroFacturaCompra').value = compra.numeroFactura;
         
         // Cambia el texto del botón y guarda el ID en una variable global
-        document.getElementById('btnGuardarCompra').textContent = '📝 Actualizar Compra';
+
+        const btnGuardarCompra = document.getElementById('btnGuardarCompra');
+        if (btnGuardarCompra) {
+            btnGuardarCompra.textContent = '📝 Actualizar Compra';
+        }
+
         idCompraEnEdicion = id;
+        mostrarSeccion('gestionComprasSection'); // Redirecciona a la sección si no estás en ella
 
         mostrarMensaje('✏️ Ahora puedes editar los detalles de la compra en el formulario.');
+
         
     } catch (error) {
         console.error("Error al cargar datos para edición:", error);
