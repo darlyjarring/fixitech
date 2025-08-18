@@ -1468,31 +1468,44 @@ async function guardarCompra() {
     const fechaVencimiento = document.getElementById('fechaVencimientoCompra').value;
     const usuario = document.getElementById('usuarioCompra').value;
     const numeroFactura = document.getElementById('numeroFacturaCompra').value;
-    const totalCompra = cantidad * costo;
 
     if (!fechaCompra || !productoId || isNaN(cantidad) || cantidad <= 0 || isNaN(costo) || costo < 0) {
         mostrarMensaje('❌ Por favor, complete todos los campos de la compra correctamente.', 'bg-red-500');
         return;
     }
 
+    const totalCompra = cantidad * costo;
+    const producto = todosLosProductosYServicios.find(p => p.id === productoId);
+
     try {
-        // Lógica de edición
         if (idCompraEnEdicion) {
+            // Lógica para editar una compra
             const compraOriginalDoc = await db.collection('compras').doc(idCompraEnEdicion).get();
             const compraOriginal = compraOriginalDoc.data();
-            const diferenciaCantidad = cantidad - compraOriginal.cantidad;
-
-            // Actualiza el stock
-            const productoRef = db.collection('productosYServicios').doc(productoId);
-            await productoRef.update({
-                stock: firebase.firestore.FieldValue.increment(diferenciaCantidad)
-            });
+            
+            // Revertir el stock original si se cambió el producto
+            if (compraOriginal.productoId !== productoId) {
+                // Revertir el stock del producto original
+                await db.collection('productosYServicios').doc(compraOriginal.productoId).update({
+                    stock: firebase.firestore.FieldValue.increment(-compraOriginal.cantidad)
+                });
+                // Aumentar el stock del nuevo producto
+                await db.collection('productosYServicios').doc(productoId).update({
+                    stock: firebase.firestore.FieldValue.increment(cantidad)
+                });
+            } else {
+                // Si el producto no cambió, solo ajustar la diferencia de stock
+                const diferenciaCantidad = cantidad - compraOriginal.cantidad;
+                await db.collection('productosYServicios').doc(productoId).update({
+                    stock: firebase.firestore.FieldValue.increment(diferenciaCantidad)
+                });
+            }
 
             // Actualiza el documento de compra
             await db.collection('compras').doc(idCompraEnEdicion).update({
                 fecha: fechaCompra,
                 productoId,
-                nombreProducto: todosLosProductosYServicios.find(p => p.id === productoId).nombre,
+                nombreProducto: producto.nombre,
                 cantidad,
                 costo,
                 totalCompra,
@@ -1505,7 +1518,6 @@ async function guardarCompra() {
             idCompraEnEdicion = null;
         } else {
             // Lógica para una nueva compra
-            const producto = todosLosProductosYServicios.find(p => p.id === productoId);
             await db.collection('compras').add({
                 fecha: fechaCompra,
                 productoId,
