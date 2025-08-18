@@ -656,7 +656,8 @@
             renderizarCompras(todasLasCompras);
         } else if (seccionId === 'consultaProductosSection') {
             // Llama a la función para renderizar el stock y vencimiento
-            renderizarProductosConsulta(todosLosProductosYServicios);
+            const productos = todosLosProductosYServicios.filter(p => p.tipo === 'producto');
+            renderizarProductosConsulta(productos);
         }
     }
 }
