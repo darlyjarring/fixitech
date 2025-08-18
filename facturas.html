@@ -73,7 +73,7 @@
                         <span class="mr-2">📊</span> Dashboard                 </a>
                 </li>
                 <li class="mb-2">
-                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 active" onclick="iniciarNuevaVenta()">
+                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 active" id="menu-nueva-venta">
                         <span class="mr-2">💰</span> Nueva Venta
                     </a>
                 </li>
@@ -88,7 +88,7 @@
                     </a>
                 </li>
                 <li id="menu-productos" class="mb-2 hidden">
-                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" id="menu-productos')">
+                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" id="menu-productos">
                         <span class="mr-2">📦</span> Productos y Servicios
                     </a>
                 </li>
@@ -1903,7 +1903,9 @@ async function guardarCompra() {
     document.getElementById('menu-dashboard').addEventListener('click', () => {
         mostrarSeccion('dashboardSection');
     });
-
+    document.getElementById('menu-nueva-venta').addEventListener('click', () => {
+        mostrarSeccion('nuevaVentaSection');
+    });
     document.getElementById('menu-facturas').addEventListener('click', () => {
         mostrarSeccion('gestionFacturasSection');
     });
