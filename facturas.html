@@ -1497,6 +1497,20 @@ function limpiarFormularioProductoServicio() {
     document.getElementById('nombreProducto').focus();
 }
 
+            function cargarOpcionesDeProductosEnVentas() {
+    const selectVentaProducto = document.getElementById('productoVenta');
+    
+    // Limpia las opciones existentes
+    selectVentaProducto.innerHTML = '<option value="">-- Seleccione un Producto/Servicio --</option>';
+    
+    todosLosProductosYServicios.forEach(producto => {
+        const option = document.createElement('option');
+        option.value = producto.id;
+        option.textContent = producto.nombre;
+        selectVentaProducto.appendChild(option);
+    });
+}
+
         // Función para renderizar la tabla de consulta de productos
 function renderizarProductosConsulta(productos) {
     const tableBody = document.getElementById('listaProductosConsultaTableBody');
