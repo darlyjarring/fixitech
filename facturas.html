@@ -1268,175 +1268,234 @@ let clienteEnEdicionId = null;
             }
         }
 
-        // ---------------------------------------------
-        // FUNCIONES DE GESTIÓN DE PRODUCTOS Y SERVICIOS
-        // ---------------------------------------------
+            // Variable global para mantener el ID del producto/servicio que se está editando
+let idProductoServicioEnEdicion = null;
 
-        async function cargarProductosServicios() {
-            try {
-                const snapshot = await db.collection('productosYServicios').get();
-                todosLosProductosYServicios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                filtrarProductos(); // Llama a la nueva función de filtrado
-                cargarOpcionesDeProductosEnCompras();
-            } catch (error) {
-                console.error("Error al cargar productos:", error);
+// ---------------------------------------------
+// FUNCIONES DE GESTIÓN DE PRODUCTOS Y SERVICIOS
+// ---------------------------------------------
+
+async function cargarProductosServicios() {
+    try {
+        const snapshot = await db.collection('productosYServicios').get();
+        todosLosProductosYServicios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        filtrarProductos();
+        cargarOpcionesDeProductosEnCompras();
+        cargarOpcionesDeProductosEnVentas();
+    } catch (error) {
+        console.error("Error al cargar productos:", error);
+    }
+}
+
+// Nueva función de filtrado
+function filtrarProductos() {
+    const filtroNombre = document.getElementById('filtroNombreProducto').value.toLowerCase();
+    const filtroTipo = document.getElementById('filtroTipoProducto').value;
+    const filtroVencimiento = document.getElementById('filtroVencimientoProducto').value;
+    
+    let productosFiltrados = todosLosProductosYServicios.filter(producto => {
+        const coincideNombre = producto.nombre.toLowerCase().includes(filtroNombre);
+        const coincideTipo = !filtroTipo || producto.tipo === filtroTipo;
+        
+        const coincideVencimiento = !filtroVencimiento || (producto.fechaVencimiento && producto.fechaVencimiento <= filtroVencimiento);
+        
+        return coincideNombre && coincideTipo && coincideVencimiento;
+    });
+    
+    renderizarProductos(productosFiltrados);
+}
+
+// *** FUNCIÓN CORREGIDA: renderizarProductos ***
+// Reemplaza tu versión anterior con esta
+function renderizarProductos(productos) {
+    const tableBody = document.getElementById('listaProductosTableBody');
+    tableBody.innerHTML = '';
+    const today = new Date();
+    
+    productos.forEach(producto => {
+        const row = document.createElement('tr');
+        const fechaVencimiento = producto.fechaVencimiento ? new Date(producto.fechaVencimiento).toLocaleDateString() : 'N/A';
+        const stock = producto.tipo === 'producto' ? producto.stock : 'N/A';
+        
+        let rowClass = 'hover:bg-gray-50';
+        if (producto.fechaVencimiento) {
+            const vencimiento = new Date(producto.fechaVencimiento);
+            const diffTime = vencimiento.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays <= 30 && diffDays >= 0) {
+                rowClass = 'expiring-soon bg-yellow-100'; // Destacar productos próximos a vencer
             }
-        }
-
-        // Nueva función de filtrado
-        function filtrarProductos() {
-            const filtroNombre = document.getElementById('filtroNombreProducto').value.toLowerCase();
-            const filtroTipo = document.getElementById('filtroTipoProducto').value;
-            const filtroVencimiento = document.getElementById('filtroVencimientoProducto').value;
-        
-            let productosFiltrados = todosLosProductosYServicios.filter(producto => {
-                const coincideNombre = producto.nombre.toLowerCase().includes(filtroNombre);
-                const coincideTipo = !filtroTipo || producto.tipo === filtroTipo;
-        
-                const coincideVencimiento = !filtroVencimiento || (producto.fechaVencimiento && producto.fechaVencimiento <= filtroVencimiento);
-        
-                return coincideNombre && coincideTipo && coincideVencimiento;
-            });
-        
-            renderizarProductos(productosFiltrados);
-        }
-        
-        // La función renderizarProductos debe ser reemplazada
-        function renderizarProductos(productos) {
-            const tableBody = document.getElementById('listaProductosTableBody');
-            tableBody.innerHTML = '';
-            const today = new Date();
-            
-            productos.forEach(producto => {
-                const fechaVencimiento = producto.fechaVencimiento ? new Date(producto.fechaVencimiento).toLocaleDateString() : 'N/A';
-                const stock = producto.tipo === 'producto' ? producto.stock : 'N/A';
-                
-                let rowClass = '';
-                if (producto.fechaVencimiento) {
-                    const vencimiento = new Date(producto.fechaVencimiento);
-                    const diffTime = vencimiento.getTime() - today.getTime();
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    if (diffDays <= 30 && diffDays >= 0) {
-                        rowClass = 'expiring-soon';
-                    }
-                }
-                
-                tableBody.innerHTML += `
-                    <tr class="hover:bg-gray-50 ${rowClass}">
-                        <td class="px-3 py-2 border-b border-gray-200">${producto.nombre}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${producto.tipo}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${producto.precio.toFixed(2)}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-center">${stock}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${fechaVencimiento}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-center">
-                            <button onclick="editarProductoServicio('${producto.id}')" class="text-blue-500 hover:text-blue-700 mx-1" title="Editar">
-                                ✏️
-                            </button>
-                            <button onclick="eliminarProductoServicio('${producto.id}', '${producto.nombre}')" class="text-red-500 hover:text-red-700 mx-1" title="Eliminar">
-                                🗑️
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
         }
         
-        function toggleStockInput() {
-            const tipo = document.getElementById('tipoProducto').value;
-            const stockDiv = document.getElementById('stockInputDiv');
-            if (tipo === 'servicio') {
-                stockDiv.classList.add('hidden');
-                document.getElementById('stockProducto').value = '0';
-            } else {
-                stockDiv.classList.remove('hidden');
-            }
-        }
+        row.className = rowClass;
+        row.innerHTML = `
+            <td class="px-3 py-2 border-b border-gray-200">${producto.nombre}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${producto.tipo}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-right">$${producto.precio.toFixed(2)}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-center">${stock}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${fechaVencimiento}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-center">
+                <button class="text-blue-500 hover:text-blue-700 mx-1" title="Editar">
+                    ✏️
+                </button>
+                <button class="text-red-500 hover:text-red-700 mx-1" title="Eliminar">
+                    🗑️
+                </button>
+            </td>
+        `;
 
-        async function guardarProductoServicio() {
-            const nombre = document.getElementById('nombreProducto').value;
-            const tipo = document.getElementById('tipoProducto').value;
-            const precio = parseFloat(document.getElementById('precioProducto').value);
-            const stock = tipo === 'producto' ? parseInt(document.getElementById('stockProducto').value) : 0;
-            const fechaVencimiento = document.getElementById('fechaVencimientoProducto').value;
+        // Aquí se asignan los eventos de forma segura
+        row.querySelector('.text-blue-500').addEventListener('click', () => editarProductoServicio(producto.id));
+        row.querySelector('.text-red-500').addEventListener('click', () => eliminarProductoServicio(producto.id, producto.nombre));
 
-            if (!nombre || isNaN(precio) || precio < 0) {
-                mostrarMensaje('❌ Por favor, completa los campos de nombre y precio correctamente.', 'bg-red-500');
-                return;
-            }
-            if (tipo === 'producto' && isNaN(stock)) {
-                mostrarMensaje('❌ Por favor, ingresa un stock válido.', 'bg-red-500');
-                return;
-            }
+        tableBody.appendChild(row);
+    });
+}
+    
+function toggleStockInput() {
+    const tipo = document.getElementById('tipoProducto').value;
+    const stockDiv = document.getElementById('stockInputDiv');
+    if (tipo === 'servicio') {
+        stockDiv.classList.add('hidden');
+        document.getElementById('stockProducto').value = '0';
+    } else {
+        stockDiv.classList.remove('hidden');
+    }
+}
 
-            try {
-                const data = { nombre, tipo, precio, stock, fechaVencimiento };
-                if (productoServicioEnEdicionId) {
-                    await db.collection('productosYServicios').doc(productoServicioEnEdicionId).update(data);
-                    mostrarMensaje(`✅ "${nombre}" actualizado con éxito.`);
-                } else {
-                    await db.collection('productosYServicios').add(data);
-                    mostrarMensaje(`✅ "${nombre}" guardado con éxito.`);
-                }
-                
-                limpiarFormularioProductoServicio();
-                cargarProductosServicios();
-                cargarDashboardData();
+// *** FUNCIONES NUEVAS: actualizar y limpiar ***
+// Estas funciones se añaden para mejorar el flujo de edición
 
-            } catch (error) {
-                console.error("Error al guardar el producto/servicio:", error);
-                mostrarMensaje('❌ Ocurrió un error al guardar el producto/servicio.', 'bg-red-500');
-            }
-        }
+// Función para editar un producto (llena el formulario)
+async function editarProductoServicio(itemId) {
+    const doc = await db.collection('productosYServicios').doc(itemId).get();
+    if (doc.exists) {
+        const itemData = doc.data();
+        idProductoServicioEnEdicion = itemId;
+        
+        document.getElementById('formProductoServicioTitle').textContent = `Editar "${itemData.nombre}"`;
+        document.getElementById('guardarProductoBtn').textContent = '💾 Actualizar';
+        document.getElementById('nombreProducto').value = itemData.nombre;
+        document.getElementById('tipoProducto').value = itemData.tipo;
+        document.getElementById('precioProducto').value = itemData.precio;
+        document.getElementById('stockProducto').value = itemData.stock || 0;
+        document.getElementById('fechaVencimientoProducto').value = itemData.fechaVencimiento || '';
+        
+        // Cambia la acción del botón de Guardar a la nueva función de actualizar
+        document.getElementById('guardarProductoBtn').onclick = actualizarProductoServicio;
 
-        async function editarProductoServicio(itemId) {
-            const doc = await db.collection('productosYServicios').doc(itemId).get();
-            if (doc.exists) {
-                const itemData = doc.data();
-                productoServicioEnEdicionId = itemId;
-                
-                document.getElementById('formProductoServicioTitle').textContent = `Editar "${itemData.nombre}"`;
-                document.getElementById('guardarProductoBtn').textContent = '💾 Actualizar';
-                document.getElementById('nombreProducto').value = itemData.nombre;
-                document.getElementById('tipoProducto').value = itemData.tipo;
-                document.getElementById('precioProducto').value = itemData.precio;
-                document.getElementById('stockProducto').value = itemData.stock || 0;
-                document.getElementById('fechaVencimientoProducto').value = itemData.fechaVencimiento || '';
-                toggleStockInput();
-                mostrarSeccion('gestionProductosSection');
-                mostrarMensaje(`"${itemData.nombre}" cargado para edición.`, "bg-blue-500");
-            } else {
-                mostrarMensaje("Producto/Servicio no encontrado para edición.", "bg-red-500");
-            }
-        }
+        toggleStockInput();
+        mostrarSeccion('gestionProductosSection');
+        mostrarMensaje(`"${itemData.nombre}" cargado para edición.`, "bg-blue-500");
+    } else {
+        mostrarMensaje("Producto/Servicio no encontrado para edición.", "bg-red-500");
+    }
+}
 
-        async function eliminarProductoServicio(itemId, itemName) {
-            if (!confirm(`¿Estás seguro de eliminar "${itemName}"?`)) {
-                return;
-            }
-            try {
-                await db.collection('productosYServicios').doc(itemId).delete();
-                mostrarMensaje(`✅ "${itemName}" eliminado con éxito.`);
-                cargarProductosServicios();
-                cargarDashboardData();
-            } catch (error) {
-                console.error("Error al eliminar producto/servicio:", error);
-                mostrarMensaje("❌ Hubo un error al eliminar el producto/servicio. Por favor, inténtalo de nuevo.", 'bg-red-500');
-            }
-        }
+// Función para actualizar el producto (se llama al hacer clic en el botón)
+async function actualizarProductoServicio() {
+    if (!idProductoServicioEnEdicion) {
+        mostrarMensaje('❌ No se ha seleccionado un producto/servicio para actualizar.', 'bg-red-500');
+        return;
+    }
 
-        function limpiarFormularioProductoServicio() {
-            productoServicioEnEdicionId = null;
-            document.getElementById('nombreProducto').value = '';
-            document.getElementById('tipoProducto').value = 'producto';
-            document.getElementById('precioProducto').value = '';
-            document.getElementById('stockProducto').value = '0';
-            toggleStockInput();
-            document.getElementById('fechaVencimientoProducto').value = '';
-            document.getElementById('formProductoServicioTitle').textContent = 'Gestión de Productos y Servicios';
-            document.getElementById('guardarProductoBtn').textContent = '💾 Guardar Producto/Servicio';
-            document.getElementById('nombreProducto').focus();
-        }
+    const nombre = document.getElementById('nombreProducto').value;
+    const tipo = document.getElementById('tipoProducto').value;
+    const precio = parseFloat(document.getElementById('precioProducto').value);
+    const stock = tipo === 'producto' ? parseInt(document.getElementById('stockProducto').value) : 0;
+    const fechaVencimiento = document.getElementById('fechaVencimientoProducto').value || '';
+    
+    if (!nombre || !tipo || isNaN(precio) || precio < 0 || (tipo === 'producto' && isNaN(stock))) {
+        mostrarMensaje('⚠️ Por favor, complete todos los campos obligatorios con valores válidos.', 'bg-yellow-500');
+        return;
+    }
 
+    try {
+        await db.collection('productosYServicios').doc(idProductoServicioEnEdicion).update({
+            nombre,
+            tipo,
+            precio,
+            stock,
+            fechaVencimiento
+        });
+        
+        mostrarMensaje('✅ Producto/Servicio actualizado exitosamente.', 'bg-green-500');
+        
+        limpiarFormularioProductoServicio();
+        cargarProductosServicios();
+    } catch (error) {
+        console.error("Error al actualizar el producto/servicio:", error);
+        mostrarMensaje('❌ Ocurrió un error al actualizar el producto/servicio.', 'bg-red-500');
+    }
+}
+
+// *** FUNCIÓN CORREGIDA: guardarProductoServicio ***
+// Ahora solo maneja la lógica de guardar un NUEVO producto
+async function guardarProductoServicio() {
+    const nombre = document.getElementById('nombreProducto').value;
+    const tipo = document.getElementById('tipoProducto').value;
+    const precio = parseFloat(document.getElementById('precioProducto').value);
+    const stock = tipo === 'producto' ? parseInt(document.getElementById('stockProducto').value) : 0;
+    const fechaVencimiento = document.getElementById('fechaVencimientoProducto').value;
+
+    if (!nombre || isNaN(precio) || precio < 0) {
+        mostrarMensaje('❌ Por favor, completa los campos de nombre y precio correctamente.', 'bg-red-500');
+        return;
+    }
+    if (tipo === 'producto' && isNaN(stock)) {
+        mostrarMensaje('❌ Por favor, ingresa un stock válido.', 'bg-red-500');
+        return;
+    }
+
+    try {
+        const data = { nombre, tipo, precio, stock, fechaVencimiento };
+        await db.collection('productosYServicios').add(data);
+        mostrarMensaje(`✅ "${nombre}" guardado con éxito.`);
+        
+        limpiarFormularioProductoServicio();
+        cargarProductosServicios();
+        cargarDashboardData();
+
+    } catch (error) {
+        console.error("Error al guardar el producto/servicio:", error);
+        mostrarMensaje('❌ Ocurrió un error al guardar el producto/servicio.', 'bg-red-500');
+    }
+}
+
+async function eliminarProductoServicio(itemId, itemName) {
+    if (!confirm(`¿Estás seguro de eliminar "${itemName}"?`)) {
+        return;
+    }
+    try {
+        await db.collection('productosYServicios').doc(itemId).delete();
+        mostrarMensaje(`✅ "${itemName}" eliminado con éxito.`);
+        cargarProductosServicios();
+        cargarDashboardData();
+    } catch (error) {
+        console.error("Error al eliminar producto/servicio:", error);
+        mostrarMensaje("❌ Hubo un error al eliminar el producto/servicio. Por favor, inténtalo de nuevo.", 'bg-red-500');
+    }
+}
+
+// *** FUNCIÓN CORREGIDA: limpiarFormularioProductoServicio ***
+// Restaura la acción del botón de guardar
+function limpiarFormularioProductoServicio() {
+    idProductoServicioEnEdicion = null;
+    document.getElementById('nombreProducto').value = '';
+    document.getElementById('tipoProducto').value = 'producto';
+    document.getElementById('precioProducto').value = '';
+    document.getElementById('stockProducto').value = '0';
+    toggleStockInput();
+    document.getElementById('fechaVencimientoProducto').value = '';
+    document.getElementById('formProductoServicioTitle').textContent = 'Gestión de Productos y Servicios';
+    
+    // Restaura el botón a su estado original de "guardar"
+    const btnGuardarProducto = document.getElementById('guardarProductoBtn');
+    btnGuardarProducto.textContent = '💾 Guardar Producto/Servicio';
+    btnGuardarProducto.onclick = guardarProductoServicio; // Restaura la acción
+    
+    document.getElementById('nombreProducto').focus();
+}
 
         // Función para renderizar la tabla de consulta de productos
 function renderizarProductosConsulta(productos) {
