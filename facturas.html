@@ -873,17 +873,22 @@ function renderizarFacturas(facturas) {
     tableBody.innerHTML = '';
     
     facturas.forEach(factura => {
+        const data = factura;
         const fila = document.createElement('tr');
         fila.classList.add("hover:bg-gray-50");
+
+        // Validar si la fecha es un Timestamp antes de usar .seconds
+        const fechaFormateada = data.fecha instanceof firebase.firestore.Timestamp 
+            ? new Date(data.fecha.seconds * 1000).toLocaleDateString()
+            : data.fecha || 'N/A';
         
-        // Accede a los datos directamente sin .data()
         fila.innerHTML = `
-            <td class="px-3 py-2 border-b border-gray-200">${factura.numeroFactura || factura.id}</td>
-            <td class="px-3 py-2 border-b border-gray-200">${factura.nombreCliente}</td>
-            <td class="px-3 py-2 border-b border-gray-200 text-right">$${factura.total.toFixed(2)}</td>
-            <td class="px-3 py-2 border-b border-gray-200">${factura.vendedor}</td>
-            <td class="px-3 py-2 border-b border-gray-200">${factura.estado}</td>
-            <td class="px-3 py-2 border-b border-gray-200">${new Date(factura.fecha.seconds * 1000).toLocaleDateString()}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${data.numeroFactura || factura.id}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${data.nombreCliente}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-right">$${data.total.toFixed(2)}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${data.vendedor}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${data.estado}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${fechaFormateada}</td>
         `;
 
         const accionesCell = document.createElement('td');
