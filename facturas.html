@@ -1351,32 +1351,42 @@ let clienteEnEdicionId = null;
         }
 
         function renderizarCompras(compras) {
-            const tableBody = document.getElementById('listaComprasTableBody');
-            tableBody.innerHTML = '';
-            let totalInversion = 0;
-            compras.forEach(compra => {
-                totalInversion += compra.totalCompra;
-                tableBody.innerHTML += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-3 py-2 border-b border-gray-200">${compra.fecha}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${compra.nombreProducto}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-center">${compra.cantidad}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${compra.costo.toFixed(2)}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${compra.totalCompra.toFixed(2)}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${compra.numeroFactura || 'N/A'}</td>
-                        <td class="px-3 py-2 border-b border-gray-200">${compra.usuario}</td>
-                    </tr>
-                `;
-            });
-            const summaryFooter = document.getElementById('comprasSummaryFooter');
-            summaryFooter.innerHTML = `
-                <tr class="bg-gray-50 font-semibold">
-                    <td colspan="4" class="text-right px-3 py-2 border-t border-gray-200 text-gray-800">Total de Inversión:</td>
-                    <td class="px-3 py-2 border-t border-gray-200 text-right text-gray-800">$${totalInversion.toFixed(2)}</td>
-                    <td colspan="2" class="px-3 py-2 border-t border-gray-200"></td>
-                </tr>
-            `;
-        }
+    const tableBody = document.getElementById('listaComprasTableBody');
+    tableBody.innerHTML = '';
+    
+    let totalInversion = 0;
+    
+    compras.forEach(compra => {
+        // Asegúrate de que totalCompra y costo existan y sean números
+        const costo = compra.costo || 0;
+        const total = compra.totalCompra || (compra.cantidad * costo) || 0;
+        
+        totalInversion += total;
+        
+        tableBody.innerHTML += `
+            <tr class="hover:bg-gray-50">
+                <td class="px-3 py-2 border-b border-gray-200">${compra.fecha || 'N/A'}</td>
+                <td class="px-3 py-2 border-b border-gray-200">${compra.nombreProducto || 'N/A'}</td>
+                <td class="px-3 py-2 border-b border-gray-200 text-center">${compra.cantidad || 'N/A'}</td>
+                <td class="px-3 py-2 border-b border-gray-200 text-right">$${parseFloat(costo).toFixed(2)}</td>
+                <td class="px-3 py-2 border-b border-gray-200 text-right">$${parseFloat(total).toFixed(2)}</td>
+                <td class="px-3 py-2 border-b border-gray-200">${compra.numeroFactura || 'N/A'}</td>
+                <td class="px-3 py-2 border-b border-gray-200">${compra.usuario || 'N/A'}</td>
+            </tr>
+        `;
+    });
+    
+    const summaryFooter = document.getElementById('comprasSummaryFooter');
+    if (summaryFooter) {
+        summaryFooter.innerHTML = `
+            <tr class="bg-gray-50 font-semibold">
+                <td colspan="4" class="text-right px-3 py-2 border-t border-gray-200 text-gray-800">Total de Inversión:</td>
+                <td class="px-3 py-2 border-t border-gray-200 text-right text-gray-800">$${totalInversion.toFixed(2)}</td>
+                <td colspan="2" class="px-3 py-2 border-t border-gray-200"></td>
+            </tr>
+        `;
+    }
+}
 
         function cargarOpcionesDeProductosEnCompras() {
             const select = document.getElementById('productoCompra');
