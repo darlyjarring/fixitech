@@ -877,14 +877,16 @@ function renderizarFacturas(facturas) {
         const fila = document.createElement('tr');
         fila.classList.add("hover:bg-gray-50");
 
-        // Validar y formatear la fecha de manera segura
+        // Condición para mostrar 'Pendiente' si numeroFactura es null o undefined
+        const numeroDisplay = data.numeroFactura ? `${data.numeroFactura}` : 'Pendiente';
+
         // Validar y formatear la fecha de manera segura
         const fechaFormateada = data.fechaCreacion && data.fechaCreacion.seconds 
             ? new Date(data.fechaCreacion.seconds * 1000).toLocaleDateString()
             : 'N/A';
         
         fila.innerHTML = `
-            <td class="px-3 py-2 border-b border-gray-200">${data.numeroFactura || factura.id}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${numeroDisplay}</td>
             <td class="px-3 py-2 border-b border-gray-200">${data.nombreCliente}</td>
             <td class="px-3 py-2 border-b border-gray-200 text-right">$${data.total.toFixed(2)}</td>
             <td class="px-3 py-2 border-b border-gray-200">${data.vendedor}</td>
