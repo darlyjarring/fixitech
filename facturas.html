@@ -916,7 +916,14 @@ function renderizarFacturas(facturas) {
             btnEliminar.onclick = () => eliminarFactura(factura.id);
             accionesCell.appendChild(btnEliminar);
         }
-
+ // **NUEVO:** Botón de Editar para facturas en espera
+        if (data.estado === 'En espera' || (data.estado === 'Entregado') {
+            const btnEditar = document.createElement('button');
+            btnEditar.textContent = '✏️';
+            btnEditar.classList.add("text-orange-500", "hover:text-orange-700", "font-bold", "px-1");
+            btnEditar.onclick = () => editarFactura(factura.id);
+            accionesCell.appendChild(btnEditar);
+        }
         fila.appendChild(accionesCell);
         tableBody.appendChild(fila);
     });
