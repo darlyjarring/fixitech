@@ -1646,49 +1646,13 @@ function controlarMenuPorRol() {
 let idCompraEnEdicion = null;
 
 async function actualizarCompra() {
-    if (!idCompraEnEdicion) {
-        mostrarMensaje('❌ Error: No se ha seleccionado una compra para actualizar.', 'bg-red-500');
-        return;
-    }
-    
-    // Obtener los valores del formulario
-    const numeroFactura = document.getElementById('numeroFacturaCompra').value;
-    const fecha = document.getElementById('fechaCompra').value;
-    const productoId = document.getElementById('productoCompra').value;
-    const cantidad = parseInt(document.getElementById('cantidadCompra').value);
-    const costo = parseFloat(document.getElementById('costoCompra').value);
-    const fechaVencimiento = document.getElementById('fechaVencimientoCompra').value || '';
+    // Tu función guardarCompra ya tiene la lógica para manejar el ID de edición
+    await guardarCompra();
 
-    if (!numeroFactura || !fecha || !productoId || isNaN(cantidad) || isNaN(costo) || cantidad <= 0 || costo < 0) {
-        mostrarMensaje('⚠️ Por favor, complete todos los campos obligatorios con valores válidos.', 'bg-yellow-500');
-        return;
-    }
-
-    try {
-        const compraRef = db.collection('compras').doc(idCompraEnEdicion);
-        await compraRef.update({
-            numeroFactura,
-            fecha,
-            productoId,
-            cantidad,
-            costo,
-            fechaVencimiento
-        });
-
-        mostrarMensaje('✅ Compra actualizada exitosamente.', 'bg-green-500');
-        
-        limpiarFormularioCompra();
-        cargarCompras();
-        
-        // Restaurar el botón a su estado original
-        const btnGuardarCompra = document.getElementById('btnGuardarCompra');
-        btnGuardarCompra.textContent = '💾 Registrar Compra';
-        btnGuardarCompra.onclick = guardarCompra;
-        idCompraEnEdicion = null; // Reiniciar la variable
-    } catch (error) {
-        console.error("Error al actualizar la compra:", error);
-        mostrarMensaje('❌ Ocurrió un error al actualizar la compra.', 'bg-red-500');
-    }
+    // Al finalizar la actualización, restaura el botón a su estado original
+    const btnGuardarCompra = document.getElementById('btnGuardarCompra');
+    btnGuardarCompra.textContent = '💾 Registrar Compra';
+    btnGuardarCompra.onclick = guardarCompra; // Restaura la acción para nuevas compras
 }
 
 function limpiarFormularioCompra() {
@@ -1742,20 +1706,20 @@ async function editarCompra(id) {
         document.getElementById('productoCompra').value = compra.productoId;
         document.getElementById('cantidadCompra').value = compra.cantidad;
         document.getElementById('costoCompra').value = compra.costo;
-        document.getElementById('fechaVencimientoCompra').value = compra.fechaVencimiento || ''; // Manejo de valor nulo
-        document.getElementById('numeroFacturaCompra').value = compra.numeroFactura || ''; // Manejo de valor nulo
-        
-        // Cambia el texto del botón y guarda el ID en una variable global
+        document.getElementById('fechaVencimientoCompra').value = compra.fechaVencimiento || '';
+        document.getElementById('numeroFacturaCompra').value = compra.numeroFactura || '';
+
+        // Cambia el texto del botón y la acción que ejecuta
         const btnGuardarCompra = document.getElementById('btnGuardarCompra');
         if (btnGuardarCompra) {
             btnGuardarCompra.textContent = '📝 Actualizar Compra';
+            btnGuardarCompra.onclick = actualizarCompra; // <--- Línea CLAVE para el flujo de actualización
         }
 
         idCompraEnEdicion = id;
-        mostrarSeccion('gestionComprasSection'); // Redirecciona a la sección si no estás en ella
-
+        mostrarSeccion('gestionComprasSection');
         mostrarMensaje('✏️ Ahora puedes editar los detalles de la compra en el formulario.');
-        
+
     } catch (error) {
         console.error("Error al cargar datos para edición:", error);
         mostrarMensaje('❌ Error al cargar los datos de la compra.', 'bg-red-500');
