@@ -617,52 +617,46 @@ function mostrarSeccion(sectionId) {
 // Agrega esta línea al inicio de tu bloque de <script> para declarar la variable globalmente
 ///let usuarioActual; 
 
+ let usuarioActual; 
 
-async function login() {
-    const usuario = document.getElementById('usuario').value;
-    const password = document.getElementById('password').value;
-    const errorElement = document.getElementById('error');
-
-    try {
-        const doc = await db.collection('usuarios').doc(usuario).get();
-
-        if (doc.exists && doc.data().password === password) {
-            errorElement.classList.add('hidden');
-            usuarioActual = {
-                id: doc.id,
-                rol: doc.data().rol,
-                nombre: doc.data().nombre,
-            };
-            localStorage.setItem('usuarioActual', JSON.stringify(usuarioActual));
-
-            document.getElementById('loginSection').classList.add('hidden');
-            document.getElementById('sidebar').classList.remove('hidden');
-            document.getElementById('main-content').classList.remove('hidden');
-            document.getElementById('userNameDisplay').textContent = usuarioActual.nombre;
-            document.getElementById('userRoleDisplay').textContent = usuarioActual.rol.toUpperCase();
-            
-            document.getElementById('vendedor').value = usuarioActual.nombre;
-            document.getElementById('usuarioCompra').value = usuarioActual.nombre;
-
-            controlarMenuPorRol();
-            
-            // El superusuario y el administrador inician en el dashboard
-            if (usuarioActual.rol === 'admin' || usuarioActual.rol === 'superusuario') {
-                mostrarSeccion('dashboardSection');
-            } else { // El vendedor inicia en "Nueva Venta"
-                mostrarSeccion('nuevaVentaSection');
+        // 2. Coloca aquí tu función de inicio de sesión corregida
+        async function login() {
+            const usuario = document.getElementById('usuario').value;
+            const password = document.getElementById('password').value;
+            const errorElement = document.getElementById('error');
+            try {
+                const doc = await db.collection('usuarios').doc(usuario).get();
+                if (doc.exists && doc.data().password === password) {
+                    errorElement.classList.add('hidden');
+                    usuarioActual = {
+                        id: doc.id,
+                        rol: doc.data().rol,
+                        nombre: doc.data().nombre,
+                    };
+                    localStorage.setItem('usuarioActual', JSON.stringify(usuarioActual));
+                    document.getElementById('loginSection').classList.add('hidden');
+                    document.getElementById('sidebar').classList.remove('hidden');
+                    document.getElementById('main-content').classList.remove('hidden');
+                    document.getElementById('userNameDisplay').textContent = usuarioActual.nombre;
+                    document.getElementById('userRoleDisplay').textContent = usuarioActual.rol.toUpperCase();
+                    document.getElementById('vendedor').value = usuarioActual.nombre;
+                    document.getElementById('usuarioCompra').value = usuarioActual.nombre;
+                    controlarMenuPorRol();
+                    if (usuarioActual.rol === 'admin' || usuarioActual.rol === 'superusuario') {
+                        mostrarSeccion('dashboardSection');
+                    } else {
+                        mostrarSeccion('nuevaVentaSection');
+                    }
+                    await cargarDatosIniciales();
+                } else {
+                    errorElement.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error("Error al iniciar sesión:", error);
+                errorElement.textContent = "Error al conectar. Inténtalo de nuevo.";
+                errorElement.classList.remove('hidden');
             }
-            
-            await cargarDatosIniciales();
-        } else {
-            errorElement.classList.remove('hidden');
         }
-    } catch (error) {
-        console.error("Error al iniciar sesión:", error);
-        errorElement.textContent = "Error al conectar. Inténtalo de nuevo.";
-        errorElement.classList.remove('hidden');
-    }
-}
 
         
 
@@ -1664,7 +1658,7 @@ async function editarCompra(id) {
 
 // Actualiza tu función guardarCompra para manejar la edición
 // La variable global para el usuario que está usando la aplicación
-let usuarioActual = JSON.parse(localStorage.getItem('usuarioActual'));
+//let usuarioActual = JSON.parse(localStorage.getItem('usuarioActual'));
 
 async function guardarCompra() {
     const fechaCompra = document.getElementById('fechaCompra').value;
