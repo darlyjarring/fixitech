@@ -69,9 +69,8 @@
         <nav class="flex-grow">
             <ul>
                 <li id="menu-dashboard" class="mb-2 hidden">
-                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('dashboardSection')">
-                        <span class="mr-2">📊</span> Dashboard
-                    </a>
+                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" id="'menu-dashboard">
+                        <span class="mr-2">📊</span> Dashboard                 </a>
                 </li>
                 <li class="mb-2">
                     <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 active" onclick="iniciarNuevaVenta()">
@@ -79,27 +78,27 @@
                     </a>
                 </li>
                 <li class="mb-2">
-                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('gestionFacturasSection')">
+                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" id="menu-facturas">
                         <span class="mr-2">📋</span> Gestión de Ventas
                     </a>
                 </li>
                 <li class="mb-2">
-                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('gestionClientesSection')">
+                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" id="menu-clientes">
                         <span class="mr-2">🧑‍🤝‍🧑</span> Gestión de Clientes
                     </a>
                 </li>
                 <li id="menu-productos" class="mb-2 hidden">
-                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('gestionProductosSection')">
+                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" id="menu-productos')">
                         <span class="mr-2">📦</span> Productos y Servicios
                     </a>
                 </li>
                 <li id="menu-compras" class="mb-2 hidden">
-                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('gestionComprasSection')">
+                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" id="'menu-compras">
                         <span class="mr-2">🛒</span> Gestión de Compras
                     </a>
                 </li>
                  <li id="menu-consulta-productos" class="mb-2 hidden">
-                <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('consultaProductosSection')">
+                <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" id="menu-consulta-productos">
                     <span class="mr-2">🔍</span> Consulta de Productos
                 </a>
                 </li>
@@ -1899,6 +1898,34 @@ async function guardarCompra() {
                 sugerenciasUl.classList.add('hidden');
             }
         });
+
+    // Lógica para mostrar las secciones al hacer clic en el menú
+    document.getElementById('menu-dashboard').addEventListener('click', () => {
+        mostrarSeccion('dashboardSection');
+    });
+    document.getElementById('menu-nueva-venta').addEventListener('click', () => {
+        mostrarSeccion('nuevaVentaSection');
+    });
+    document.getElementById('menu-facturas').addEventListener('click', () => {
+        mostrarSeccion('gestionFacturasSection');
+    });
+    document.getElementById('menu-clientes').addEventListener('click', () => {
+        mostrarSeccion('gestionClientesSection');
+    });
+    document.getElementById('menu-productos').addEventListener('click', () => {
+        mostrarSeccion('gestionProductosSection');
+    });
+    document.getElementById('menu-compras').addEventListener('click', () => {
+        mostrarSeccion('gestionComprasSection');
+    });
+    document.getElementById('menu-consulta-productos').addEventListener('click', () => {
+        mostrarSeccion('consultaProductosSection');
+    });
+    document.getElementById('menu-usuarios').addEventListener('click', () => {
+        mostrarSeccion('gestionUsuariosSection');
+    });
+
+    
 });
     </script>
 </body>
