@@ -96,6 +96,11 @@
                         <span class="mr-2">🛒</span> Gestión de Compras
                     </a>
                 </li>
+                 <li id="menu-consulta-productos" class="mb-2 hidden">
+                <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('consultaProductosSection')">
+                    <span class="mr-2">🔍</span> Consulta de Productos
+                </a>
+                </li>
             </ul>
         </nav>
         <div class="mt-auto text-center text-gray-400 text-sm">
@@ -181,6 +186,7 @@
                             + Agregar Ítem
                         </button>
                     </div>
+                    
                 </div>
             </form>
 
@@ -427,6 +433,37 @@
                         </tbody>
                 </table>
             </div>
+        </div>
+
+        <div id="main-content" class="main-content flex-grow p-8 hidden">
+        
+    <div id="gestionComprasSection" class="hidden bg-white rounded-lg shadow-md p-6">
+        </div>
+    
+            <div id="consultaProductosSection" class="hidden bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Consulta de Stock y Vencimiento</h2>
+                <div class="mb-4">
+                    <input type="text" id="filtroProducto" placeholder="Buscar producto por nombre..." class="w-full p-2 border rounded-md">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock Disponible</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Última Fecha de Vencimiento</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaProductosConsultaTableBody" class="bg-white divide-y divide-gray-200">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="loteModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+                </div>
+            
         </div>
 
         <div id="gestionComprasSection" class="hidden bg-white rounded-lg shadow-md p-6">
@@ -1261,6 +1298,7 @@ let clienteEnEdicionId = null;
                 `;
             });
         }
+        
         function toggleStockInput() {
             const tipo = document.getElementById('tipoProducto').value;
             const stockDiv = document.getElementById('stockInputDiv');
@@ -1356,6 +1394,116 @@ let clienteEnEdicionId = null;
             document.getElementById('guardarProductoBtn').textContent = '💾 Guardar Producto/Servicio';
             document.getElementById('nombreProducto').focus();
         }
+
+
+        // Función para renderizar la tabla de consulta de productos
+function renderizarProductosConsulta(productos) {
+    const tableBody = document.getElementById('listaProductosConsultaTableBody');
+    tableBody.innerHTML = '';
+    
+    productos.forEach(producto => {
+        // Encontrar la fecha de vencimiento más lejana para este producto
+        const comprasDelProducto = todasLasCompras.filter(c => c.productoId === producto.id);
+        
+        let fechaVencimientoMasLejana = 'N/A';
+        if (comprasDelProducto.length > 0) {
+            // Ordena las compras por fecha de vencimiento y toma la última
+            comprasDelProducto.sort((a, b) => new Date(a.fechaVencimiento) - new Date(b.fechaVencimiento));
+            const ultimaCompra = comprasDelProducto[comprasDelProducto.length - 1];
+            fechaVencimientoMasLejana = ultimaCompra.fechaVencimiento;
+        }
+
+        tableBody.innerHTML += `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">${producto.nombre}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${producto.stock || 0}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${fechaVencimientoMasLejana}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <button onclick="verDetallesLote('${producto.id}', '${producto.nombre}')" class="text-blue-600 hover:text-blue-900 font-bold">Ver Lotes</button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+        // Función para abrir el modal y mostrar los detalles del lote
+function verDetallesLote(productoId, nombreProducto) {
+    const loteModal = document.getElementById('loteModal');
+    const loteDetallesTableBody = document.getElementById('loteDetallesTableBody');
+    const loteProductoNombre = document.getElementById('loteProductoNombre');
+
+    loteProductoNombre.textContent = `Producto: ${nombreProducto}`;
+    loteDetallesTableBody.innerHTML = '';
+
+    const comprasDelProducto = todasLasCompras.filter(c => c.productoId === productoId);
+    
+    if (comprasDelProducto.length > 0) {
+        comprasDelProducto.forEach(compra => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">${compra.numeroFactura || 'N/A'}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${compra.cantidad || 0}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${compra.fechaVencimiento || 'N/A'}</td>
+            `;
+            loteDetallesTableBody.appendChild(row);
+        });
+    } else {
+        loteDetallesTableBody.innerHTML = `<tr><td colspan="3" class="px-6 py-4 text-center">No se encontraron lotes para este producto.</td></tr>`;
+    }
+
+    loteModal.classList.remove('hidden');
+}
+
+// Event listener para el botón de cerrar el modal
+document.getElementById('cerrarLoteModal').addEventListener('click', () => {
+    document.getElementById('loteModal').classList.add('hidden');
+});
+
+// Event listener para la búsqueda en la tabla de productos
+document.getElementById('filtroProducto').addEventListener('input', (e) => {
+    const searchText = e.target.value.toLowerCase();
+    const productosFiltrados = todosLosProductosYServicios.filter(p => p.nombre.toLowerCase().includes(searchText));
+    renderizarProductosConsulta(productosFiltrados);
+});
+
+// Asegúrate de llamar a esta función al inicio de la carga de la página
+// para que el rol de vendedor pueda ver la opción.
+function controlarMenuPorRol() {
+    const menuItemsAdmin = ['menu-dashboard', 'menu-facturas', 'menu-clientes', 'menu-productos', 'menu-compras', 'menu-usuarios'];
+    const menuItemsVendedor = ['menu-nueva-venta', 'menu-facturas', 'menu-consulta-productos'];
+
+    if (usuarioActual.rol === 'superusuario') {
+        menuItemsAdmin.concat(menuItemsVendedor).forEach(itemId => {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.remove('hidden');
+            }
+        });
+        return;
+    }
+    
+    if (usuarioActual.rol === 'admin') {
+        menuItemsAdmin.forEach(itemId => {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.remove('hidden');
+            }
+        });
+    } else { // Vendedor
+        menuItemsAdmin.forEach(itemId => {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.add('hidden');
+            }
+        });
+        menuItemsVendedor.forEach(itemId => {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.remove('hidden');
+            }
+        });
+    }
+}
 
         // ---------------------------------------------
         // FUNCIONES DE GESTIÓN DE COMPRAS
