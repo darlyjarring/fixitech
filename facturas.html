@@ -871,38 +871,36 @@ function controlarMenuPorRol() {
 function renderizarFacturas(facturas) {
     const tableBody = document.getElementById('listaFacturasTableBody');
     tableBody.innerHTML = '';
+    
     facturas.forEach(factura => {
-        const data = factura.data();
         const fila = document.createElement('tr');
         fila.classList.add("hover:bg-gray-50");
+        
+        // Accede a los datos directamente sin .data()
         fila.innerHTML = `
-            <td class="px-3 py-2 border-b border-gray-200">${data.numeroFactura || factura.id}</td>
-            <td class="px-3 py-2 border-b border-gray-200">${data.nombreCliente}</td>
-            <td class="px-3 py-2 border-b border-gray-200 text-right">$${data.total.toFixed(2)}</td>
-            <td class="px-3 py-2 border-b border-gray-200">${data.vendedor}</td>
-            <td class="px-3 py-2 border-b border-gray-200">${data.estado}</td>
-            <td class="px-3 py-2 border-b border-gray-200">${new Date(data.fecha.seconds * 1000).toLocaleDateString()}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${factura.numeroFactura || factura.id}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${factura.nombreCliente}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-right">$${factura.total.toFixed(2)}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${factura.vendedor}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${factura.estado}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${new Date(factura.fecha.seconds * 1000).toLocaleDateString()}</td>
         `;
 
-        // Crea la celda de acciones por separado para aplicar la lógica condicional
         const accionesCell = document.createElement('td');
         accionesCell.classList.add("px-3", "py-2", "border-b", "border-gray-200", "text-center");
         
-        // El botón de editar/visualizar es para todos los roles
         const btnVisualizar = document.createElement('button');
         btnVisualizar.textContent = '🔍';
         btnVisualizar.classList.add("text-blue-500", "hover:text-blue-700", "font-bold", "px-1");
         btnVisualizar.onclick = () => verDetalleFactura(factura.id);
         accionesCell.appendChild(btnVisualizar);
 
-        // El botón de imprimir es para todos los roles
         const btnImprimir = document.createElement('button');
         btnImprimir.textContent = '🖨️';
         btnImprimir.classList.add("text-green-500", "hover:text-green-700", "font-bold", "px-1");
         btnImprimir.onclick = () => imprimirFactura(factura.id);
         accionesCell.appendChild(btnImprimir);
         
-        // El botón de eliminar solo se muestra para superusuarios y administradores
         if (usuarioActual.rol === 'superusuario' || usuarioActual.rol === 'admin') {
             const btnEliminar = document.createElement('button');
             btnEliminar.textContent = '🗑️';
