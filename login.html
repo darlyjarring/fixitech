@@ -1,40 +1,1309 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Login - Fixitech</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Facturación y Compras</title>
     <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
-    <div class="bg-white p-8 rounded shadow-md w-full max-w-sm">
-        <h2 class="text-2xl font-bold mb-4 text-center">Login Fixitech</h2>
-        <input type="text" id="usuario" placeholder="Usuario" class="w-full mb-3 p-2 border rounded" />
-        <input type="password" id="password" placeholder="Contraseña" class="w-full mb-4 p-2 border rounded" />
-        <button onclick="login()" class="w-full bg-teal-600 text-white py-2 rounded hover:bg-teal-700">Ingresar</button>
-        <p id="error" class="text-red-600 mt-4 text-center hidden">Credenciales incorrectas</p>
-    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
+    <style>
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+        .sidebar {
+            width: 250px;
+        }
+        .main-content {
+            margin-left: 250px;
+        }
+        .menu-item.active {
+            background-color: #3f83f8;
+            color: white;
+        }
+        .expiring-soon {
+            background-color: #fbd38d;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .printable-content, .printable-content * {
+                visibility: visible;
+            }
+            .printable-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex min-h-screen">
+
+    <div id="loginSection" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+            <h2 class="text-3xl font-bold text-center text-teal-600 mb-6">Iniciar Sesión Fixitech</h2>
+            <p id="error" class="text-red-600 mt-4 text-center hidden">Credenciales incorrectas</p>
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label for="usuario" class="block text-gray-700 font-medium mb-2">Usuario:</label>
+                    <input type="text" id="usuario" name="usuario" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Ej: admin" required>
+                </div>
+                 <div class="mb-4">
+                    <label for="password" class="block text-gray-700 font-medium mb-2">Contraseña:</label>
+                    <input type="password" id="password" name="password" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Contraseña" required>
+                </div>
+                <button type="button" onclick="login()" class="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 transition duration-300">Ingresar</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="sidebar" class="sidebar bg-gray-800 text-white flex-shrink-0 fixed h-full p-4 flex flex-col hidden">
+        <h1 class="text-2xl font-bold mb-6 text-center text-teal-400">Sistema de Venta</h1>
+        <nav class="flex-grow">
+            <ul>
+                <li id="menu-dashboard" class="mb-2 hidden">
+                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('dashboardSection')">
+                        <span class="mr-2">📊</span> Dashboard
+                    </a>
+                </li>
+                <li class="mb-2">
+                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 active" onclick="iniciarNuevaVenta()">
+                        <span class="mr-2">💰</span> Nueva Venta
+                    </a>
+                </li>
+                <li class="mb-2">
+                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('gestionFacturasSection')">
+                        <span class="mr-2">📋</span> Gestión de Ventas
+                    </a>
+                </li>
+                <li class="mb-2">
+                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('gestionClientesSection')">
+                        <span class="mr-2">🧑‍🤝‍🧑</span> Gestión de Clientes
+                    </a>
+                </li>
+                <li id="menu-productos" class="mb-2 hidden">
+                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('gestionProductosSection')">
+                        <span class="mr-2">📦</span> Productos y Servicios
+                    </a>
+                </li>
+                <li id="menu-compras" class="mb-2 hidden">
+                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('gestionComprasSection')">
+                        <span class="mr-2">🛒</span> Gestión de Compras
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <div class="mt-auto text-center text-gray-400 text-sm">
+            <p>Bienvenido, <span id="userNameDisplay" class="font-bold"></span></p>
+            <p>Rol: <span id="userRoleDisplay" class="font-bold"></span></p>
+            <button class="mt-2 text-red-400 hover:text-red-300" onclick="logout()">Cerrar Sesión</button>
+        </div>
+    </div>
+
+    <div id="main-content" class="main-content flex-grow p-8 hidden">
+        
+        <div id="dashboardSection" class="hidden bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-3xl font-semibold mb-6 text-gray-800">Dashboard de Gerencia 📊</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-blue-100 p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-bold text-blue-800 mb-4">Productos con Mayor Stock 📦</h3>
+                    <ul id="topStockProductsList" class="space-y-2 text-gray-700">
+                        <li>Cargando...</li>
+                    </ul>
+                </div>
+                <div class="bg-yellow-100 p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-bold text-yellow-800 mb-4">Productos por Vencer ⏳</h3>
+                    <ul id="expiringProductsList" class="space-y-2 text-gray-700">
+                        <li>Cargando...</li>
+                    </ul>
+                </div>
+                <div class="bg-green-100 p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-bold text-green-800 mb-4">Productos Más Vendidos 📈</h3>
+                    <ul id="topSellingProductsList" class="space-y-2 text-gray-700">
+                        <li>Cargando...</li>
+                    </ul>
+                </div>
+                <div class="bg-purple-100 p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-bold text-purple-800 mb-4">Vendedores con Más Ventas 🏆</h3>
+                    <ul id="topSellingUsersList" class="space-y-2 text-gray-700">
+                        <li>Cargando...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="nuevaVentaSection" class="bg-white rounded-lg shadow-md p-6">
+            <h2 id="formFacturaTitle" class="text-2xl font-semibold mb-6 text-gray-800">Datos del Cliente y Nueva Venta</h2>
+            
+            <form id="formFactura" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-b pb-4 mb-4">
+                    <div class="relative">
+                        <label for="cedulaCliente" class="block text-sm font-medium text-gray-700">Cédula</label>
+                        <input type="text" id="cedulaCliente" placeholder="Cédula del Cliente" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500" onblur="buscarClientePorCedula()">
+                    </div>
+                    <div class="relative">
+                        <label for="nombreCliente" class="block text-sm font-medium text-gray-700">Nombre</label>
+                        <input type="text" id="nombreCliente" placeholder="Nombre Completo del Cliente" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                        <button type="button" onclick="guardarClienteDesdeFactura()" class="absolute right-2 top-8 text-sm bg-gray-200 hover:bg-gray-300 p-1 rounded-md" title="Guardar este cliente">💾</button>
+                    </div>
+                    <div>
+                        <label for="telefono" class="block text-sm font-medium text-gray-700">Teléfono</label>
+                        <input type="text" id="telefono" placeholder="Número de Teléfono" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                    <div>
+                        <label for="direccion" class="block text-sm font-medium text-gray-700">Dirección</label>
+                        <input type="text" id="direccion" placeholder="Dirección del Cliente" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="md:col-span-1 relative">
+                        <label for="descripcion" class="block text-sm font-medium text-gray-700">Descripción</label>
+                        <input type="text" id="descripcion" placeholder="Descripción del Artículo/Servicio" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500" />
+                        <ul id="sugerencias" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></ul>
+                    </div>
+                    <div class="md:col-span-1">
+                        <label for="cantidad" class="block text-sm font-medium text-gray-700">Cantidad</label>
+                        <input type="number" id="cantidad" value="1" min="1" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                    <div class="md:col-span-1">
+                        <label for="precio" class="block text-sm font-medium text-gray-700">Precio Unitario</label>
+                        <input type="number" id="precio" placeholder="Precio" step="0.01" min="0" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                    <div class="md:col-span-1 flex items-end">
+                        <button type="button" onclick="agregarItem()" class="w-full bg-teal-500 text-white font-bold py-2 px-4 rounded-md hover:bg-teal-600 transition duration-200">
+                            + Agregar Ítem
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="mt-8">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Ítems de la Venta</h3>
+                <div class="bg-gray-50 rounded-lg overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-200">
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad</th>
+                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Precio Unitario</th>
+                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
+                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaItems" class="bg-white divide-y divide-gray-200">
+                            </tbody>
+                        <tfoot>
+                            <tr class="bg-gray-100">
+                                <td colspan="3" class="px-3 py-2 text-right font-bold text-lg text-gray-800">Total:</td>
+                                <td colspan="2" class="px-3 py-2 text-right font-bold text-lg text-gray-800" id="total">$0.00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label for="fechaIngreso" class="block text-sm font-medium text-gray-700">Fecha de Ingreso</label>
+                    <input type="date" id="fechaIngreso" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label for="fechaEntrega" class="block text-sm font-medium text-gray-700">Fecha de Entrega</label>
+                    <input type="date" id="fechaEntrega" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label for="estado" class="block text-sm font-medium text-gray-700">Estado</label>
+                    <select id="estado" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                        <option value="En espera">En espera</option>
+                        <option value="Facturado">Facturado</option>
+                        <option value="Entregado">Entregado</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="vendedor" class="block text-sm font-medium text-gray-700">Vendedor</label>
+                    <input type="text" id="vendedor" class="mt-1 p-2 block w-full border border-gray-300 rounded-md bg-gray-200" readonly>
+                </div>
+            </div>
+            
+            <div class="flex justify-end space-x-4 mt-8">
+                <button type="button" onclick="mostrarFactura()" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600 transition duration-200">
+                    🔍 Previsualizar
+                </button>
+                <button type="button" id="guardarFacturaBtn" onclick="guardarFactura()" class="bg-green-500 text-white font-bold py-2 px-4 rounded-md hover:bg-green-600 transition duration-200">
+                    💾 Guardar Venta
+                </button>
+            </div>
+        </div>
+
+        <div id="gestionFacturasSection" class="hidden bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-800">Gestión de Ventas</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div>
+                    <label for="filtroVentasAnio" class="block text-sm font-medium text-gray-700">Año</label>
+                    <select id="filtroVentasAnio" onchange="filtrarFacturas()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filtroVentasMes" class="block text-sm font-medium text-gray-700">Mes</label>
+                    <select id="filtroVentasMes" onchange="filtrarFacturas()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+                        <option value="">Todos</option>
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filtroVentasHoraInicial" class="block text-sm font-medium text-gray-700">Hora Inicial</label>
+                    <input type="time" id="filtroVentasHoraInicial" onchange="filtrarFacturas()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label for="filtroVentasHoraFinal" class="block text-sm font-medium text-gray-700">Hora Final</label>
+                    <input type="time" id="filtroVentasHoraFinal" onchange="filtrarFacturas()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+                </div>
+            </div>
+
+            <div class="bg-gray-50 rounded-lg overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Factura</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                            <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendedor</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaFacturasTableBody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="gestionClientesSection" class="hidden bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-800">Gestión de Clientes</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="filtroClienteNombre" class="block text-sm font-medium text-gray-700">Buscar por Nombre o Cédula</label>
+                    <input type="text" id="filtroClienteNombre" oninput="filtrarClientes()" placeholder="Ej: Ana López" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                </div>
+            </div>
+
+            <div class="bg-gray-50 rounded-lg overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cédula</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dirección</th>
+                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaClientesTableBody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="gestionProductosSection" class="hidden bg-white rounded-lg shadow-md p-6">
+            <h2 id="formProductoServicioTitle" class="text-2xl font-semibold mb-6 text-gray-800">Gestión de Productos y Servicios</h2>
+            
+            <form id="formProductoServicio" class="space-y-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div>
+                        <label for="nombreProducto" class="block text-sm font-medium text-gray-700">Nombre</label>
+                        <input type="text" id="nombreProducto" placeholder="Nombre del Producto/Servicio" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                    <div>
+                        <label for="tipoProducto" class="block text-sm font-medium text-gray-700">Tipo</label>
+                        <select id="tipoProducto" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500" onchange="toggleStockInput()">
+                            <option value="producto">Producto</option>
+                            <option value="servicio">Servicio</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="precioProducto" class="block text-sm font-medium text-gray-700">Precio de Venta</label>
+                        <input type="number" id="precioProducto" placeholder="Precio" step="0.01" min="0" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                    <div id="stockInputDiv">
+                        <label for="stockProducto" class="block text-sm font-medium text-gray-700">Stock Inicial</label>
+                        <input type="number" id="stockProducto" value="0" min="0" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                    <div>
+                        <label for="fechaVencimientoProducto" class="block text-sm font-medium text-gray-700">Fecha de Vencimiento</label>
+                        <input type="date" id="fechaVencimientoProducto" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" id="guardarProductoBtn" onclick="guardarProductoServicio()" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600 transition duration-200">
+                        💾 Guardar Producto/Servicio
+                    </button>
+                </div>
+            </form>
+
+            <div class="bg-gray-50 rounded-lg overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                            <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
+                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vencimiento</th>
+                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaProductosTableBody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="gestionComprasSection" class="hidden bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-800">Gestión de Compras</h2>
+            
+            <form id="formCompra" class="space-y-4 mb-6">
+                <h3 class="text-xl font-semibold mb-2">Registrar Nueva Compra</h3>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div>
+                        <label for="fechaCompra" class="block text-sm font-medium text-gray-700">Fecha</label>
+                        <input type="date" id="fechaCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                    <div>
+                        <label for="productoCompra" class="block text-sm font-medium text-gray-700">Producto</label>
+                        <select id="productoCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                            </select>
+                    </div>
+                    <div>
+                        <label for="cantidadCompra" class="block text-sm font-medium text-gray-700">Cantidad</label>
+                        <input type="number" id="cantidadCompra" value="1" min="1" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                    <div>
+                        <label for="costoCompra" class="block text-sm font-medium text-gray-700">Costo Unitario</label>
+                        <input type="number" id="costoCompra" placeholder="Costo" step="0.01" min="0" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                    <div>
+                        <label for="fechaVencimientoCompra" class="block text-sm font-medium text-gray-700">Fecha de Vencimiento del Lote</label>
+                        <input type="date" id="fechaVencimientoCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="usuarioCompra" class="block text-sm font-medium text-gray-700">Registrado por</label>
+                        <input type="text" id="usuarioCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md bg-gray-200" readonly>
+                    </div>
+                    <div class="flex items-end justify-end">
+                        <button type="button" onclick="guardarCompra()" class="bg-green-500 text-white font-bold py-2 px-4 rounded-md hover:bg-green-600 transition duration-200">
+                            💾 Registrar Compra
+                        </button>
+                    </div>
+                </div>
+            </form>
+            
+            <h3 class="text-xl font-semibold mb-4">Historial de Compras</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                <div>
+                    <label for="filtroComprasAnio" class="block text-sm font-medium text-gray-700">Año</label>
+                    <select id="filtroComprasAnio" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filtroComprasMes" class="block text-sm font-medium text-gray-700">Mes</label>
+                    <select id="filtroComprasMes" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                        <option value="">Todos</option>
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filtroComprasDia" class="block text-sm font-medium text-gray-700">Día</label>
+                    <input type="number" id="filtroComprasDia" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label for="filtroComprasHoraInicial" class="block text-sm font-medium text-gray-700">Hora Inicial</label>
+                    <input type="time" id="filtroComprasHoraInicial" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label for="filtroComprasHoraFinal" class="block text-sm font-medium text-gray-700">Hora Final</label>
+                    <input type="time" id="filtroComprasHoraFinal" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+                </div>
+            </div>
+
+            <div class="bg-gray-50 rounded-lg overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
+                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad</th>
+                            <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Costo Unit.</th>
+                            <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Factura</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaComprasTableBody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    <tfoot id="comprasSummaryFooter">
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    
     <script src="firebase.js"></script>
     <script>
+        const db = firebase.firestore();
+        let items = [];
+        let todasLasFacturas = [];
+        let facturaEnEdicionId = null;
+        let todaLaInformacionFacturaEnEdicion = null;
+        let todosLosClientes = [];
+        let todosLosProductosYServicios = [];
+        let productoServicioEnEdicionId = null;
+        let todasLasCompras = [];
+        let currentLoggedInUser = null;
+
+        window.onload = async () => {
+            // Se puede llamar a login() si ya se han guardado las credenciales
+        };
+
+        function mostrarSeccion(sectionId) {
+            const secciones = ['dashboardSection', 'nuevaVentaSection', 'gestionFacturasSection', 'gestionClientesSection', 'gestionProductosSection', 'gestionComprasSection'];
+            secciones.forEach(id => {
+                const seccion = document.getElementById(id);
+                if (seccion) { // <-- Aquí está la corrección principal
+                    seccion.classList.add('hidden');
+                }
+            });
+            const seccionAMostrar = document.getElementById(sectionId);
+            if (seccionAMostrar) { // <-- Y aquí también
+                seccionAMostrar.classList.remove('hidden');
+            }
+        }
+
+        function iniciarNuevaVenta() {
+            mostrarSeccion('nuevaVentaSection');
+            limpiarFormularioFactura();
+        }
+
         async function login() {
             const usuario = document.getElementById('usuario').value;
             const password = document.getElementById('password').value;
-            const db = firebase.firestore();
+            const errorElement = document.getElementById('error');
             const doc = await db.collection('usuarios').doc(usuario).get();
-            
+
             if (doc.exists && doc.data().password === password) {
-                const userRole = doc.data().rol;
-                const userName = doc.data().nombre; // Asume que tienes un campo 'nombre'
-                localStorage.setItem('usuario', usuario);
-                localStorage.setItem('nombreUsuario', userName);
-                localStorage.setItem('rolUsuario', userRole);
-                window.location.href = 'facturas.html';
+                errorElement.classList.add('hidden');
+                currentLoggedInUser = {
+                    username: usuario,
+                    rol: doc.data().rol,
+                    nombre: doc.data().nombre,
+                };
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('sidebar').classList.remove('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+                
+                if (currentLoggedInUser.rol === 'admin') {
+                    document.getElementById('menu-dashboard').classList.remove('hidden');
+                    document.getElementById('menu-productos').classList.remove('hidden');
+                    document.getElementById('menu-compras').classList.remove('hidden');
+                    mostrarSeccion('dashboardSection');
+                } else {
+                    mostrarSeccion('nuevaVentaSection');
+                }
+
+                document.getElementById('userNameDisplay').textContent = currentLoggedInUser.nombre;
+                document.getElementById('userRoleDisplay').textContent = currentLoggedInUser.rol.toUpperCase();
+                document.getElementById('vendedor').value = currentLoggedInUser.nombre;
+                document.getElementById('usuarioCompra').value = currentLoggedInUser.nombre;
+                
+                await cargarDatosIniciales();
             } else {
-                document.getElementById('error').classList.remove('hidden');
+                errorElement.classList.remove('hidden');
             }
         }
+
+        function logout() {
+            currentLoggedInUser = null;
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('sidebar').classList.add('hidden');
+            document.getElementById('main-content').classList.add('hidden');
+            
+            document.getElementById('formFactura').reset();
+            document.getElementById('formCompra').reset();
+            document.getElementById('formProductoServicio').reset();
+            
+            items = [];
+            document.getElementById('tablaItems').innerHTML = '';
+            actualizarTotal();
+        }
+
+        function mostrarMensaje(texto, color = 'bg-green-600') {
+            const mensaje = document.createElement('div');
+            mensaje.textContent = texto;
+            mensaje.className = `fixed top-5 right-5 ${color} text-white px-4 py-2 rounded shadow-lg z-50`;
+            document.body.appendChild(mensaje);
+            setTimeout(() => mensaje.remove(), 3000);
+        }
+
+        // ---------------------------------------------
+        // FUNCIONES DE GESTIÓN DE VENTAS Y FACTURAS
+        // ---------------------------------------------
+
+        function agregarItem() {
+            const descripcion = document.getElementById('descripcion').value;
+            const cantidad = parseFloat(document.getElementById('cantidad').value);
+            const precio = parseFloat(document.getElementById('precio').value);
+
+            if (descripcion && !isNaN(cantidad) && cantidad > 0 && !isNaN(precio) && precio >= 0) {
+                const subtotal = cantidad * precio;
+                items.push({ descripcion, cantidad, precio, subtotal });
+                renderizarItems();
+                document.getElementById('descripcion').value = '';
+                document.getElementById('cantidad').value = '1';
+                document.getElementById('precio').value = '';
+                document.getElementById('descripcion').focus();
+            } else {
+                mostrarMensaje('Por favor, completa todos los campos del ítem correctamente.', 'bg-red-500');
+            }
+        }
+
+        function eliminarItem(index) {
+            items.splice(index, 1);
+            renderizarItems();
+        }
+
+        function renderizarItems() {
+            const tablaItems = document.getElementById('tablaItems');
+            tablaItems.innerHTML = '';
+            items.forEach((item, index) => {
+                const row = `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${item.descripcion}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">${item.cantidad}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.precio.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.subtotal.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button type="button" onclick="eliminarItem(${index})" class="text-red-500 hover:text-red-700">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tablaItems.innerHTML += row;
+            });
+            actualizarTotal();
+        }
+
+        function actualizarTotal() {
+            const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+            document.getElementById('total').textContent = `$${total.toFixed(2)}`;
+        }
+
+        async function guardarFactura() {
+            const cedulaCliente = document.getElementById('cedulaCliente').value;
+            const nombreCliente = document.getElementById('nombreCliente').value;
+            const telefono = document.getElementById('telefono').value;
+            const direccion = document.getElementById('direccion').value;
+            const fechaIngreso = document.getElementById('fechaIngreso').value;
+            const fechaEntrega = document.getElementById('fechaEntrega').value;
+            const estado = document.getElementById('estado').value;
+            const vendedor = document.getElementById('vendedor').value;
+            const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+
+            if (!cedulaCliente || !nombreCliente || items.length === 0) {
+                mostrarMensaje('❌ Por favor, complete la información del cliente y agregue al menos un ítem.', 'bg-red-500');
+                return;
+            }
+
+            try {
+                const facturaData = {
+                    cedulaCliente,
+                    nombreCliente,
+                    telefono,
+                    direccion,
+                    fechaIngreso,
+                    fechaEntrega,
+                    estado,
+                    vendedor,
+                    items,
+                    total,
+                    fechaCreacion: new Date()
+                };
+
+                if (facturaEnEdicionId) {
+                    await db.collection('facturas').doc(facturaEnEdicionId).update(facturaData);
+                    mostrarMensaje('✅ Factura actualizada con éxito.');
+                } else {
+                    await db.collection('facturas').add(facturaData);
+                    mostrarMensaje('✅ Venta guardada con éxito.');
+                }
+                
+                limpiarFormularioFactura();
+                cargarFacturas();
+                cargarDashboardData();
+
+            } catch (error) {
+                console.error("Error al guardar la factura:", error);
+                mostrarMensaje('❌ Ocurrió un error al intentar guardar la venta.', 'bg-red-500');
+            }
+        }
+
+        async function cargarFacturas() {
+            try {
+                const snapshot = await db.collection('facturas').orderBy('fechaCreacion', 'desc').get();
+                todasLasFacturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                filtrarFacturas();
+            } catch (error) {
+                console.error("Error al cargar las facturas:", error);
+            }
+        }
+
+        function filtrarFacturas() {
+            const filtroAnio = document.getElementById('filtroVentasAnio').value;
+            const filtroMes = document.getElementById('filtroVentasMes').value;
+            const filtroHoraInicial = document.getElementById('filtroVentasHoraInicial').value;
+            const filtroHoraFinal = document.getElementById('filtroVentasHoraFinal').value;
+            
+            let facturasFiltradas = todasLasFacturas;
+
+            if (filtroAnio) {
+                facturasFiltradas = facturasFiltradas.filter(factura => {
+                    const fecha = factura.fechaCreacion.toDate();
+                    return fecha.getFullYear() === parseInt(filtroAnio);
+                });
+            }
+            
+            if (filtroMes) {
+                facturasFiltradas = facturasFiltradas.filter(factura => {
+                    const fecha = factura.fechaCreacion.toDate();
+                    return (fecha.getMonth() + 1) === parseInt(filtroMes);
+                });
+            }
+
+            if (filtroHoraInicial && filtroHoraFinal) {
+                facturasFiltradas = facturasFiltradas.filter(factura => {
+                    const fecha = factura.fechaCreacion.toDate();
+                    const hora = fecha.getHours().toString().padStart(2, '0');
+                    const minutos = fecha.getMinutes().toString().padStart(2, '0');
+                    const horaFactura = `${hora}:${minutos}`;
+                    return horaFactura >= filtroHoraInicial && horaFactura <= filtroHoraFinal;
+                });
+            }
+
+            renderizarFacturas(facturasFiltradas);
+        }
+
+        function renderizarFacturas(facturas) {
+            const tableBody = document.getElementById('listaFacturasTableBody');
+            tableBody.innerHTML = '';
+            facturas.forEach(factura => {
+                const fecha = factura.fechaCreacion.toDate().toLocaleDateString();
+                const hora = factura.fechaCreacion.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                tableBody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">#${factura.id.slice(0, 5)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${factura.nombreCliente}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${factura.total.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${factura.vendedor}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${factura.estado}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${fecha} ${hora}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button onclick="editarFactura('${factura.id}')" class="text-blue-500 hover:text-blue-700 mx-1" title="Editar">
+                                ✏️
+                            </button>
+                            <button onclick="eliminarFactura('${factura.id}')" class="text-red-500 hover:text-red-700 mx-1" title="Eliminar">
+                                🗑️
+                            </button>
+                            <button onclick="imprimirFactura('${factura.id}')" class="text-green-500 hover:text-green-700 mx-1" title="Imprimir">
+                                🖨️
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function editarFactura(facturaId) {
+            const facturaDoc = await db.collection('facturas').doc(facturaId).get();
+            if (facturaDoc.exists) {
+                const facturaData = facturaDoc.data();
+                facturaEnEdicionId = facturaId;
+                todaLaInformacionFacturaEnEdicion = facturaData;
+
+                document.getElementById('formFacturaTitle').textContent = `Editar Venta #${facturaId.slice(0, 5)}`;
+                document.getElementById('guardarFacturaBtn').textContent = '💾 Actualizar Venta';
+                
+                document.getElementById('cedulaCliente').value = facturaData.cedulaCliente || '';
+                document.getElementById('nombreCliente').value = facturaData.nombreCliente || '';
+                document.getElementById('telefono').value = facturaData.telefono || '';
+                document.getElementById('direccion').value = facturaData.direccion || '';
+                document.getElementById('fechaIngreso').value = facturaData.fechaIngreso || '';
+                document.getElementById('fechaEntrega').value = facturaData.fechaEntrega || '';
+                document.getElementById('estado').value = facturaData.estado || 'En espera';
+                document.getElementById('vendedor').value = facturaData.vendedor || currentLoggedInUser.nombre;
+
+                items = facturaData.items || [];
+                renderizarItems();
+                
+                mostrarSeccion('nuevaVentaSection');
+                mostrarMensaje('Cargando venta para edición...');
+            }
+        }
+
+        async function eliminarFactura(facturaId) {
+            if (confirm('¿Estás seguro de que quieres eliminar esta factura? Esta acción no se puede deshacer.')) {
+                try {
+                    await db.collection('facturas').doc(facturaId).delete();
+                    mostrarMensaje('✅ Factura eliminada con éxito.');
+                    cargarFacturas();
+                    cargarDashboardData();
+                } catch (error) {
+                    console.error("Error al eliminar la factura:", error);
+                    mostrarMensaje('❌ Ocurrió un error al eliminar la factura.', 'bg-red-500');
+                }
+            }
+        }
+
+        async function imprimirFactura(facturaId) {
+            const facturaDoc = await db.collection('facturas').doc(facturaId).get();
+            if (!facturaDoc.exists) {
+                alert('Factura no encontrada.');
+                return;
+            }
+
+            const data = facturaDoc.data();
+            const jsPDF = window.jspdf.jsPDF;
+            const doc = new jsPDF();
+            
+            doc.text(`Factura #${facturaId.slice(0, 5)}`, 14, 20);
+            doc.text(`Cliente: ${data.nombreCliente}`, 14, 30);
+            doc.text(`Cédula: ${data.cedulaCliente}`, 14, 40);
+            doc.text(`Fecha: ${data.fechaCreacion.toDate().toLocaleDateString()}`, 14, 50);
+            doc.text(`Vendedor: ${data.vendedor}`, 14, 60);
+
+            const tableData = data.items.map(item => [
+                item.descripcion,
+                item.cantidad,
+                `$${item.precio.toFixed(2)}`,
+                `$${item.subtotal.toFixed(2)}`
+            ]);
+
+            doc.autoTable({
+                startY: 70,
+                head: [['Descripción', 'Cantidad', 'Precio Unitario', 'Subtotal']],
+                body: tableData,
+                foot: [['', '', 'TOTAL:', `$${data.total.toFixed(2)}`]],
+                theme: 'striped',
+                styles: { fontSize: 10, cellPadding: 2 },
+                headStyles: { fillColor: [200, 200, 200] }
+            });
+
+            doc.save(`Factura-${facturaId.slice(0, 5)}.pdf`);
+        }
+
+        function limpiarFormularioFactura() {
+            facturaEnEdicionId = null;
+            todaLaInformacionFacturaEnEdicion = null;
+            document.getElementById('formFactura').reset();
+            document.getElementById('formFacturaTitle').textContent = 'Datos del Cliente y Nueva Venta';
+            document.getElementById('guardarFacturaBtn').textContent = '💾 Guardar Venta';
+            items = [];
+            renderizarItems();
+        }
+
+        // ---------------------------------------------
+        // FUNCIONES DE GESTIÓN DE CLIENTES
+        // ---------------------------------------------
+
+        async function cargarClientes() {
+            try {
+                const snapshot = await db.collection('clientes').get();
+                todosLosClientes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                filtrarClientes();
+            } catch (error) {
+                console.error("Error al cargar los clientes:", error);
+            }
+        }
+
+        function filtrarClientes() {
+            const filtroNombre = document.getElementById('filtroClienteNombre').value.toLowerCase();
+            const clientesFiltrados = todosLosClientes.filter(cliente => 
+                cliente.nombre.toLowerCase().includes(filtroNombre) || cliente.cedula.includes(filtroNombre)
+            );
+            renderizarClientes(clientesFiltrados);
+        }
+
+        function renderizarClientes(clientes) {
+            const tableBody = document.getElementById('listaClientesTableBody');
+            tableBody.innerHTML = '';
+            clientes.forEach(cliente => {
+                tableBody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.cedula}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.nombre}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.telefono || ''}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.direccion || ''}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button onclick="editarCliente('${cliente.id}')" class="text-blue-500 hover:text-blue-700 mx-1" title="Editar">
+                                ✏️
+                            </button>
+                            <button onclick="eliminarCliente('${cliente.id}', '${cliente.nombre}')" class="text-red-500 hover:text-red-700 mx-1" title="Eliminar">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+        
+        async function guardarClienteDesdeFactura() {
+            const cedula = document.getElementById('cedulaCliente').value;
+            const nombre = document.getElementById('nombreCliente').value;
+            const telefono = document.getElementById('telefono').value;
+            const direccion = document.getElementById('direccion').value;
+
+            if (!cedula || !nombre) {
+                mostrarMensaje('❌ Se necesita la cédula y el nombre para guardar un cliente.', 'bg-red-500');
+                return;
+            }
+
+            try {
+                const clienteRef = db.collection('clientes').doc(cedula);
+                const doc = await clienteRef.get();
+                
+                if (doc.exists) {
+                    await clienteRef.update({ nombre, telefono, direccion });
+                    mostrarMensaje(`✅ Cliente ${nombre} actualizado con éxito.`);
+                } else {
+                    await clienteRef.set({ nombre, telefono, direccion });
+                    mostrarMensaje(`✅ Cliente ${nombre} guardado con éxito.`);
+                }
+                
+                cargarClientes();
+            } catch (error) {
+                console.error("Error al guardar cliente:", error);
+                mostrarMensaje('❌ Ocurrió un error al guardar el cliente.', 'bg-red-500');
+            }
+        }
+
+        async function buscarClientePorCedula() {
+            const cedula = document.getElementById('cedulaCliente').value;
+            if (cedula.length > 0) {
+                const clienteDoc = await db.collection('clientes').doc(cedula).get();
+                if (clienteDoc.exists) {
+                    const data = clienteDoc.data();
+                    document.getElementById('nombreCliente').value = data.nombre;
+                    document.getElementById('telefono').value = data.telefono || '';
+                    document.getElementById('direccion').value = data.direccion || '';
+                    mostrarMensaje(`Cliente ${data.nombre} encontrado.`, 'bg-blue-500');
+                } else {
+                    document.getElementById('nombreCliente').value = '';
+                    document.getElementById('telefono').value = '';
+                    document.getElementById('direccion').value = '';
+                    mostrarMensaje('Cliente no encontrado. Puedes guardarlo si lo deseas.', 'bg-yellow-500');
+                }
+            }
+        }
+
+        // ---------------------------------------------
+        // FUNCIONES DE GESTIÓN DE PRODUCTOS Y SERVICIOS
+        // ---------------------------------------------
+
+        async function cargarProductosServicios() {
+            try {
+                const snapshot = await db.collection('productosYServicios').get();
+                todosLosProductosYServicios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderizarProductos(todosLosProductosYServicios);
+                cargarOpcionesDeProductosEnCompras();
+            } catch (error) {
+                console.error("Error al cargar productos:", error);
+            }
+        }
+
+        function renderizarProductos(productos) {
+            const tableBody = document.getElementById('listaProductosTableBody');
+            tableBody.innerHTML = '';
+            productos.forEach(producto => {
+                const fechaVencimiento = producto.fechaVencimiento ? new Date(producto.fechaVencimiento).toLocaleDateString() : 'N/A';
+                const stock = producto.tipo === 'producto' ? producto.stock : 'N/A';
+                
+                tableBody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${producto.nombre}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${producto.tipo}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${producto.precio.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">${stock}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${fechaVencimiento}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button onclick="editarProductoServicio('${producto.id}')" class="text-blue-500 hover:text-blue-700 mx-1" title="Editar">
+                                ✏️
+                            </button>
+                            <button onclick="eliminarProductoServicio('${producto.id}', '${producto.nombre}')" class="text-red-500 hover:text-red-700 mx-1" title="Eliminar">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function toggleStockInput() {
+            const tipo = document.getElementById('tipoProducto').value;
+            const stockDiv = document.getElementById('stockInputDiv');
+            if (tipo === 'servicio') {
+                stockDiv.classList.add('hidden');
+                document.getElementById('stockProducto').value = '0';
+            } else {
+                stockDiv.classList.remove('hidden');
+            }
+        }
+
+        async function guardarProductoServicio() {
+            const nombre = document.getElementById('nombreProducto').value;
+            const tipo = document.getElementById('tipoProducto').value;
+            const precio = parseFloat(document.getElementById('precioProducto').value);
+            const stock = tipo === 'producto' ? parseInt(document.getElementById('stockProducto').value) : 0;
+            const fechaVencimiento = document.getElementById('fechaVencimientoProducto').value;
+
+            if (!nombre || isNaN(precio) || precio < 0) {
+                mostrarMensaje('❌ Por favor, completa los campos de nombre y precio correctamente.', 'bg-red-500');
+                return;
+            }
+            if (tipo === 'producto' && isNaN(stock)) {
+                mostrarMensaje('❌ Por favor, ingresa un stock válido.', 'bg-red-500');
+                return;
+            }
+
+            try {
+                const data = { nombre, tipo, precio, stock, fechaVencimiento };
+                if (productoServicioEnEdicionId) {
+                    await db.collection('productosYServicios').doc(productoServicioEnEdicionId).update(data);
+                    mostrarMensaje(`✅ "${nombre}" actualizado con éxito.`);
+                } else {
+                    await db.collection('productosYServicios').add(data);
+                    mostrarMensaje(`✅ "${nombre}" guardado con éxito.`);
+                }
+                
+                limpiarFormularioProductoServicio();
+                cargarProductosServicios();
+                cargarDashboardData();
+
+            } catch (error) {
+                console.error("Error al guardar el producto/servicio:", error);
+                mostrarMensaje('❌ Ocurrió un error al guardar el producto/servicio.', 'bg-red-500');
+            }
+        }
+
+        async function editarProductoServicio(itemId) {
+            const doc = await db.collection('productosYServicios').doc(itemId).get();
+            if (doc.exists) {
+                const itemData = doc.data();
+                productoServicioEnEdicionId = itemId;
+                
+                document.getElementById('formProductoServicioTitle').textContent = `Editar "${itemData.nombre}"`;
+                document.getElementById('guardarProductoBtn').textContent = '💾 Actualizar';
+                document.getElementById('nombreProducto').value = itemData.nombre;
+                document.getElementById('tipoProducto').value = itemData.tipo;
+                document.getElementById('precioProducto').value = itemData.precio;
+                document.getElementById('stockProducto').value = itemData.stock || 0;
+                document.getElementById('fechaVencimientoProducto').value = itemData.fechaVencimiento || '';
+                toggleStockInput();
+                mostrarSeccion('gestionProductosSection');
+                mostrarMensaje(`"${itemData.nombre}" cargado para edición.`, "bg-blue-500");
+            } else {
+                mostrarMensaje("Producto/Servicio no encontrado para edición.", "bg-red-500");
+            }
+        }
+
+        async function eliminarProductoServicio(itemId, itemName) {
+            if (!confirm(`¿Estás seguro de eliminar "${itemName}"?`)) {
+                return;
+            }
+            try {
+                await db.collection('productosYServicios').doc(itemId).delete();
+                mostrarMensaje(`✅ "${itemName}" eliminado con éxito.`);
+                cargarProductosServicios();
+                cargarDashboardData();
+            } catch (error) {
+                console.error("Error al eliminar producto/servicio:", error);
+                mostrarMensaje("❌ Hubo un error al eliminar el producto/servicio. Por favor, inténtalo de nuevo.", 'bg-red-500');
+            }
+        }
+
+        function limpiarFormularioProductoServicio() {
+            productoServicioEnEdicionId = null;
+            document.getElementById('nombreProducto').value = '';
+            document.getElementById('tipoProducto').value = 'producto';
+            document.getElementById('precioProducto').value = '';
+            document.getElementById('stockProducto').value = '0';
+            toggleStockInput();
+            document.getElementById('fechaVencimientoProducto').value = '';
+            document.getElementById('formProductoServicioTitle').textContent = 'Gestión de Productos y Servicios';
+            document.getElementById('guardarProductoBtn').textContent = '💾 Guardar Producto/Servicio';
+            document.getElementById('nombreProducto').focus();
+        }
+
+        // ---------------------------------------------
+        // FUNCIONES DE GESTIÓN DE COMPRAS
+        // ---------------------------------------------
+
+        async function cargarCompras() {
+            try {
+                const snapshot = await db.collection('compras').orderBy('fecha', 'desc').get();
+                todasLasCompras = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                filtrarCompras();
+            } catch (error) {
+                console.error("Error al cargar las compras:", error);
+            }
+        }
+
+        function filtrarCompras() {
+            const filtroAnio = document.getElementById('filtroComprasAnio').value;
+            const filtroMes = document.getElementById('filtroComprasMes').value;
+            
+            let comprasFiltradas = todasLasCompras;
+
+            if (filtroAnio) {
+                comprasFiltradas = comprasFiltradas.filter(compra => new Date(compra.fecha).getFullYear() === parseInt(filtroAnio));
+            }
+            
+            if (filtroMes) {
+                comprasFiltradas = comprasFiltradas.filter(compra => (new Date(compra.fecha).getMonth() + 1) === parseInt(filtroMes));
+            }
+            
+            renderizarCompras(comprasFiltradas);
+        }
+
+        function renderizarCompras(compras) {
+            const tableBody = document.getElementById('listaComprasTableBody');
+            tableBody.innerHTML = '';
+            let totalInversion = 0;
+            compras.forEach(compra => {
+                totalInversion += compra.totalCompra;
+                tableBody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${compra.fecha}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${compra.nombreProducto}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">${compra.cantidad}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${compra.costo.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${compra.totalCompra.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${compra.numeroFactura || 'N/A'}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${compra.usuario}</td>
+                    </tr>
+                `;
+            });
+            const summaryFooter = document.getElementById('comprasSummaryFooter');
+            summaryFooter.innerHTML = `
+                <tr class="bg-gray-50 font-semibold">
+                    <td colspan="4" class="text-right px-3 py-2 border-t border-gray-200 text-gray-800">Total de Inversión:</td>
+                    <td class="px-3 py-2 border-t border-gray-200 text-right text-gray-800">$${totalInversion.toFixed(2)}</td>
+                    <td colspan="2" class="px-3 py-2 border-t border-gray-200"></td>
+                </tr>
+            `;
+        }
+
+        function cargarOpcionesDeProductosEnCompras() {
+            const select = document.getElementById('productoCompra');
+            select.innerHTML = '<option value="">Seleccione un producto</option>';
+            todosLosProductosYServicios.filter(p => p.tipo === 'producto').forEach(p => {
+                select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+            });
+        }
+
+        async function guardarCompra() {
+            const fechaCompra = document.getElementById('fechaCompra').value;
+            const productoId = document.getElementById('productoCompra').value;
+            const cantidad = parseInt(document.getElementById('cantidadCompra').value);
+            const costo = parseFloat(document.getElementById('costoCompra').value);
+            const fechaVencimiento = document.getElementById('fechaVencimientoCompra').value;
+            const usuario = document.getElementById('usuarioCompra').value;
+
+            if (!fechaCompra || !productoId || isNaN(cantidad) || cantidad <= 0 || isNaN(costo) || costo < 0) {
+                mostrarMensaje('❌ Por favor, complete todos los campos de la compra correctamente.', 'bg-red-500');
+                return;
+            }
+
+            try {
+                const producto = todosLosProductosYServicios.find(p => p.id === productoId);
+                if (!producto) {
+                    mostrarMensaje('❌ Producto no encontrado.', 'bg-red-500');
+                    return;
+                }
+                const totalCompra = cantidad * costo;
+                
+                await db.collection('compras').add({
+                    fecha: fechaCompra,
+                    productoId,
+                    nombreProducto: producto.nombre,
+                    cantidad,
+                    costo,
+                    totalCompra,
+                    fechaVencimiento,
+                    usuario,
+                    fechaRegistro: new Date()
+                });
+
+                // Actualizar el stock del producto
+                const nuevoStock = producto.stock + cantidad;
+                await db.collection('productosYServicios').doc(productoId).update({
+                    stock: nuevoStock
+                });
+
+                mostrarMensaje('✅ Compra registrada y stock actualizado con éxito.');
+                document.getElementById('formCompra').reset();
+                cargarCompras();
+                cargarProductosServicios();
+            } catch (error) {
+                console.error("Error al guardar la compra:", error);
+                mostrarMensaje('❌ Ocurrió un error al registrar la compra.', 'bg-red-500');
+            }
+        }
+
+        // ---------------------------------------------
+        // FUNCIONES DEL DASHBOARD
+        // ---------------------------------------------
+        async function cargarDashboardData() {
+            try {
+                // Productos con mayor stock
+                const productosConStock = todosLosProductosYServicios.filter(p => p.tipo === 'producto').sort((a, b) => b.stock - a.stock).slice(0, 5);
+                const topStockList = document.getElementById('topStockProductsList');
+                topStockList.innerHTML = productosConStock.length > 0 ? productosConStock.map(p => `<li>${p.nombre} (${p.stock} uds)</li>`).join('') : '<li>No hay productos con stock.</li>';
+                
+                // Productos por vencer
+                const today = new Date();
+                const expiringProducts = todosLosProductosYServicios.filter(p => {
+                    if (p.fechaVencimiento) {
+                        const vencimiento = new Date(p.fechaVencimiento);
+                        const diffTime = vencimiento.getTime() - today.getTime();
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        return diffDays <= 30 && diffDays >= 0;
+                    }
+                    return false;
+                });
+                const expiringList = document.getElementById('expiringProductsList');
+                expiringList.innerHTML = expiringProducts.length > 0 ? expiringProducts.map(p => `<li>${p.nombre} (Vence en ${Math.ceil((new Date(p.fechaVencimiento).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))} días)</li>`).join('') : '<li>No hay productos próximos a vencer.</li>';
+
+                // Productos más vendidos
+                const ventasPorProducto = {};
+                const ventasPorVendedor = {};
+                const facturasSnapshot = await db.collection('facturas').get();
+                facturasSnapshot.forEach(doc => {
+                    const venta = doc.data();
+                    venta.items.forEach(item => {
+                        ventasPorProducto[item.descripcion] = (ventasPorProducto[item.descripcion] || 0) + item.cantidad;
+                    });
+                    ventasPorVendedor[venta.vendedor] = (ventasPorVendedor[venta.vendedor] || 0) + venta.total;
+                });
+
+                const sortedProducts = Object.entries(ventasPorProducto).sort(([, a], [, b]) => b - a).slice(0, 5);
+                const topSellingList = document.getElementById('topSellingProductsList');
+                topSellingList.innerHTML = sortedProducts.length > 0 ? sortedProducts.map(([producto, cantidad]) => `<li>${producto}: ${cantidad} unidades</li>`).join('') : '<li>No hay ventas registradas.</li>';
+
+                const sortedUsers = Object.entries(ventasPorVendedor).sort(([, a], [, b]) => b - a).slice(0, 5);
+                const topSellingUsersList = document.getElementById('topSellingUsersList');
+                topSellingUsersList.innerHTML = sortedUsers.length > 0 ? sortedUsers.map(([usuario, total]) => `<li>${usuario}: $${total.toFixed(2)}</li>`).join('') : '<li>No hay ventas registradas.</li>';
+
+            } catch (error) {
+                console.error("Error al cargar datos del dashboard:", error);
+                mostrarMensaje('❌ Error al cargar los datos del dashboard.', 'bg-red-500');
+            }
+        }
+
+        // Cargar años para los filtros
+        function cargarAniosFiltros() {
+            const anios = new Set();
+            todasLasFacturas.forEach(f => anios.add(f.fechaCreacion.toDate().getFullYear()));
+            todasLasCompras.forEach(c => anios.add(new Date(c.fecha).getFullYear()));
+
+            const filtroVentasAnio = document.getElementById('filtroVentasAnio');
+            const filtroComprasAnio = document.getElementById('filtroComprasAnio');
+            filtroVentasAnio.innerHTML = '<option value="">Todos</option>';
+            filtroComprasAnio.innerHTML = '<option value="">Todos</option>';
+
+            const sortedAnios = Array.from(anios).sort((a, b) => b - a);
+            sortedAnios.forEach(anio => {
+                filtroVentasAnio.innerHTML += `<option value="${anio}">${anio}</option>`;
+                filtroComprasAnio.innerHTML += `<option value="${anio}">${anio}</option>`;
+            });
+        }
+
+        async function cargarDatosIniciales() {
+            await Promise.all([
+                cargarFacturas(),
+                cargarClientes(),
+                cargarProductosServicios(),
+                cargarCompras()
+            ]);
+            cargarAniosFiltros();
+            cargarDashboardData();
+        }
+        
+        document.getElementById('descripcion').addEventListener('input', function() {
+            const input = this.value.toLowerCase();
+            const sugerenciasUl = document.getElementById('sugerencias');
+            if (input.length > 0) {
+                const sugerencias = todosLosProductosYServicios.filter(p => p.nombre.toLowerCase().includes(input));
+                sugerenciasUl.innerHTML = '';
+                sugerencias.forEach(sug => {
+                    const li = document.createElement('li');
+                    li.textContent = sug.nombre;
+                    li.classList.add('px-4', 'py-2', 'cursor-pointer', 'hover:bg-gray-100');
+                    li.addEventListener('click', () => {
+                        document.getElementById('descripcion').value = sug.nombre;
+                        document.getElementById('precio').value = sug.precio;
+                        sugerenciasUl.classList.add('hidden');
+                    });
+                    sugerenciasUl.appendChild(li);
+                });
+                sugerenciasUl.classList.remove('hidden');
+            } else {
+                sugerenciasUl.classList.add('hidden');
+            }
+        });
+        
+        document.addEventListener('click', function(event) {
+            const sugerenciasUl = document.getElementById('sugerencias');
+            const descripcionInput = document.getElementById('descripcion');
+            if (!sugerenciasUl.contains(event.target) && event.target !== descripcionInput) {
+                sugerenciasUl.classList.add('hidden');
+            }
+        });
+
     </script>
 </body>
 </html>
