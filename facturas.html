@@ -61,6 +61,7 @@
         </div>
     </div>
 
+
     <div id="sidebar" class="sidebar bg-gray-800 text-white flex-shrink-0 fixed h-full p-4 flex flex-col hidden">
         <h1 class="text-2xl font-bold mb-6 text-center text-teal-400">Sistema de Venta</h1>
         <nav class="flex-grow">
@@ -660,6 +661,42 @@ function controlarMenuPorRol() {
     }
 }
 
+        async function login() {
+            const usuario = document.getElementById('usuario').value;
+            const password = document.getElementById('password').value;
+            const errorElement = document.getElementById('error');
+            const doc = await db.collection('usuarios').doc(usuario).get();
+
+            if (doc.exists && doc.data().password === password) {
+                errorElement.classList.add('hidden');
+                currentLoggedInUser = {
+                    username: usuario,
+                    rol: doc.data().rol,
+                    nombre: doc.data().nombre,
+                };
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('sidebar').classList.remove('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+                
+                if (currentLoggedInUser.rol === 'admin') {
+                    document.getElementById('menu-dashboard').classList.remove('hidden');
+                    document.getElementById('menu-productos').classList.remove('hidden');
+                    document.getElementById('menu-compras').classList.remove('hidden');
+                    mostrarSeccion('dashboardSection');
+                } else {
+                    mostrarSeccion('nuevaVentaSection');
+                }
+
+                document.getElementById('userNameDisplay').textContent = currentLoggedInUser.nombre;
+                document.getElementById('userRoleDisplay').textContent = currentLoggedInUser.rol.toUpperCase();
+                document.getElementById('vendedor').value = currentLoggedInUser.nombre;
+                document.getElementById('usuarioCompra').value = currentLoggedInUser.nombre;
+                
+                await cargarDatosIniciales();
+            } else {
+                errorElement.classList.remove('hidden');
+            }
+        }
         
         
             function logout() {
