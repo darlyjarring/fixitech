@@ -1467,24 +1467,27 @@ async function editarCompra(id) {
 }
 
 // Actualiza tu función guardarCompra para manejar la edición
+// La variable global para el usuario que está usando la aplicación
+let usuarioActual = JSON.parse(localStorage.getItem('usuarioActual'));
+
 async function guardarCompra() {
     const fechaCompra = document.getElementById('fechaCompra').value;
     const productoId = document.getElementById('productoCompra').value;
     const cantidad = parseInt(document.getElementById('cantidadCompra').value);
     const costo = parseFloat(document.getElementById('costoCompra').value);
     const fechaVencimiento = document.getElementById('fechaVencimientoCompra').value;
-    const usuario = document.getElementById('usuarioCompra').value;
     const numeroFactura = document.getElementById('numeroFacturaCompra').value;
+    const totalCompra = cantidad * costo;
 
     if (!fechaCompra || !productoId || isNaN(cantidad) || cantidad <= 0 || isNaN(costo) || costo < 0) {
         mostrarMensaje('❌ Por favor, complete todos los campos de la compra correctamente.', 'bg-red-500');
         return;
     }
 
-    const totalCompra = cantidad * costo;
-    const producto = todosLosProductosYServicios.find(p => p.id === productoId);
-
     try {
+        const usuario = usuarioActual.nombre; // Obtiene el nombre del usuario logueado
+        const producto = todosLosProductosYServicios.find(p => p.id === productoId);
+        
         if (idCompraEnEdicion) {
             // Lógica para editar una compra
             const compraOriginalDoc = await db.collection('compras').doc(idCompraEnEdicion).get();
@@ -1492,23 +1495,20 @@ async function guardarCompra() {
             
             // Revertir el stock original si se cambió el producto
             if (compraOriginal.productoId !== productoId) {
-                // Revertir el stock del producto original
                 await db.collection('productosYServicios').doc(compraOriginal.productoId).update({
                     stock: firebase.firestore.FieldValue.increment(-compraOriginal.cantidad)
                 });
-                // Aumentar el stock del nuevo producto
                 await db.collection('productosYServicios').doc(productoId).update({
                     stock: firebase.firestore.FieldValue.increment(cantidad)
                 });
             } else {
-                // Si el producto no cambió, solo ajustar la diferencia de stock
                 const diferenciaCantidad = cantidad - compraOriginal.cantidad;
                 await db.collection('productosYServicios').doc(productoId).update({
                     stock: firebase.firestore.FieldValue.increment(diferenciaCantidad)
                 });
             }
 
-            // Actualiza el documento de compra
+            // Actualiza el documento de compra, incluyendo el usuario actual
             await db.collection('compras').doc(idCompraEnEdicion).update({
                 fecha: fechaCompra,
                 productoId,
@@ -1517,12 +1517,14 @@ async function guardarCompra() {
                 costo,
                 totalCompra,
                 fechaVencimiento,
-                numeroFactura
+                numeroFactura,
+                usuario: usuario // Asegura que el campo "usuario" se actualice
             });
 
             mostrarMensaje('✅ Compra actualizada y stock ajustado.');
             document.getElementById('btnGuardarCompra').textContent = '💾 Registrar Compra';
             idCompraEnEdicion = null;
+
         } else {
             // Lógica para una nueva compra
             await db.collection('compras').add({
@@ -1533,7 +1535,7 @@ async function guardarCompra() {
                 costo,
                 totalCompra,
                 fechaVencimiento,
-                usuario,
+                usuario: usuario, // Guarda el usuario actual
                 numeroFactura,
                 fechaRegistro: new Date()
             });
@@ -1545,7 +1547,11 @@ async function guardarCompra() {
             mostrarMensaje('✅ Compra registrada y stock actualizado con éxito.');
         }
 
+        // Se limpia el formulario
         document.getElementById('formCompra').reset();
+        // Se vuelve a llenar el campo "registrado por" con el nombre del usuario
+        document.getElementById('usuarioCompra').value = usuario;
+
         cargarCompras();
         cargarProductosServicios();
     } catch (error) {
