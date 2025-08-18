@@ -56,7 +56,9 @@
                     <label for="password" class="block text-gray-700 font-medium mb-2">Contraseña:</label>
                     <input type="password" id="password" name="password" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Contraseña" required>
                 </div>
-                <button type="button" onclick="login()" class="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 transition duration-300">Ingresar</button>
+               
+                <button type="button" id="loginButton" class="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 transition duration-300">Ingresar</button>
+
             </form>
         </div>
     </div>
@@ -647,6 +649,7 @@
 
  let usuarioActual; 
 
+            
         // 2. Coloca aquí tu función de inicio de sesión corregida
         async function login() {
             const usuario = document.getElementById('usuario').value;
@@ -1858,7 +1861,14 @@ async function guardarCompra() {
             cargarAniosFiltros();
             cargarDashboardData();
         }
-        
+
+             // Event listener para el botón de login
+            const loginButton = document.getElementById('loginButton');
+            if (loginButton) {
+                loginButton.addEventListener('click', () => {
+                    login();
+                });
+            }
         document.getElementById('descripcion').addEventListener('input', function() {
             const input = this.value.toLowerCase();
             const sugerenciasUl = document.getElementById('sugerencias');
