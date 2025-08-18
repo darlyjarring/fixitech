@@ -436,115 +436,137 @@
             </div>
         </div>
 
+
+        <div id="main-content" class="main-content flex-grow p-8 hidden">
+    <div id="gestionComprasSection" class="hidden bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-semibold mb-6 text-gray-800">Gestión de Compras</h2>
         
-        <div id="gestionComprasSection" class="hidden bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-2xl font-semibold mb-6 text-gray-800">Gestión de Compras</h2>
-            
-            <form id="formCompra" class="space-y-4 mb-6">
-                <h3 class="text-xl font-semibold mb-2">Registrar Nueva Compra</h3>
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    <div>
-                        <label for="numeroFacturaCompra" class="block text-sm font-medium text-gray-700">Número de Factura</label>
-                        <input type="text" id="numeroFacturaCompra" placeholder="Ej: 001-002-12345" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
-                    </div>
-                    <div>
-                        <label for="fechaCompra" class="block text-sm font-medium text-gray-700">Fecha</label>
-                        <input type="date" id="fechaCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
-                    </div>
-                    <div>
-                        <label for="productoCompra" class="block text-sm font-medium text-gray-700">Producto</label>
-                        <select id="productoCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
-                            </select>
-                    </div>
-                    <div>
-                        <label for="cantidadCompra" class="block text-sm font-medium text-gray-700">Cantidad</label>
-                        <input type="number" id="cantidadCompra" value="1" min="1" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
-                    </div>
-                    <div>
-                        <label for="costoCompra" class="block text-sm font-medium text-gray-700">Costo Unitario</label>
-                        <input type="number" id="costoCompra" placeholder="Costo" step="0.01" min="0" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
-                    </div>
-                    <div>
-                        <label for="fechaVencimientoCompra" class="block text-sm font-medium text-gray-700">Fecha de Vencimiento del Lote</label>
-                        <input type="date" id="fechaVencimientoCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="usuarioCompra" class="block text-sm font-medium text-gray-700">Registrado por</label>
-                        <input type="text" id="usuarioCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md bg-gray-200" readonly>
-                    </div>
-                    <div class="flex items-end justify-end">
-                        <button type="button"  id="btnGuardarCompra" onclick="guardarCompra()" class="bg-green-500 text-white font-bold py-2 px-4 rounded-md hover:bg-green-600 transition duration-200">
-                            💾 Registrar Compra
-                        </button>
-                    </div>
-                </div>
-            </form>
-            
-            <h3 class="text-xl font-semibold mb-4">Historial de Compras</h3>
-            
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <form id="formCompra" class="space-y-4 mb-6">
+            <h3 class="text-xl font-semibold mb-2">Registrar Nueva Compra</h3>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div>
-                    <label for="filtroComprasAnio" class="block text-sm font-medium text-gray-700">Año</label>
-                    <select id="filtroComprasAnio" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
-                        <option value="">Todos</option>
+                    <label for="numeroFacturaCompra" class="block text-sm font-medium text-gray-700">Número de Factura</label>
+                    <input type="text" id="numeroFacturaCompra" placeholder="Ej: 001-002-12345" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label for="fechaCompra" class="block text-sm font-medium text-gray-700">Fecha</label>
+                    <input type="date" id="fechaCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label for="productoCompra" class="block text-sm font-medium text-gray-700">Producto</label>
+                    <select id="productoCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
                     </select>
                 </div>
                 <div>
-                    <label for="filtroComprasMes" class="block text-sm font-medium text-gray-700">Mes</label>
-                    <select id="filtroComprasMes" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
-                        <option value="">Todos</option>
-                        <option value="1">Enero</option>
-                        <option value="2">Febrero</option>
-                        <option value="3">Marzo</option>
-                        <option value="4">Abril</option>
-                        <option value="5">Mayo</option>
-                        <option value="6">Junio</option>
-                        <option value="7">Julio</option>
-                        <option value="8">Agosto</option>
-                        <option value="9">Septiembre</option>
-                        <option value="10">Octubre</option>
-                        <option value="11">Noviembre</option>
-                        <option value="12">Diciembre</option>
-                    </select>
+                    <label for="cantidadCompra" class="block text-sm font-medium text-gray-700">Cantidad</label>
+                    <input type="number" id="cantidadCompra" value="1" min="1" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
                 </div>
                 <div>
-                    <label for="filtroComprasDia" class="block text-sm font-medium text-gray-700">Día</label>
-                    <input type="number" id="filtroComprasDia" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+                    <label for="costoCompra" class="block text-sm font-medium text-gray-700">Costo Unitario</label>
+                    <input type="number" id="costoCompra" placeholder="Costo" step="0.01" min="0" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
                 </div>
                 <div>
-                    <label for="filtroComprasHoraInicial" class="block text-sm font-medium text-gray-700">Hora Inicial</label>
-                    <input type="time" id="filtroComprasHoraInicial" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
-                </div>
-                <div>
-                    <label for="filtroComprasHoraFinal" class="block text-sm font-medium text-gray-700">Hora Final</label>
-                    <input type="time" id="filtroComprasHoraFinal" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+                    <label for="fechaVencimientoCompra" class="block text-sm font-medium text-gray-700">Fecha de Vencimiento del Lote</label>
+                    <input type="date" id="fechaVencimientoCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
                 </div>
             </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="usuarioCompra" class="block text-sm font-medium text-gray-700">Registrado por</label>
+                    <input type="text" id="usuarioCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md bg-gray-200" readonly>
+                </div>
+                <div class="flex items-end justify-end">
+                    <button type="button" id="btnGuardarCompra" onclick="guardarCompra()" class="bg-green-500 text-white font-bold py-2 px-4 rounded-md hover:bg-green-600 transition duration-200">
+                        💾 Registrar Compra
+                    </button>
+                </div>
+            </div>
+        </form>
 
-            <div class="bg-gray-50 rounded-lg overflow-hidden">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-200">
-                        <tr>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Factura</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
-                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad</th>
-                            <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Costo Unit.</th>
-                            <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
-                            <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="listaComprasTableBody" class="bg-white divide-y divide-gray-200">
-                        </tbody>
-                    <tfoot id="comprasSummaryFooter">
-                    </tfoot>
-                </table>
+        <h3 class="text-xl font-semibold mb-4">Historial de Compras</h3>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div>
+                <label for="filtroComprasAnio" class="block text-sm font-medium text-gray-700">Año</label>
+                <select id="filtroComprasAnio" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div>
+                <label for="filtroComprasMes" class="block text-sm font-medium text-gray-700">Mes</label>
+                <select id="filtroComprasMes" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <option value="">Todos</option>
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div>
+                <label for="filtroComprasDia" class="block text-sm font-medium text-gray-700">Día</label>
+                <input type="number" id="filtroComprasDia" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+            </div>
+            <div>
+                <label for="filtroComprasHoraInicial" class="block text-sm font-medium text-gray-700">Hora Inicial</label>
+                <input type="time" id="filtroComprasHoraInicial" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+            </div>
+            <div>
+                <label for="filtroComprasHoraFinal" class="block text-sm font-medium text-gray-700">Hora Final</label>
+                <input type="time" id="filtroComprasHoraFinal" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
             </div>
         </div>
+
+        <div class="bg-gray-50 rounded-lg overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Factura</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
+                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Costo Unit.</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="listaComprasTableBody" class="bg-white divide-y divide-gray-200">
+                </tbody>
+                <tfoot id="comprasSummaryFooter">
+                </tfoot>
+            </table>
+        </div>
     </div>
+    
+    <div id="consultaProductosSection" class="hidden bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Consulta de Stock y Vencimiento</h2>
+        <div class="mb-4">
+            <input type="text" id="filtroProducto" placeholder="Buscar producto por nombre..." class="w-full p-2 border rounded-md">
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock Disponible</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Última Fecha de Vencimiento</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="listaProductosConsultaTableBody" class="bg-white divide-y divide-gray-200">
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+</div>
 
     <div id="loteModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
     <div class="relative top-20 mx-auto p-5 border w-3/4 md:w-1/2 shadow-lg rounded-md bg-white">
