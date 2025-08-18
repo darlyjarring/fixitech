@@ -909,7 +909,7 @@ function renderizarFacturas(facturas) {
         btnImprimir.onclick = () => imprimirFactura(factura.id);
         accionesCell.appendChild(btnImprimir);
 
-         // **NUEVO:** Botón de Editar para facturas en espera
+                     // **NUEVO:** Botón de Editar para facturas en espera y entregadas
         if (data.estado === 'En espera' || data.estado === 'Entregado') {
             const btnEditar = document.createElement('button');
             btnEditar.textContent = '✏️';
