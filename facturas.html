@@ -877,10 +877,10 @@ function renderizarFacturas(facturas) {
         const fila = document.createElement('tr');
         fila.classList.add("hover:bg-gray-50");
 
-        // Validar si la fecha es un Timestamp antes de usar .seconds
-        const fechaFormateada = data.fecha instanceof firebase.firestore.Timestamp 
+        // Validar y formatear la fecha de manera segura
+        const fechaFormateada = data.fecha && data.fecha.seconds 
             ? new Date(data.fecha.seconds * 1000).toLocaleDateString()
-            : data.fecha || 'N/A';
+            : 'N/A';
         
         fila.innerHTML = `
             <td class="px-3 py-2 border-b border-gray-200">${data.numeroFactura || factura.id}</td>
