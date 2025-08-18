@@ -554,42 +554,29 @@
             // Se puede llamar a login() si ya se han guardado las credenciales
         };
 
-            function mostrarSeccion(sectionId) {
-                
-                const seccionesAdmin = ['gestionClientesSection', 'gestionProductosSection', 'gestionComprasSection', 'gestionUsuariosSection'];
 
-                if (usuarioRol === 'vendedor' && seccionesAdmin.includes(sectionId)) {
-                    mostrarMensaje('❌ No tienes permisos para acceder a esta sección.', 'bg-red-500');
-                    return;
+
+
+function mostrarSeccion(sectionId) {
+            const secciones = ['dashboardSection', 'nuevaVentaSection', 'gestionFacturasSection', 'gestionClientesSection', 'gestionProductosSection', 'gestionComprasSection'];
+            secciones.forEach(id => {
+                const seccion = document.getElementById(id);
+                if (seccion) { // <-- Aquí está la corrección principal
+                    seccion.classList.add('hidden');
                 }
-                const secciones = ['dashboardSection', 'nuevaVentaSection', 'gestionFacturasSection', 'gestionClientesSection', 'gestionProductosSection', 'gestionComprasSection'];
-                secciones.forEach(id => {
-                    const seccion = document.getElementById(id);
-                    if (seccion) {
-                        seccion.classList.add('hidden');
-                    }
-                });
-                const seccionAMostrar = document.getElementById(sectionId);
-                if (seccionAMostrar) {
-                    seccionAMostrar.classList.remove('hidden');
-                }
-            
-                // Código agregado para recargar los datos
-                if (sectionId === 'gestionClientesSection') {
-                    cargarClientes();
-                }
-                if (sectionId === 'gestionComprasSection') {
-                        cargarCompras();
-                }
-                if (sectionId === 'gestionFacturasSection') {
-                    cargarFacturas();
-                }
+            });
+            const seccionAMostrar = document.getElementById(sectionId);
+            if (seccionAMostrar) { // <-- Y aquí también
+                seccionAMostrar.classList.remove('hidden');
             }
+        }
 
         function iniciarNuevaVenta() {
             mostrarSeccion('nuevaVentaSection');
             limpiarFormularioFactura();
         }
+
+        
 
        async function login() {
     const usuario = document.getElementById('usuario').value;
