@@ -608,7 +608,7 @@
 
         async function cargarProductosConsulta() {
             try {
-                const snapshot = await db.collection('productos_y_servicios').get();
+                const snapshot = await db.collection('productosYServicios').get();
                 productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderizarProductosConsulta(productos);
             } catch (error) {
