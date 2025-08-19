@@ -96,6 +96,11 @@
                         <span class="mr-2">🛒</span> Gestión de Compras
                     </a>
                 </li>
+                <li id="menu-consulta-productos" class="mb-2 hidden">
+                    <a href="#" class="menu-item block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" onclick="mostrarSeccion('consultaProductosSection')">
+                        <span class="mr-2">🔍</span> Consulta de Productos Existentes
+                    </a>
+                </li>
             </ul>
         </nav>
         <div class="mt-auto text-center text-gray-400 text-sm">
@@ -729,7 +734,7 @@ function mostrarSeccion(sectionId) {
 
 // NUEVA FUNCIÓN PARA CONTROLAR EL MENÚ SEGÚN EL ROL
 function controlarMenuPorRol() {
-    const menuItemsAdmin = ['menu-dashboard', 'menu-productos', 'menu-compras', 'menu-facturas', 'menu-clientes', 'menu-usuarios'];
+    const menuItemsAdmin = ['menu-dashboard', 'menu-productos', 'menu-compras', 'menu-facturas', 'menu-clientes', 'menu-usuarios', 'menu-consulta-productos'];
     
     if (usuarioActual.rol === 'vendedor') {
         menuItemsAdmin.forEach(itemId => {
