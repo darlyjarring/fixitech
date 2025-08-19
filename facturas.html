@@ -860,63 +860,86 @@ function controlarMenuPorRol() {
             return paddedCounter + year;
         }
 
-        async function guardarFactura() {
-            const cedulaCliente = document.getElementById('cedulaCliente').value;
-            const nombreCliente = document.getElementById('nombreCliente').value;
-            const telefono = document.getElementById('telefono').value;
-            const direccion = document.getElementById('direccion').value;
-            const fechaIngreso = document.getElementById('fechaIngreso').value;
-            const fechaEntrega = document.getElementById('fechaEntrega').value;
-            const estado = document.getElementById('estado').value;
-            const vendedor = document.getElementById('vendedor').value;
-            const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+async function guardarFactura() {
+    const cedulaCliente = document.getElementById('cedulaCliente').value;
+    const nombreCliente = document.getElementById('nombreCliente').value;
+    const telefono = document.getElementById('telefono').value;
+    const direccion = document.getElementById('direccion').value;
+    const fechaIngreso = document.getElementById('fechaIngreso').value;
+    const fechaEntrega = document.getElementById('fechaEntrega').value;
+    const estado = document.getElementById('estado').value;
+    const vendedor = document.getElementById('vendedor').value;
+    const total = items.reduce((sum, item) => sum + item.subtotal, 0);
 
-            if (!cedulaCliente || !nombreCliente || items.length === 0) {
-                mostrarMensaje('❌ Por favor, complete la información del cliente y agregue al menos un ítem.', 'bg-red-500');
-                return;
-            }
+    if (!cedulaCliente || !nombreCliente || items.length === 0) {
+        mostrarMensaje('❌ Por favor, complete la información del cliente y agregue al menos un ítem.', 'bg-red-500');
+        return;
+    }
 
-            try {
-                let numeroFactura = null;
-                if (estado === 'Facturado' && (!todaLaInformacionFacturaEnEdicion || !todaLaInformacionFacturaEnEdicion.numeroFactura)) {
-                    const counter = await generarNumeroFactura();
-                    numeroFactura = formatFacturaNumber(counter);
-                } else if (todaLaInformacionFacturaEnEdicion && todaLaInformacionFacturaEnEdicion.numeroFactura) {
-                    numeroFactura = todaLaInformacionFacturaEnEdicion.numeroFactura;
-                }
+    try {
+        let numeroFactura = null;
+        if (estado === 'Facturado' && (!todaLaInformacionFacturaEnEdicion || !todaLaInformacionFacturaEnEdicion.numeroFactura)) {
+            const counter = await generarNumeroFactura();
+            numeroFactura = formatFacturaNumber(counter);
+        } else if (todaLaInformacionFacturaEnEdicion && todaLaInformacionFacturaEnEdicion.numeroFactura) {
+            numeroFactura = todaLaInformacionFacturaEnEdicion.numeroFactura;
+        }
 
-                const facturaData = {
-                    cedulaCliente,
-                    nombreCliente,
-                    telefono,
-                    direccion,
-                    fechaIngreso,
-                    fechaEntrega,
-                    estado,
-                    vendedor,
-                    items,
-                    total,
-                    numeroFactura,
-                    fechaCreacion: new Date()
-                };
+        const facturaData = {
+            cedulaCliente,
+            nombreCliente,
+            telefono,
+            direccion,
+            fechaIngreso,
+            fechaEntrega,
+            estado,
+            vendedor,
+            items,
+            total,
+            numeroFactura,
+            fechaCreacion: new Date()
+        };
 
-                if (facturaEnEdicionId) {
-                    await db.collection('facturas').doc(facturaEnEdicionId).update(facturaData);
-                    mostrarMensaje('✅ Factura actualizada con éxito.');
-                } else {
-                    await db.collection('facturas').add(facturaData);
-                    mostrarMensaje('✅ Venta guardada con éxito.');
-                }
-                
-                limpiarFormularioFactura();
-                cargarFacturas();
-                cargarDashboardData();
+        let facturaId;
+        if (facturaEnEdicionId) {
+            await db.collection('facturas').doc(facturaEnEdicionId).update(facturaData);
+            facturaId = facturaEnEdicionId;
+            mostrarMensaje('✅ Factura actualizada con éxito.');
+        } else {
+            const docRef = await db.collection('facturas').add(facturaData);
+            facturaId = docRef.id;
+            mostrarMensaje('✅ Venta guardada con éxito.');
+        }
 
-            } catch (error) {
-                console.error("Error al guardar la factura:", error);
-                mostrarMensaje('❌ Ocurrió un error al intentar guardar la venta.', 'bg-red-500');
+        // 🔽 Aquí reducimos el stock SOLO si la factura está facturada
+        if (estado === "Facturado") {
+            for (let item of items) {
+                // Busca el producto por nombre (mejor si usas un ID único en el futuro)
+                const productoSnap = await db.collection("productosYServicios")
+                    .where("nombre", "==", item.descripcion)
+                    .where("tipo", "==", "producto")
+                    .get();
+
+                productoSnap.forEach(async (docProd) => {
+                    const productoData = docProd.data();
+                    const nuevoStock = (productoData.stock || 0) - item.cantidad;
+                    await db.collection("productosYServicios").doc(docProd.id).update({
+                        stock: nuevoStock < 0 ? 0 : nuevoStock
+                    });
+                });
             }
         }
+
+        limpiarFormularioFactura();
+        cargarFacturas();
+        cargarDashboardData();
+
+    } catch (error) {
+        console.error("Error al guardar la factura:", error);
+        mostrarMensaje('❌ Ocurrió un error al intentar guardar la venta.', 'bg-red-500');
+    }
+}
+
 
         async function cargarFacturas() {
             try {
