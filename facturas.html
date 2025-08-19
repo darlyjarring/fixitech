@@ -773,9 +773,45 @@ function controlarMenuPorRol() {
             setTimeout(() => mensaje.remove(), 3000);
         }
 
-        // ---------------------------------------------
+// ---------------------------------------------
         // FUNCIONES DE GESTIÓN DE VENTAS Y FACTURAS
         // ---------------------------------------------
+
+        let items = []; // Usamos 'items' para ser consistente con tu código
+        let facturaEnEdicionId = null;
+        let todaLaInformacionFacturaEnEdicion = null;
+
+
+        async function buscarClientePorCedula() {
+            const cedula = document.getElementById('cedulaCliente').value.trim();
+            if (cedula === '') {
+                // Si la cédula está vacía, limpia los campos del cliente
+                document.getElementById('nombreCliente').value = '';
+                document.getElementById('telefono').value = '';
+                document.getElementById('direccion').value = '';
+                return;
+            }
+
+            try {
+                const clientesRef = db.collection('clientes');
+                const querySnapshot = await clientesRef.where('cedula', '==', cedula).get();
+
+                if (!querySnapshot.empty) {
+                    const clienteData = querySnapshot.docs[0].data();
+                    document.getElementById('nombreCliente').value = clienteData.nombre;
+                    document.getElementById('telefono').value = clienteData.telefono;
+                    document.getElementById('direccion').value = clienteData.direccion;
+                } else {
+                    mostrarMensaje('Cliente no encontrado. Puedes registrarlo con los datos ingresados.', 'bg-yellow-500');
+                    document.getElementById('nombreCliente').value = '';
+                    document.getElementById('telefono').value = '';
+                    document.getElementById('direccion').value = '';
+                }
+            } catch (error) {
+                console.error("Error al buscar cliente:", error);
+                mostrarMensaje('Error al buscar cliente. Inténtalo de nuevo.', 'bg-red-500');
+            }
+        }
 
         function agregarItem() {
             const descripcion = document.getElementById('descripcion').value;
@@ -791,7 +827,7 @@ function controlarMenuPorRol() {
                 document.getElementById('precio').value = '';
                 document.getElementById('descripcion').focus();
             } else {
-                mostrarMensaje('Por favor, completa todos los campos del ítem correctamente.', 'bg-red-500');
+                mostrarMensaje('❌ Por favor, completa todos los campos del ítem correctamente.', 'bg-red-500');
             }
         }
 
@@ -804,20 +840,20 @@ function controlarMenuPorRol() {
             const tablaItems = document.getElementById('tablaItems');
             tablaItems.innerHTML = '';
             items.forEach((item, index) => {
-                const row = `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-3 py-2 border-b border-gray-200">${item.descripcion}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-center">${item.cantidad}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.precio.toFixed(2)}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.subtotal.toFixed(2)}</td>
-                        <td class="px-3 py-2 border-b border-gray-200 text-center">
-                            <button type="button" onclick="eliminarItem(${index})" class="text-red-500 hover:text-red-700">
-                                🗑️
-                            </button>
-                        </td>
-                    </tr>
+                const row = document.createElement('tr');
+                row.classList.add('hover:bg-gray-50');
+                row.innerHTML = `
+                    <td class="px-3 py-2 border-b border-gray-200">${item.descripcion}</td>
+                    <td class="px-3 py-2 border-b border-gray-200 text-center">${item.cantidad}</td>
+                    <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.precio.toFixed(2)}</td>
+                    <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.subtotal.toFixed(2)}</td>
+                    <td class="px-3 py-2 border-b border-gray-200 text-center">
+                        <button type="button" onclick="eliminarItem(${index})" class="text-red-500 hover:text-red-700">
+                            🗑️
+                        </button>
+                    </td>
                 `;
-                tablaItems.innerHTML += row;
+                tablaItems.appendChild(row);
             });
             actualizarTotal();
         }
@@ -901,208 +937,6 @@ function controlarMenuPorRol() {
                 mostrarMensaje('❌ Ocurrió un error al intentar guardar la venta.', 'bg-red-500');
             }
         }
-
-        async function cargarFacturas() {
-            try {
-                const snapshot = await db.collection('facturas').orderBy('fechaCreacion', 'desc').get();
-                todasLasFacturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                filtrarFacturas();
-            } catch (error) {
-                console.error("Error al cargar las facturas:", error);
-            }
-        }
-
-        function filtrarFacturas() {
-            const filtroAnio = document.getElementById('filtroVentasAnio').value;
-            const filtroMes = document.getElementById('filtroVentasMes').value;
-            const filtroHoraInicial = document.getElementById('filtroVentasHoraInicial').value;
-            const filtroHoraFinal = document.getElementById('filtroVentasHoraFinal').value;
-            
-            let facturasFiltradas = todasLasFacturas;
-
-            if (filtroAnio) {
-                facturasFiltradas = facturasFiltradas.filter(factura => {
-                    const fecha = factura.fechaCreacion.toDate();
-                    return fecha.getFullYear() === parseInt(filtroAnio);
-                });
-            }
-            
-            if (filtroMes) {
-                facturasFiltradas = facturasFiltradas.filter(factura => {
-                    const fecha = factura.fechaCreacion.toDate();
-                    return (fecha.getMonth() + 1) === parseInt(filtroMes);
-                });
-            }
-
-            if (filtroHoraInicial && filtroHoraFinal) {
-                facturasFiltradas = facturasFiltradas.filter(factura => {
-                    const fecha = factura.fechaCreacion.toDate();
-                    const hora = fecha.getHours().toString().padStart(2, '0');
-                    const minutos = fecha.getMinutes().toString().padStart(2, '0');
-                    const horaFactura = `${hora}:${minutos}`;
-                    return horaFactura >= filtroHoraInicial && horaFactura <= filtroHoraFinal;
-                });
-            }
-
-            renderizarFacturas(facturasFiltradas);
-        }
-
-function renderizarFacturas(facturas) {
-    const tableBody = document.getElementById('listaFacturasTableBody');
-    tableBody.innerHTML = '';
-    
-    facturas.forEach(factura => {
-        const data = factura;
-        const fila = document.createElement('tr');
-        fila.classList.add("hover:bg-gray-50");
-
-        // Condición para mostrar 'Pendiente' si numeroFactura es null o undefined
-        const numeroDisplay = data.numeroFactura ? `${data.numeroFactura}` : 'Pendiente';
-
-        // Validar y formatear la fecha de manera segura
-        const fechaFormateada = data.fechaCreacion && data.fechaCreacion.seconds 
-            ? new Date(data.fechaCreacion.seconds * 1000).toLocaleDateString()
-            : 'N/A';
-        
-        fila.innerHTML = `
-            <td class="px-3 py-2 border-b border-gray-200">${numeroDisplay}</td>
-            <td class="px-3 py-2 border-b border-gray-200">${data.nombreCliente}</td>
-            <td class="px-3 py-2 border-b border-gray-200 text-right">$${data.total.toFixed(2)}</td>
-            <td class="px-3 py-2 border-b border-gray-200">${data.vendedor}</td>
-            <td class="px-3 py-2 border-b border-gray-200">${data.estado}</td>
-            <td class="px-3 py-2 border-b border-gray-200">${fechaFormateada}</td>
-        `;
-
-        const accionesCell = document.createElement('td');
-        accionesCell.classList.add("px-3", "py-2", "border-b", "border-gray-200", "text-center");
-        
-        const btnVisualizar = document.createElement('button');
-        btnVisualizar.textContent = '🔍';
-        btnVisualizar.classList.add("text-blue-500", "hover:text-blue-700", "font-bold", "px-1");
-        btnVisualizar.onclick = () => verDetalleFactura(factura.id);
-        accionesCell.appendChild(btnVisualizar);
-
-        const btnImprimir = document.createElement('button');
-        btnImprimir.textContent = '🖨️';
-        btnImprimir.classList.add("text-green-500", "hover:text-green-700", "font-bold", "px-1");
-        btnImprimir.onclick = () => imprimirFactura(factura.id);
-        accionesCell.appendChild(btnImprimir);
-
-                     // **NUEVO:** Botón de Editar para facturas en espera y entregadas
-        if (data.estado === 'En espera' || data.estado === 'Entregado') {
-            const btnEditar = document.createElement('button');
-            btnEditar.textContent = '✏️';
-            btnEditar.classList.add("text-orange-500", "hover:text-orange-700", "font-bold", "px-1");
-            btnEditar.onclick = () => editarFactura(factura.id);
-            accionesCell.appendChild(btnEditar);
-        }
-        
-        if (usuarioActual.rol === 'superusuario' || usuarioActual.rol === 'admin') {
-            const btnEliminar = document.createElement('button');
-            btnEliminar.textContent = '🗑️';
-            btnEliminar.classList.add("text-red-500", "hover:text-red-700", "font-bold", "px-1");
-            btnEliminar.onclick = () => eliminarFactura(factura.id);
-            accionesCell.appendChild(btnEliminar);
-        }
-
-        fila.appendChild(accionesCell);
-        tableBody.appendChild(fila);
-    });
-}
-
-        async function editarFactura(facturaId) {
-            const facturaDoc = await db.collection('facturas').doc(facturaId).get();
-            if (facturaDoc.exists) {
-                const facturaData = facturaDoc.data();
-                if (facturaData.estado === 'Facturado') {
-                    mostrarMensaje('❌ No se puede editar una factura ya facturada.', 'bg-red-500');
-                    return;
-                }
-                facturaEnEdicionId = facturaId;
-                todaLaInformacionFacturaEnEdicion = facturaData;
-
-                document.getElementById('formFacturaTitle').textContent = `Editar Venta ${facturaData.numeroFactura || facturaId.slice(0, 5)}`;
-                document.getElementById('guardarFacturaBtn').textContent = '💾 Actualizar Venta';
-                
-                document.getElementById('cedulaCliente').value = facturaData.cedulaCliente || '';
-                document.getElementById('nombreCliente').value = facturaData.nombreCliente || '';
-                document.getElementById('telefono').value = facturaData.telefono || '';
-                document.getElementById('direccion').value = facturaData.direccion || '';
-                document.getElementById('fechaIngreso').value = facturaData.fechaIngreso || '';
-                document.getElementById('fechaEntrega').value = facturaData.fechaEntrega || '';
-                document.getElementById('estado').value = facturaData.estado || 'En espera';
-                document.getElementById('vendedor').value = facturaData.vendedor || currentLoggedInUser.nombre;
-
-                items = facturaData.items || [];
-                renderizarItems();
-                
-                mostrarSeccion('nuevaVentaSection');
-                mostrarMensaje('Cargando venta para edición...');
-            }
-        }
-
-        async function eliminarFactura(facturaId) {
-            if (confirm('¿Estás seguro de que quieres eliminar esta factura? Esta acción no se puede deshacer.')) {
-                try {
-                    await db.collection('facturas').doc(facturaId).delete();
-                    mostrarMensaje('✅ Factura eliminada con éxito.');
-                    cargarFacturas();
-                    cargarDashboardData();
-                } catch (error) {
-                    console.error("Error al eliminar la factura:", error);
-                    mostrarMensaje('❌ Ocurrió un error al eliminar la factura.', 'bg-red-500');
-                }
-            }
-        }
-
-        async function imprimirFactura(facturaId) {
-            const facturaDoc = await db.collection('facturas').doc(facturaId).get();
-            if (!facturaDoc.exists) {
-                alert('Factura no encontrada.');
-                return;
-            }
-
-            const data = facturaDoc.data();
-            const jsPDF = window.jspdf.jsPDF;
-            const doc = new jsPDF();
-            
-            doc.text(`Factura N° ${data.numeroFactura || facturaId.slice(0, 5)}`, 14, 20);
-            doc.text(`Cliente: ${data.nombreCliente}`, 14, 30);
-            doc.text(`Cédula: ${data.cedulaCliente}`, 14, 40);
-            doc.text(`Fecha: ${data.fechaCreacion.toDate().toLocaleDateString()}`, 14, 50);
-            doc.text(`Vendedor: ${data.vendedor}`, 14, 60);
-
-            const tableData = data.items.map(item => [
-                item.descripcion,
-                item.cantidad,
-                `$${item.precio.toFixed(2)}`,
-                `$${item.subtotal.toFixed(2)}`
-            ]);
-
-            doc.autoTable({
-                startY: 70,
-                head: [['Descripción', 'Cantidad', 'Precio Unitario', 'Subtotal']],
-                body: tableData,
-                foot: [['', '', 'TOTAL:', `$${data.total.toFixed(2)}`]],
-                theme: 'striped',
-                styles: { fontSize: 10, cellPadding: 2 },
-                headStyles: { fillColor: [200, 200, 200] }
-            });
-
-            // Reemplazamos doc.save por doc.output para mostrar en una nueva ventana
-            doc.output('dataurlnewwindow');
-        }
-
-        function limpiarFormularioFactura() {
-            facturaEnEdicionId = null;
-            todaLaInformacionFacturaEnEdicion = null;
-            document.getElementById('formFactura').reset();
-            document.getElementById('formFacturaTitle').textContent = 'Datos del Cliente y Nueva Venta';
-            document.getElementById('guardarFacturaBtn').textContent = '💾 Guardar Venta';
-            items = [];
-            renderizarItems();
-        }
-
         // ---------------------------------------------
         // FUNCIONES DE GESTIÓN DE CLIENTES
         // ---------------------------------------------
