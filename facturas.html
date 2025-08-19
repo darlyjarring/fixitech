@@ -663,7 +663,18 @@
 
  let usuarioActual; 
 
-            
+async function cargarDatosIniciales() {
+            await Promise.all([
+                cargarFacturas(),
+                cargarClientes(),
+                cargarProductosServicios(),
+                cargarCompras()
+            ]);
+            cargarAniosFiltros();
+            cargarDashboardData();
+        }
+
+                                  
         // 2. Coloca aquí tu función de inicio de sesión corregida
         async function login() {
             const usuario = document.getElementById('usuario').value;
