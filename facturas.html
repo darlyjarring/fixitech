@@ -439,6 +439,7 @@
 
     <div id="gestionComprasSection" class="hidden bg-white rounded-lg shadow-md p-6">
         <h2 class="text-2xl font-semibold mb-6 text-gray-800">Gestión de Compras</h2>
+        
         <form id="formCompra" class="space-y-4 mb-6">
             <h3 class="text-xl font-semibold mb-2">Registrar Nueva Compra</h3>
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -468,374 +469,381 @@
                     <input type="date" id="fechaVencimientoCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
                 </div>
             </div>
-            <div class="flex justify-end">
-                <button type="button" onclick="guardarCompra()" class="bg-green-500 text-white font-bold py-2 px-4 rounded-md hover:bg-green-600 transition duration-200">
-                    💾 Guardar Compra
-                </button>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="usuarioCompra" class="block text-sm font-medium text-gray-700">Registrado por</label>
+                    <input type="text" id="usuarioCompra" class="mt-1 p-2 block w-full border border-gray-300 rounded-md bg-gray-200" readonly>
+                </div>
+                <div class="flex items-end justify-end">
+                    <button type="button" id="btnGuardarCompra" onclick="guardarCompra()" class="bg-green-500 text-white font-bold py-2 px-4 rounded-md hover:bg-green-600 transition duration-200">
+                        💾 Registrar Compra
+                    </button>
+                </div>
             </div>
         </form>
-        <div class="bg-gray-50 rounded-lg overflow-hidden mt-6">
-            <h3 class="text-xl font-semibold p-4">Historial de Compras</h3>
+
+        <h3 class="text-xl font-semibold mb-4">Historial de Compras</h3>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div>
+                <label for="filtroComprasAnio" class="block text-sm font-medium text-gray-700">Año</label>
+                <select id="filtroComprasAnio" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div>
+                <label for="filtroComprasMes" class="block text-sm font-medium text-gray-700">Mes</label>
+                <select id="filtroComprasMes" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                    <option value="">Todos</option>
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div>
+                <label for="filtroComprasDia" class="block text-sm font-medium text-gray-700">Día</label>
+                <input type="number" id="filtroComprasDia" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+            </div>
+            <div>
+                <label for="filtroComprasHoraInicial" class="block text-sm font-medium text-gray-700">Hora Inicial</label>
+                <input type="time" id="filtroComprasHoraInicial" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+            </div>
+            <div>
+                <label for="filtroComprasHoraFinal" class="block text-sm font-medium text-gray-700">Hora Final</label>
+                <input type="time" id="filtroComprasHoraFinal" onchange="filtrarCompras()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+            </div>
+        </div>
+
+        <div class="bg-gray-50 rounded-lg overflow-hidden">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-200">
                     <tr>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Factura</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Factura</th>
                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
                         <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad</th>
-                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Costo Unitario</th>
-                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Costo Total</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Costo Unit.</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="listaComprasTableBody" class="bg-white divide-y divide-gray-200">
                 </tbody>
+                <tfoot id="comprasSummaryFooter">
+                </tfoot>
             </table>
         </div>
     </div>
-        
+    
+    <div id="consultaProductosSection" class="hidden bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Consulta de Stock y Vencimiento</h2>
+        <div class="mb-4">
+            <input type="text" id="filtroProducto" placeholder="Buscar producto por nombre..." class="w-full p-2 border rounded-md">
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock Disponible</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Última Fecha de Vencimiento</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="listaProductosConsultaTableBody" class="bg-white divide-y divide-gray-200">
+                </tbody>
+            </table>
+        </div>
     </div>
     
-    <div id="modalFactura" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl p-8 printable-content">
-            <div class="flex justify-between items-center border-b pb-4 mb-4">
-                <h2 class="text-2xl font-bold text-teal-600">Factura de Venta</h2>
-                <div class="text-right">
-                    <p class="text-sm">N° Factura: <span id="numFacturaModal"></span></p>
-                    <p class="text-sm">Fecha: <span id="fechaFacturaModal"></span></p>
-                </div>
-            </div>
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-800">Datos del Cliente</h3>
-                <p class="text-sm">Cliente: <span id="nombreClienteModal"></span></p>
-                <p class="text-sm">Cédula: <span id="cedulaClienteModal"></span></p>
-                <p class="text-sm">Teléfono: <span id="telefonoClienteModal"></span></p>
-                <p class="text-sm">Dirección: <span id="direccionClienteModal"></span></p>
-            </div>
-            <div class="overflow-x-auto">
+</div>
+
+    <div id="loteModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-3/4 md:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Detalles del Lote y Vencimiento</h3>
+            <div class="mt-2 px-7 py-3">
+                <div id="loteProductoNombre" class="font-bold text-xl mb-4"></div>
                 <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-100">
+                    <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Descripción</th>
-                            <th class="px-4 py-2 text-center text-sm font-medium text-gray-600">Cantidad</th>
-                            <th class="px-4 py-2 text-right text-sm font-medium text-gray-600">Precio Unitario</th>
-                            <th class="px-4 py-2 text-right text-sm font-medium text-gray-600">Subtotal</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Número de Factura (Lote)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad Comprada</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha de Vencimiento</th>
                         </tr>
                     </thead>
-                    <tbody id="itemsFacturaModal" class="bg-white divide-y divide-gray-200">
-                    </tbody>
-                    <tfoot>
-                        <tr class="bg-gray-100">
-                            <td colspan="3" class="px-4 py-2 text-right font-bold text-lg text-gray-800">Total:</td>
-                            <td class="px-4 py-2 text-right font-bold text-lg text-gray-800" id="totalFacturaModal">$0.00</td>
-                        </tr>
-                    </tfoot>
+                    <tbody id="loteDetallesTableBody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
                 </table>
             </div>
-            <div class="flex justify-end space-x-4 mt-8">
-                <button type="button" onclick="window.print()" class="bg-teal-500 text-white font-bold py-2 px-4 rounded-md hover:bg-teal-600 transition duration-200">
-                    🖨️ Imprimir Factura
-                </button>
-                <button type="button" onclick="document.getElementById('modalFactura').classList.add('hidden')" class="bg-red-500 text-white font-bold py-2 px-4 rounded-md hover:bg-red-600 transition duration-200">
+            <div class="items-center px-4 py-3">
+                <button id="cerrarLoteModal" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     Cerrar
                 </button>
             </div>
         </div>
     </div>
-
-
+</div>
+    <script src="firebase.js"></script>
     <script>
-        // ¡IMPORTANTE! Reemplace los valores a continuación con los de su proyecto de Firebase.
-        // Si no tiene esta información, la aplicación no funcionará correctamente.
-        const firebaseConfig = {
-          apiKey: "TU_API_KEY",
-          authDomain: "TU_AUTH_DOMAIN",
-          projectId: "TU_PROJECT_ID",
-          storageBucket: "TU_STORAGE_BUCKET",
-          messagingSenderId: "TU_MESSAGING_SENDER_ID",
-          appId: "TU_APP_ID"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        document.addEventListener('DOMContentLoaded', () => {
 
-        // Variables globales
+        const db = firebase.firestore();
+        let items = [];
+        let todasLasFacturas = [];
+        let facturaEnEdicionId = null;
+        let todaLaInformacionFacturaEnEdicion = null;
         let todosLosClientes = [];
         let todosLosProductosYServicios = [];
-        let todosLosItemsVenta = [];
-        let facturaAEditar = null;
+        let productoServicioEnEdicionId = null;
+        let todasLasCompras = [];
+        let currentLoggedInUser = null;
 
-        // --- Funciones de Autenticación y Carga Inicial ---
-        const usuariosCollection = db.collection('usuarios');
+        window.onload = async () => {
+            // Se puede llamar a login() si ya se han guardado las credenciales
+        };
 
-        document.getElementById('loginButton').addEventListener('click', async () => {
+
+
+
+
+
+            function mostrarSeccion(seccionId) {
+    // 1. Oculta todas las secciones principales
+    const secciones = document.querySelectorAll('.main-content > div');
+    secciones.forEach(seccion => {
+        if (seccion) {
+            seccion.classList.add('hidden');
+        }
+    });
+
+    // 2. Muestra la sección deseada
+    const seccionAMostrar = document.getElementById(seccionId);
+    if (seccionAMostrar) {
+        seccionAMostrar.classList.remove('hidden');
+
+        // 3. Llama a la función de renderizado correspondiente a la sección
+        if (seccionId === 'dashboardSection') {
+            cargarDashboardData();
+        } else if (seccionId === 'nuevaVentaSection') {
+            // No requiere una función de renderizado al inicio
+        } else if (seccionId === 'gestionFacturasSection') {
+            renderizarFacturas(todasLasFacturas);
+        } else if (seccionId === 'gestionClientesSection') {
+            renderizarClientes(todosLosClientes);
+        } else if (seccionId === 'gestionProductosSection') {
+            renderizarProductos(todosLosProductosYServicios);
+        } else if (seccionId === 'gestionComprasSection') {
+            // Llama a la función para renderizar el historial de compras
+            renderizarCompras(todasLasCompras);
+        } else if (seccionId === 'consultaProductosSection') {
+            // Llama a la función para renderizar el stock y vencimiento
+            const productos = todosLosProductosYServicios.filter(p => p.tipo === 'producto');
+            renderizarProductosConsulta(productos);
+        }
+    }
+}
+
+        function iniciarNuevaVenta() {
+            mostrarSeccion('nuevaVentaSection');
+            limpiarFormularioFactura();
+        }
+
+// Agrega esta línea al inicio de tu bloque de <script> para declarar la variable globalmente
+///let usuarioActual; 
+
+ let usuarioActual; 
+
+            
+        // 2. Coloca aquí tu función de inicio de sesión corregida
+        async function login() {
             const usuario = document.getElementById('usuario').value;
             const password = document.getElementById('password').value;
             const errorElement = document.getElementById('error');
-            
             try {
-                const querySnapshot = await usuariosCollection.where('usuario', '==', usuario).where('password', '==', password).get();
-                if (!querySnapshot.empty) {
-                    const user = querySnapshot.docs[0].data();
-                    localStorage.setItem('currentUser', JSON.stringify(user));
-                    showMainContent(user);
+                const doc = await db.collection('usuarios').doc(usuario).get();
+                if (doc.exists && doc.data().password === password) {
                     errorElement.classList.add('hidden');
+                    usuarioActual = {
+                        id: doc.id,
+                        rol: doc.data().rol,
+                        nombre: doc.data().nombre,
+                    };
+                    localStorage.setItem('usuarioActual', JSON.stringify(usuarioActual));
+                    document.getElementById('loginSection').classList.add('hidden');
+                    document.getElementById('sidebar').classList.remove('hidden');
+                    document.getElementById('main-content').classList.remove('hidden');
+                    document.getElementById('userNameDisplay').textContent = usuarioActual.nombre;
+                    document.getElementById('userRoleDisplay').textContent = usuarioActual.rol.toUpperCase();
+                    document.getElementById('vendedor').value = usuarioActual.nombre;
+                    document.getElementById('usuarioCompra').value = usuarioActual.nombre;
+                    controlarMenuPorRol();
+                    if (usuarioActual.rol === 'admin' || usuarioActual.rol === 'superusuario') {
+                        mostrarSeccion('dashboardSection');
+                    } else {
+                        mostrarSeccion('nuevaVentaSection');
+                    }
+                    await cargarDatosIniciales();
                 } else {
                     errorElement.classList.remove('hidden');
                 }
-            } catch (e) {
-                console.error("Error al iniciar sesión:", e);
+            } catch (error) {
+                console.error("Error al iniciar sesión:", error);
+                errorElement.textContent = "Error al conectar. Inténtalo de nuevo.";
                 errorElement.classList.remove('hidden');
             }
+        }
+
+        
+
+// NUEVA FUNCIÓN PARA CONTROLAR EL MENÚ SEGÚN EL ROL
+function controlarMenuPorRol() {
+     // La lista de todos los IDs del menú que deben ser controlados
+    const menuItemsAdmin = ['menu-dashboard', 'menu-facturas', 'menu-clientes', 'menu-productos', 'menu-compras', 'menu-usuarios'];
+    
+    // Si el rol es 'superusuario', muestra todas las opciones y termina la función
+    if (usuarioActual.rol === 'superusuario') {
+        menuItemsAdmin.forEach(itemId => {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.remove('hidden');
+            }
         });
+        return; 
+    }
 
-        function showMainContent(user) {
-            document.getElementById('loginSection').classList.add('hidden');
-            document.getElementById('sidebar').classList.remove('hidden');
-            document.getElementById('main-content').classList.remove('hidden');
-
-            document.getElementById('userNameDisplay').textContent = user.nombre;
-            document.getElementById('userRoleDisplay').textContent = user.rol;
-            document.getElementById('vendedor').value = user.nombre;
-
-            // Mostrar/ocultar menús según el rol
-            if (user.rol === 'admin') {
-                document.getElementById('menu-dashboard').classList.remove('hidden');
-                document.getElementById('menu-productos').classList.remove('hidden');
-                document.getElementById('menu-compras').classList.remove('hidden');
-                document.getElementById('menu-consulta-productos').classList.remove('hidden');
+    // Si el rol es 'admin', muestra las mismas opciones que antes
+    if (usuarioActual.rol === 'admin') {
+        menuItemsAdmin.forEach(itemId => {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.remove('hidden');
             }
-        }
-
-        function logout() {
-            localStorage.removeItem('currentUser');
-            location.reload();
-        }
-
-        function mostrarSeccion(seccionId) {
-            const secciones = ['dashboardSection', 'nuevaVentaSection', 'gestionFacturasSection', 'gestionClientesSection', 'gestionProductosSection', 'gestionComprasSection', 'consultaProductosSection'];
-            secciones.forEach(id => {
-                document.getElementById(id).classList.add('hidden');
-            });
-            document.getElementById(seccionId).classList.remove('hidden');
-
-            const menuItems = document.querySelectorAll('.menu-item');
-            menuItems.forEach(item => {
-                item.classList.remove('active');
-            });
-            document.getElementById(`menu-${seccionId.replace('Section', '')}`).classList.add('active');
-
-            // Cargar datos al cambiar de sección
-            if (seccionId === 'gestionClientesSection') cargarClientes();
-            if (seccionId === 'gestionFacturasSection') cargarFacturas();
-            if (seccionId === 'gestionProductosSection') cargarProductosYServicios();
-            if (seccionId === 'gestionComprasSection') cargarCompras();
-            if (seccionId === 'dashboardSection') cargarDashboard();
-        }
-
-        // --- Funciones de Gestión de Clientes ---
-        async function cargarClientes() {
-            try {
-                const clientesSnapshot = await db.collection('clientes').get();
-                todosLosClientes = clientesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderizarClientes();
-            } catch (e) {
-                console.error("Error al cargar clientes: ", e);
+        });
+    } else { // Para el rol 'vendedor' u otros
+        menuItemsAdmin.forEach(itemId => {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.add('hidden');
             }
+        });
+    }
+}
+
+      
+        
+            function logout() {
+            currentLoggedInUser = null;
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('sidebar').classList.add('hidden');
+            document.getElementById('main-content').classList.add('hidden');
+            
+            document.getElementById('formFactura').reset();
+            document.getElementById('formCompra').reset();
+            document.getElementById('formProductoServicio').reset();
+            
+            items = [];
+            document.getElementById('tablaItems').innerHTML = '';
+            actualizarTotal();
         }
 
-        function renderizarClientes(clientes = todosLosClientes) {
-            const tableBody = document.getElementById('listaClientesTableBody');
-            tableBody.innerHTML = '';
-            clientes.forEach(cliente => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="px-3 py-2 whitespace-nowrap">${cliente.cedula}</td>
-                    <td class="px-3 py-2 whitespace-nowrap">${cliente.nombre}</td>
-                    <td class="px-3 py-2 whitespace-nowrap">${cliente.telefono}</td>
-                    <td class="px-3 py-2 whitespace-nowrap">${cliente.direccion}</td>
-                    <td class="px-3 py-2 whitespace-nowrap text-center text-sm font-medium">
-                        <button onclick="editarCliente('${cliente.cedula}')" class="text-indigo-600 hover:text-indigo-900 mr-2">Editar</button>
-                        <button onclick="eliminarCliente('${cliente.cedula}')" class="text-red-600 hover:text-red-900">Eliminar</button>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
+        function mostrarMensaje(texto, color = 'bg-green-600') {
+            const mensaje = document.createElement('div');
+            mensaje.textContent = texto;
+            mensaje.className = `fixed top-5 right-5 ${color} text-white px-4 py-2 rounded shadow-lg z-50`;
+            document.body.appendChild(mensaje);
+            setTimeout(() => mensaje.remove(), 3000);
         }
 
-        function filtrarClientes() {
-            const filtro = document.getElementById('filtroClienteNombre').value.toLowerCase();
-            const clientesFiltrados = todosLosClientes.filter(cliente =>
-                cliente.nombre.toLowerCase().includes(filtro) || cliente.cedula.includes(filtro)
-            );
-            renderizarClientes(clientesFiltrados);
+
+        function mostrarMensaje(texto, color = 'bg-green-600') {
+            const mensaje = document.createElement('div');
+            mensaje.textContent = texto;
+            mensaje.className = `fixed top-5 right-5 ${color} text-white px-4 py-2 rounded shadow-lg z-50`;
+            document.body.appendChild(mensaje);
+            setTimeout(() => mensaje.remove(), 3000);
         }
 
-        async function guardarCliente() {
-            const cedula = document.getElementById('editCedula').value;
-            const nombre = document.getElementById('editNombre').value;
-            const telefono = document.getElementById('editTelefono').value;
-            const direccion = document.getElementById('editDireccion').value;
-
-            if (!cedula || !nombre) {
-                alert("La cédula y el nombre son campos obligatorios.");
-                return;
-            }
-
-            try {
-                const clienteRef = db.collection('clientes').doc(cedula);
-                const doc = await clienteRef.get();
-
-                if (doc.exists) {
-                    await clienteRef.update({ nombre, telefono, direccion });
-                    alert("Cliente actualizado exitosamente.");
-                } else {
-                    await clienteRef.set({ cedula, nombre, telefono, direccion });
-                    alert("Cliente agregado exitosamente.");
-                }
-                
-                limpiarFormularioCliente();
-                cargarClientes();
-            } catch (e) {
-                console.error("Error al guardar cliente: ", e);
-                alert("Error al guardar el cliente.");
-            }
-        }
-
-        async function editarCliente(cedula) {
-            const cliente = todosLosClientes.find(c => c.cedula === cedula);
-            if (cliente) {
-                document.getElementById('formClienteTitle').textContent = 'Editar Cliente';
-                document.getElementById('editCedula').value = cliente.cedula;
-                document.getElementById('editNombre').value = cliente.nombre;
-                document.getElementById('editTelefono').value = cliente.telefono;
-                document.getElementById('editDireccion').value = cliente.direccion;
-                document.getElementById('formCliente').classList.remove('hidden');
-            }
-        }
-
-        async function eliminarCliente(cedula) {
-            if (confirm("¿Está seguro de que desea eliminar este cliente?")) {
-                try {
-                    await db.collection('clientes').doc(cedula).delete();
-                    alert("Cliente eliminado exitosamente.");
-                    cargarClientes();
-                } catch (e) {
-                    console.error("Error al eliminar cliente: ", e);
-                    alert("Error al eliminar el cliente.");
-                }
-            }
-        }
-
-        function limpiarFormularioCliente() {
-            document.getElementById('formCliente').reset();
-            document.getElementById('formCliente').classList.add('hidden');
-            document.getElementById('editCedula').removeAttribute('readonly');
-            document.getElementById('formClienteTitle').textContent = 'Agregar Cliente';
-        }
-
-        // --- Funciones de Nueva Venta ---
-        async function buscarClientePorCedula() {
-            const cedula = document.getElementById('cedulaCliente').value;
-            if (cedula) {
-                try {
-                    const doc = await db.collection('clientes').doc(cedula).get();
-                    if (doc.exists) {
-                        const cliente = doc.data();
-                        document.getElementById('nombreCliente').value = cliente.nombre;
-                        document.getElementById('telefono').value = cliente.telefono;
-                        document.getElementById('direccion').value = cliente.direccion;
-                    } else {
-                        alert("Cliente no encontrado. Puede registrarlo con el botón de guardar.");
-                        document.getElementById('nombreCliente').value = "";
-                        document.getElementById('telefono').value = "";
-                        document.getElementById('direccion').value = "";
-                    }
-                } catch (e) {
-                    console.error("Error al buscar cliente: ", e);
-                }
-            }
-        }
-
-        async function guardarClienteDesdeFactura() {
-            const cedula = document.getElementById('cedulaCliente').value;
-            const nombre = document.getElementById('nombreCliente').value;
-            const telefono = document.getElementById('telefono').value;
-            const direccion = document.getElementById('direccion').value;
-
-            if (!cedula || !nombre) {
-                alert("La cédula y el nombre del cliente son obligatorios.");
-                return;
-            }
-
-            try {
-                await db.collection('clientes').doc(cedula).set({
-                    cedula,
-                    nombre,
-                    telefono,
-                    direccion
-                }, { merge: true });
-                alert("Cliente guardado/actualizado exitosamente.");
-            } catch (e) {
-                console.error("Error al guardar cliente desde factura: ", e);
-                alert("Error al guardar el cliente.");
-            }
-        }
+        // ---------------------------------------------
+        // FUNCIONES DE GESTIÓN DE VENTAS Y FACTURAS
+        // ---------------------------------------------
 
         function agregarItem() {
             const descripcion = document.getElementById('descripcion').value;
             const cantidad = parseFloat(document.getElementById('cantidad').value);
             const precio = parseFloat(document.getElementById('precio').value);
 
-            if (!descripcion || isNaN(cantidad) || isNaN(precio) || cantidad <= 0 || precio < 0) {
-                alert("Por favor, ingrese una descripción, una cantidad válida y un precio válido.");
-                return;
+            if (descripcion && !isNaN(cantidad) && cantidad > 0 && !isNaN(precio) && precio >= 0) {
+                const subtotal = cantidad * precio;
+                items.push({ descripcion, cantidad, precio, subtotal });
+                renderizarItems();
+                document.getElementById('descripcion').value = '';
+                document.getElementById('cantidad').value = '1';
+                document.getElementById('precio').value = '';
+                document.getElementById('descripcion').focus();
+            } else {
+                mostrarMensaje('Por favor, completa todos los campos del ítem correctamente.', 'bg-red-500');
             }
-
-            const subtotal = cantidad * precio;
-            todosLosItemsVenta.push({
-                descripcion,
-                cantidad,
-                precio,
-                subtotal
-            });
-
-            renderizarItemsVenta();
-            limpiarFormularioItems();
         }
 
-        function limpiarFormularioItems() {
-            document.getElementById('descripcion').value = '';
-            document.getElementById('cantidad').value = '1';
-            document.getElementById('precio').value = '';
+        function eliminarItem(index) {
+            items.splice(index, 1);
+            renderizarItems();
         }
 
-        function renderizarItemsVenta() {
+        function renderizarItems() {
             const tablaItems = document.getElementById('tablaItems');
             tablaItems.innerHTML = '';
-            let total = 0;
-
-            todosLosItemsVenta.forEach((item, index) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="px-3 py-2 whitespace-nowrap">${item.descripcion}</td>
-                    <td class="px-3 py-2 text-center">${item.cantidad}</td>
-                    <td class="px-3 py-2 text-right">$${item.precio.toFixed(2)}</td>
-                    <td class="px-3 py-2 text-right">$${item.subtotal.toFixed(2)}</td>
-                    <td class="px-3 py-2 text-center">
-                        <button onclick="eliminarItemVenta(${index})" class="text-red-600 hover:text-red-900">Eliminar</button>
-                    </td>
+            items.forEach((item, index) => {
+                const row = `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${item.descripcion}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">${item.cantidad}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.precio.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-right">$${item.subtotal.toFixed(2)}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button type="button" onclick="eliminarItem(${index})" class="text-red-500 hover:text-red-700">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
                 `;
-                tablaItems.appendChild(row);
-                total += item.subtotal;
+                tablaItems.innerHTML += row;
             });
+            actualizarTotal();
+        }
 
+        function actualizarTotal() {
+            const total = items.reduce((sum, item) => sum + item.subtotal, 0);
             document.getElementById('total').textContent = `$${total.toFixed(2)}`;
         }
         
-        function eliminarItemVenta(index) {
-            todosLosItemsVenta.splice(index, 1);
-            renderizarItemsVenta();
+        async function generarNumeroFactura() {
+            const counterRef = db.collection('contadores').doc('facturas');
+            return db.runTransaction(async transaction => {
+                const counterDoc = await transaction.get(counterRef);
+                const currentValor = counterDoc.exists ? (counterDoc.data().valor || 0) : 0;
+                const nuevoValor = currentValor + 1;
+                await transaction.set(counterRef, { valor: nuevoValor });
+                return nuevoValor;
+            });
         }
         
+        function formatFacturaNumber(num) {
+            const year = new Date().getFullYear().toString().slice(-2);
+            const paddedCounter = String(num).padStart(6, '0');
+            return paddedCounter + year;
+        }
+
         async function guardarFactura() {
             const cedulaCliente = document.getElementById('cedulaCliente').value;
             const nombreCliente = document.getElementById('nombreCliente').value;
@@ -845,70 +853,1192 @@
             const fechaEntrega = document.getElementById('fechaEntrega').value;
             const estado = document.getElementById('estado').value;
             const vendedor = document.getElementById('vendedor').value;
-            const total = parseFloat(document.getElementById('total').textContent.replace('$', ''));
+            const total = items.reduce((sum, item) => sum + item.subtotal, 0);
 
-            if (!cedulaCliente || todosLosItemsVenta.length === 0 || !fechaIngreso || !fechaEntrega) {
-                alert("Por favor, complete los datos del cliente, agregue al menos un ítem y seleccione las fechas.");
+            if (!cedulaCliente || !nombreCliente || items.length === 0) {
+                mostrarMensaje('❌ Por favor, complete la información del cliente y agregue al menos un ítem.', 'bg-red-500');
                 return;
             }
 
-            const facturaData = {
-                cedulaCliente,
-                nombreCliente,
-                telefono,
-                direccion,
-                fechaIngreso,
-                fechaEntrega,
-                estado,
-                vendedor,
-                total,
-                items: todosLosItemsVenta,
-                fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
             try {
-                await db.collection('facturas').add(facturaData);
-                alert("Venta guardada exitosamente.");
-                resetearFormularioVenta();
-            } catch (e) {
-                console.error("Error al guardar la factura: ", e);
-                alert("Error al guardar la venta.");
+                let numeroFactura = null;
+                if (estado === 'Facturado' && (!todaLaInformacionFacturaEnEdicion || !todaLaInformacionFacturaEnEdicion.numeroFactura)) {
+                    const counter = await generarNumeroFactura();
+                    numeroFactura = formatFacturaNumber(counter);
+                } else if (todaLaInformacionFacturaEnEdicion && todaLaInformacionFacturaEnEdicion.numeroFactura) {
+                    numeroFactura = todaLaInformacionFacturaEnEdicion.numeroFactura;
+                }
+
+                const facturaData = {
+                    cedulaCliente,
+                    nombreCliente,
+                    telefono,
+                    direccion,
+                    fechaIngreso,
+                    fechaEntrega,
+                    estado,
+                    vendedor,
+                    items,
+                    total,
+                    numeroFactura,
+                    fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                if (facturaEnEdicionId) {
+                    await db.collection('facturas').doc(facturaEnEdicionId).update(facturaData);
+                    mostrarMensaje('✅ Factura actualizada con éxito.');
+                } else {
+                    await db.collection('facturas').add(facturaData);
+                    mostrarMensaje('✅ Venta guardada con éxito.');
+                }
+                
+                limpiarFormularioFactura();
+                cargarFacturas();
+                cargarDashboardData();
+
+            } catch (error) {
+                console.error("Error al guardar la factura:", error);
+                mostrarMensaje('❌ Ocurrió un error al intentar guardar la venta.', 'bg-red-500');
             }
         }
 
-        function resetearFormularioVenta() {
+        async function cargarFacturas() {
+            try {
+                const snapshot = await db.collection('facturas').orderBy('fechaCreacion', 'desc').get();
+                todasLasFacturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                filtrarFacturas();
+            } catch (error) {
+                console.error("Error al cargar las facturas:", error);
+            }
+        }
+
+        function filtrarFacturas() {
+            const filtroAnio = document.getElementById('filtroVentasAnio').value;
+            const filtroMes = document.getElementById('filtroVentasMes').value;
+            const filtroHoraInicial = document.getElementById('filtroVentasHoraInicial').value;
+            const filtroHoraFinal = document.getElementById('filtroVentasHoraFinal').value;
+            
+            let facturasFiltradas = todasLasFacturas;
+
+            if (filtroAnio) {
+                facturasFiltradas = facturasFiltradas.filter(factura => {
+                    const fecha = factura.fechaCreacion.toDate();
+                    return fecha.getFullYear() === parseInt(filtroAnio);
+                });
+            }
+            
+            if (filtroMes) {
+                facturasFiltradas = facturasFiltradas.filter(factura => {
+                    const fecha = factura.fechaCreacion.toDate();
+                    return (fecha.getMonth() + 1) === parseInt(filtroMes);
+                });
+            }
+
+            if (filtroHoraInicial && filtroHoraFinal) {
+                facturasFiltradas = facturasFiltradas.filter(factura => {
+                    const fecha = factura.fechaCreacion.toDate();
+                    const hora = fecha.getHours().toString().padStart(2, '0');
+                    const minutos = fecha.getMinutes().toString().padStart(2, '0');
+                    const horaFactura = `${hora}:${minutos}`;
+                    return horaFactura >= filtroHoraInicial && horaFactura <= filtroHoraFinal;
+                });
+            }
+
+            renderizarFacturas(facturasFiltradas);
+        }
+
+function renderizarFacturas(facturas) {
+    const tableBody = document.getElementById('listaFacturasTableBody');
+    tableBody.innerHTML = '';
+    
+    facturas.forEach(factura => {
+        const data = factura;
+        const fila = document.createElement('tr');
+        fila.classList.add("hover:bg-gray-50");
+
+        // Condición para mostrar 'Pendiente' si numeroFactura es null o undefined
+        const numeroDisplay = data.numeroFactura ? `${data.numeroFactura}` : 'Pendiente';
+
+        // Validar y formatear la fecha de manera segura
+        const fechaFormateada = data.fechaCreacion && data.fechaCreacion.seconds 
+            ? new Date(data.fechaCreacion.seconds * 1000).toLocaleDateString()
+            : 'N/A';
+        
+        fila.innerHTML = `
+            <td class="px-3 py-2 border-b border-gray-200">${numeroDisplay}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${data.nombreCliente}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-right">$${data.total.toFixed(2)}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${data.vendedor}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${data.estado}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${fechaFormateada}</td>
+        `;
+
+        const accionesCell = document.createElement('td');
+        accionesCell.classList.add("px-3", "py-2", "border-b", "border-gray-200", "text-center");
+        
+        const btnVisualizar = document.createElement('button');
+        btnVisualizar.textContent = '🔍';
+        btnVisualizar.classList.add("text-blue-500", "hover:text-blue-700", "font-bold", "px-1");
+        btnVisualizar.onclick = () => verDetalleFactura(factura.id);
+        accionesCell.appendChild(btnVisualizar);
+
+        const btnImprimir = document.createElement('button');
+        btnImprimir.textContent = '🖨️';
+        btnImprimir.classList.add("text-green-500", "hover:text-green-700", "font-bold", "px-1");
+        btnImprimir.onclick = () => imprimirFactura(factura.id);
+        accionesCell.appendChild(btnImprimir);
+
+                     // **NUEVO:** Botón de Editar para facturas en espera y entregadas
+        if (data.estado === 'En espera' || data.estado === 'Entregado') {
+            const btnEditar = document.createElement('button');
+            btnEditar.textContent = '✏️';
+            btnEditar.classList.add("text-orange-500", "hover:text-orange-700", "font-bold", "px-1");
+            btnEditar.onclick = () => editarFactura(factura.id);
+            accionesCell.appendChild(btnEditar);
+        }
+        
+        if (usuarioActual.rol === 'superusuario' || usuarioActual.rol === 'admin') {
+            const btnEliminar = document.createElement('button');
+            btnEliminar.textContent = '🗑️';
+            btnEliminar.classList.add("text-red-500", "hover:text-red-700", "font-bold", "px-1");
+            btnEliminar.onclick = () => eliminarFactura(factura.id);
+            accionesCell.appendChild(btnEliminar);
+        }
+
+        fila.appendChild(accionesCell);
+        tableBody.appendChild(fila);
+    });
+}
+
+        async function editarFactura(facturaId) {
+            const facturaDoc = await db.collection('facturas').doc(facturaId).get();
+            if (facturaDoc.exists) {
+                const facturaData = facturaDoc.data();
+                if (facturaData.estado === 'Facturado') {
+                    mostrarMensaje('❌ No se puede editar una factura ya facturada.', 'bg-red-500');
+                    return;
+                }
+                facturaEnEdicionId = facturaId;
+                todaLaInformacionFacturaEnEdicion = facturaData;
+
+                document.getElementById('formFacturaTitle').textContent = `Editar Venta ${facturaData.numeroFactura || facturaId.slice(0, 5)}`;
+                document.getElementById('guardarFacturaBtn').textContent = '💾 Actualizar Venta';
+                
+                document.getElementById('cedulaCliente').value = facturaData.cedulaCliente || '';
+                document.getElementById('nombreCliente').value = facturaData.nombreCliente || '';
+                document.getElementById('telefono').value = facturaData.telefono || '';
+                document.getElementById('direccion').value = facturaData.direccion || '';
+                document.getElementById('fechaIngreso').value = facturaData.fechaIngreso || '';
+                document.getElementById('fechaEntrega').value = facturaData.fechaEntrega || '';
+                document.getElementById('estado').value = facturaData.estado || 'En espera';
+                document.getElementById('vendedor').value = facturaData.vendedor || currentLoggedInUser.nombre;
+
+                items = facturaData.items || [];
+                renderizarItems();
+                
+                mostrarSeccion('nuevaVentaSection');
+                mostrarMensaje('Cargando venta para edición...');
+            }
+        }
+
+        async function eliminarFactura(facturaId) {
+            if (confirm('¿Estás seguro de que quieres eliminar esta factura? Esta acción no se puede deshacer.')) {
+                try {
+                    await db.collection('facturas').doc(facturaId).delete();
+                    mostrarMensaje('✅ Factura eliminada con éxito.');
+                    cargarFacturas();
+                    cargarDashboardData();
+                } catch (error) {
+                    console.error("Error al eliminar la factura:", error);
+                    mostrarMensaje('❌ Ocurrió un error al eliminar la factura.', 'bg-red-500');
+                }
+            }
+        }
+
+        async function imprimirFactura(facturaId) {
+            const facturaDoc = await db.collection('facturas').doc(facturaId).get();
+            if (!facturaDoc.exists) {
+                alert('Factura no encontrada.');
+                return;
+            }
+
+            const data = facturaDoc.data();
+            const jsPDF = window.jspdf.jsPDF;
+            const doc = new jsPDF();
+            
+            doc.text(`Factura N° ${data.numeroFactura || facturaId.slice(0, 5)}`, 14, 20);
+            doc.text(`Cliente: ${data.nombreCliente}`, 14, 30);
+            doc.text(`Cédula: ${data.cedulaCliente}`, 14, 40);
+            doc.text(`Fecha: ${data.fechaCreacion.toDate().toLocaleDateString()}`, 14, 50);
+            doc.text(`Vendedor: ${data.vendedor}`, 14, 60);
+
+            const tableData = data.items.map(item => [
+                item.descripcion,
+                item.cantidad,
+                `$${item.precio.toFixed(2)}`,
+                `$${item.subtotal.toFixed(2)}`
+            ]);
+
+            doc.autoTable({
+                startY: 70,
+                head: [['Descripción', 'Cantidad', 'Precio Unitario', 'Subtotal']],
+                body: tableData,
+                foot: [['', '', 'TOTAL:', `$${data.total.toFixed(2)}`]],
+                theme: 'striped',
+                styles: { fontSize: 10, cellPadding: 2 },
+                headStyles: { fillColor: [200, 200, 200] }
+            });
+
+            // Reemplazamos doc.save por doc.output para mostrar en una nueva ventana
+            doc.output('dataurlnewwindow');
+        }
+
+        function limpiarFormularioFactura() {
+            facturaEnEdicionId = null;
+            todaLaInformacionFacturaEnEdicion = null;
             document.getElementById('formFactura').reset();
-            document.getElementById('cedulaCliente').value = '';
-            document.getElementById('nombreCliente').value = '';
-            document.getElementById('telefono').value = '';
-            document.getElementById('direccion').value = '';
-            todosLosItemsVenta = [];
-            renderizarItemsVenta();
+            document.getElementById('formFacturaTitle').textContent = 'Datos del Cliente y Nueva Venta';
+            document.getElementById('guardarFacturaBtn').textContent = '💾 Guardar Venta';
+            items = [];
+            renderizarItems();
         }
 
-        // --- Event Listeners ---
-        document.getElementById('menu-nueva-venta').addEventListener('click', () => {
-            mostrarSeccion('nuevaVentaSection');
-        });
-        document.getElementById('menu-facturas').addEventListener('click', () => {
-            mostrarSeccion('gestionFacturasSection');
-        });
-        document.getElementById('menu-clientes').addEventListener('click', () => {
-            mostrarSeccion('gestionClientesSection');
-        });
-        document.getElementById('menu-productos').addEventListener('click', () => {
-            mostrarSeccion('gestionProductosSection');
-        });
-        document.getElementById('menu-compras').addEventListener('click', () => {
-            mostrarSeccion('gestionComprasSection');
-        });
+        // ---------------------------------------------
+        // FUNCIONES DE GESTIÓN DE CLIENTES
+        // ---------------------------------------------
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const currentUser = localStorage.getItem('currentUser');
-            if (currentUser) {
-                showMainContent(JSON.parse(currentUser));
+        async function cargarClientes() {
+            try {
+                const snapshot = await db.collection('clientes').get();
+                todosLosClientes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                filtrarClientes();
+            } catch (error) {
+                console.error("Error al cargar los clientes:", error);
+            }
+        }
+
+        function filtrarClientes() {
+            const filtroNombre = document.getElementById('filtroClienteNombre').value.toLowerCase();
+            const clientesFiltrados = todosLosClientes.filter(cliente => 
+                cliente.nombre.toLowerCase().includes(filtroNombre) || cliente.cedula.includes(filtroNombre)
+            );
+            renderizarClientes(clientesFiltrados);
+        }
+let clienteEnEdicionId = null;
+        function renderizarClientes(clientes) {
+            const tableBody = document.getElementById('listaClientesTableBody');
+            tableBody.innerHTML = '';
+            clientes.forEach(cliente => {
+                tableBody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.cedula}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.nombre}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.telefono || ''}</td>
+                        <td class="px-3 py-2 border-b border-gray-200">${cliente.direccion || ''}</td>
+                        <td class="px-3 py-2 border-b border-gray-200 text-center">
+                            <button onclick="editarCliente('${cliente.id}')" class="text-blue-500 hover:text-blue-700 mx-1" title="Editar">
+                                ✏️
+                            </button>
+                            <button onclick="eliminarCliente('${cliente.id}', '${cliente.nombre}')" class="text-red-500 hover:text-red-700 mx-1" title="Eliminar">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function editarCliente(clienteId) {
+                const cliente = todosLosClientes.find(c => c.cedula === clienteId);
+                if (cliente) {
+                    clienteEnEdicionId = clienteId;
+                    document.getElementById('editCedula').value = cliente.cedula;
+                    document.getElementById('editNombre').value = cliente.nombre;
+                    document.getElementById('editTelefono').value = cliente.telefono || '';
+                    document.getElementById('editDireccion').value = cliente.direccion || '';
+                    document.getElementById('formCliente').classList.remove('hidden');
+                    mostrarMensaje('Cargando cliente para edición...', 'bg-blue-500');
+                }
+        }
+
+
+        async function eliminarCliente(cedula, nombre) {
+            if (confirm(`¿Estás seguro de que quieres eliminar a ${nombre} con cédula ${cedula}? Esta acción no se puede deshacer.`)) {
+                try {
+                    console.log("Intentando eliminar cliente con cédula:", cedula); // Mensaje de depuración
+                    await db.collection('clientes').doc(cedula).delete();
+                    mostrarMensaje(`✅ Cliente ${nombre} eliminado con éxito.`);
+                    cargarClientes(); // Recarga la lista para mostrar el cambio
+                } catch (error) {
+                    console.error("❌ Error al eliminar cliente:", error);
+                    mostrarMensaje('❌ Ocurrió un error al eliminar el cliente.', 'bg-red-500');
+                }
+            }
+        }
+                // Nueva función para guardar los cambios
+        async function guardarCliente() {
+            const cedula = document.getElementById('editCedula').value;
+            const nombre = document.getElementById('editNombre').value;
+            const telefono = document.getElementById('editTelefono').value;
+            const direccion = document.getElementById('editDireccion').value;
+        
+            if (!cedula || !nombre) {
+                mostrarMensaje('❌ Se necesita la cédula y el nombre.', 'bg-red-500');
+                return;
+            }
+        
+            try {
+                const clienteRef = db.collection('clientes').doc(cedula);
+                const clienteData = { nombre, telefono, direccion, cedula };
+                
+                await clienteRef.update(clienteData);
+                mostrarMensaje(`✅ Cliente ${nombre} actualizado con éxito.`);
+                
+                limpiarFormularioCliente();
+                cargarClientes();
+            } catch (error) {
+                console.error("Error al actualizar cliente:", error);
+                mostrarMensaje('❌ Ocurrió un error al actualizar el cliente.', 'bg-red-500');
+            }
+        }
+        
+        // Nueva función para limpiar el formulario
+        function limpiarFormularioCliente() {
+            clienteEnEdicionId = null;
+            document.getElementById('formCliente').reset();
+            document.getElementById('formCliente').classList.add('hidden');
+            document.getElementById('filtroClienteNombre').focus();
+        }
+
+        
+        async function guardarClienteDesdeFactura() {
+            const cedula = document.getElementById('cedulaCliente').value;
+            const nombre = document.getElementById('nombreCliente').value;
+            const telefono = document.getElementById('telefono').value;
+            const direccion = document.getElementById('direccion').value;
+        
+            if (!cedula || !nombre) {
+                mostrarMensaje('❌ Se necesita la cédula y el nombre para guardar un cliente.', 'bg-red-500');
+                return;
+            }
+        
+            try {
+                const clienteRef = db.collection('clientes').doc(cedula);
+                const doc = await clienteRef.get();
+                
+                // Datos a guardar, incluyendo la cédula
+                const clienteData = { 
+                    cedula, 
+                    nombre, 
+                    telefono, 
+                    direccion 
+                };
+                
+                if (doc.exists) {
+                    await clienteRef.update(clienteData);
+                    mostrarMensaje(`✅ Cliente ${nombre} actualizado con éxito.`);
+                } else {
+                    await clienteRef.set(clienteData);
+                    mostrarMensaje(`✅ Cliente ${nombre} guardado con éxito.`);
+                }
+                
+                cargarClientes();
+            } catch (error) {
+                console.error("Error al guardar cliente:", error);
+                mostrarMensaje('❌ Ocurrió un error al guardar el cliente.', 'bg-red-500');
+            }
+        }
+
+        async function buscarClientePorCedula() {
+            const cedula = document.getElementById('cedulaCliente').value;
+            if (cedula.length > 0) {
+                const clienteDoc = await db.collection('clientes').doc(cedula).get();
+                if (clienteDoc.exists) {
+                    const data = clienteDoc.data();
+                    document.getElementById('nombreCliente').value = data.nombre;
+                    document.getElementById('telefono').value = data.telefono || '';
+                    document.getElementById('direccion').value = data.direccion || '';
+                    mostrarMensaje(`Cliente ${data.nombre} encontrado.`, 'bg-blue-500');
+                } else {
+                    document.getElementById('nombreCliente').value = '';
+                    document.getElementById('telefono').value = '';
+                    document.getElementById('direccion').value = '';
+                    mostrarMensaje('Cliente no encontrado. Puedes guardarlo si lo deseas.', 'bg-yellow-500');
+                }
+            }
+        }
+
+            // Variable global para mantener el ID del producto/servicio que se está editando
+let idProductoServicioEnEdicion = null;
+
+// ---------------------------------------------
+// FUNCIONES DE GESTIÓN DE PRODUCTOS Y SERVICIOS
+// ---------------------------------------------
+
+async function cargarProductosServicios() {
+    try {
+        const snapshot = await db.collection('productosYServicios').get();
+        todosLosProductosYServicios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        filtrarProductos();
+        cargarOpcionesDeProductosEnCompras();
+        cargarOpcionesDeProductosEnVentas();
+    } catch (error) {
+        console.error("Error al cargar productos:", error);
+    }
+}
+
+// Nueva función de filtrado
+function filtrarProductos() {
+    const filtroNombre = document.getElementById('filtroNombreProducto').value.toLowerCase();
+    const filtroTipo = document.getElementById('filtroTipoProducto').value;
+    const filtroVencimiento = document.getElementById('filtroVencimientoProducto').value;
+    
+    let productosFiltrados = todosLosProductosYServicios.filter(producto => {
+        const coincideNombre = producto.nombre.toLowerCase().includes(filtroNombre);
+        const coincideTipo = !filtroTipo || producto.tipo === filtroTipo;
+        
+        const coincideVencimiento = !filtroVencimiento || (producto.fechaVencimiento && producto.fechaVencimiento <= filtroVencimiento);
+        
+        return coincideNombre && coincideTipo && coincideVencimiento;
+    });
+    
+    renderizarProductos(productosFiltrados);
+}
+
+// *** FUNCIÓN CORREGIDA: renderizarProductos ***
+// Reemplaza tu versión anterior con esta
+function renderizarProductos(productos) {
+    const tableBody = document.getElementById('listaProductosTableBody');
+    tableBody.innerHTML = '';
+    const today = new Date();
+    
+    productos.forEach(producto => {
+        const row = document.createElement('tr');
+        const fechaVencimiento = producto.fechaVencimiento ? new Date(producto.fechaVencimiento).toLocaleDateString() : 'N/A';
+        const stock = producto.tipo === 'producto' ? producto.stock : 'N/A';
+        
+        let rowClass = 'hover:bg-gray-50';
+        if (producto.fechaVencimiento) {
+            const vencimiento = new Date(producto.fechaVencimiento);
+            const diffTime = vencimiento.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays <= 30 && diffDays >= 0) {
+                rowClass = 'expiring-soon bg-yellow-100'; // Destacar productos próximos a vencer
+            }
+        }
+        
+        row.className = rowClass;
+        row.innerHTML = `
+            <td class="px-3 py-2 border-b border-gray-200">${producto.nombre}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${producto.tipo}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-right">$${producto.precio.toFixed(2)}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-center">${stock}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${fechaVencimiento}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-center">
+                <button class="text-blue-500 hover:text-blue-700 mx-1" title="Editar">
+                    ✏️
+                </button>
+                <button class="text-red-500 hover:text-red-700 mx-1" title="Eliminar">
+                    🗑️
+                </button>
+            </td>
+        `;
+
+        // Aquí se asignan los eventos de forma segura
+        row.querySelector('.text-blue-500').addEventListener('click', () => editarProductoServicio(producto.id));
+        row.querySelector('.text-red-500').addEventListener('click', () => eliminarProductoServicio(producto.id, producto.nombre));
+
+        tableBody.appendChild(row);
+    });
+}
+    
+function toggleStockInput() {
+    const tipo = document.getElementById('tipoProducto').value;
+    const stockDiv = document.getElementById('stockInputDiv');
+    if (tipo === 'servicio') {
+        stockDiv.classList.add('hidden');
+        document.getElementById('stockProducto').value = '0';
+    } else {
+        stockDiv.classList.remove('hidden');
+    }
+}
+
+// *** FUNCIONES NUEVAS: actualizar y limpiar ***
+// Estas funciones se añaden para mejorar el flujo de edición
+
+// Función para editar un producto (llena el formulario)
+async function editarProductoServicio(itemId) {
+    const doc = await db.collection('productosYServicios').doc(itemId).get();
+    if (doc.exists) {
+        const itemData = doc.data();
+        idProductoServicioEnEdicion = itemId;
+        
+        document.getElementById('formProductoServicioTitle').textContent = `Editar "${itemData.nombre}"`;
+        document.getElementById('guardarProductoBtn').textContent = '💾 Actualizar';
+        document.getElementById('nombreProducto').value = itemData.nombre;
+        document.getElementById('tipoProducto').value = itemData.tipo;
+        document.getElementById('precioProducto').value = itemData.precio;
+        document.getElementById('stockProducto').value = itemData.stock || 0;
+        document.getElementById('fechaVencimientoProducto').value = itemData.fechaVencimiento || '';
+        
+        // Cambia la acción del botón de Guardar a la nueva función de actualizar
+        document.getElementById('guardarProductoBtn').onclick = actualizarProductoServicio;
+
+        toggleStockInput();
+        mostrarSeccion('gestionProductosSection');
+        mostrarMensaje(`"${itemData.nombre}" cargado para edición.`, "bg-blue-500");
+    } else {
+        mostrarMensaje("Producto/Servicio no encontrado para edición.", "bg-red-500");
+    }
+}
+
+// Función para actualizar el producto (se llama al hacer clic en el botón)
+async function actualizarProductoServicio() {
+    if (!idProductoServicioEnEdicion) {
+        mostrarMensaje('❌ No se ha seleccionado un producto/servicio para actualizar.', 'bg-red-500');
+        return;
+    }
+
+    const nombre = document.getElementById('nombreProducto').value;
+    const tipo = document.getElementById('tipoProducto').value;
+    const precio = parseFloat(document.getElementById('precioProducto').value);
+    const stock = tipo === 'producto' ? parseInt(document.getElementById('stockProducto').value) : 0;
+    const fechaVencimiento = document.getElementById('fechaVencimientoProducto').value || '';
+    
+    if (!nombre || !tipo || isNaN(precio) || precio < 0 || (tipo === 'producto' && isNaN(stock))) {
+        mostrarMensaje('⚠️ Por favor, complete todos los campos obligatorios con valores válidos.', 'bg-yellow-500');
+        return;
+    }
+
+    try {
+        await db.collection('productosYServicios').doc(idProductoServicioEnEdicion).update({
+            nombre,
+            tipo,
+            precio,
+            stock,
+            fechaVencimiento
+        });
+        
+        mostrarMensaje('✅ Producto/Servicio actualizado exitosamente.', 'bg-green-500');
+        
+        limpiarFormularioProductoServicio();
+        cargarProductosServicios();
+    } catch (error) {
+        console.error("Error al actualizar el producto/servicio:", error);
+        mostrarMensaje('❌ Ocurrió un error al actualizar el producto/servicio.', 'bg-red-500');
+    }
+}
+
+// *** FUNCIÓN CORREGIDA: guardarProductoServicio ***
+// Ahora solo maneja la lógica de guardar un NUEVO producto
+async function guardarProductoServicio() {
+    const nombre = document.getElementById('nombreProducto').value;
+    const tipo = document.getElementById('tipoProducto').value;
+    const precio = parseFloat(document.getElementById('precioProducto').value);
+    const stock = tipo === 'producto' ? parseInt(document.getElementById('stockProducto').value) : 0;
+    const fechaVencimiento = document.getElementById('fechaVencimientoProducto').value;
+
+    if (!nombre || isNaN(precio) || precio < 0) {
+        mostrarMensaje('❌ Por favor, completa los campos de nombre y precio correctamente.', 'bg-red-500');
+        return;
+    }
+    if (tipo === 'producto' && isNaN(stock)) {
+        mostrarMensaje('❌ Por favor, ingresa un stock válido.', 'bg-red-500');
+        return;
+    }
+
+    try {
+        const data = { nombre, tipo, precio, stock, fechaVencimiento };
+        await db.collection('productosYServicios').add(data);
+        mostrarMensaje(`✅ "${nombre}" guardado con éxito.`);
+        
+        limpiarFormularioProductoServicio();
+        cargarProductosServicios();
+        cargarDashboardData();
+
+    } catch (error) {
+        console.error("Error al guardar el producto/servicio:", error);
+        mostrarMensaje('❌ Ocurrió un error al guardar el producto/servicio.', 'bg-red-500');
+    }
+}
+
+async function eliminarProductoServicio(itemId, itemName) {
+    if (!confirm(`¿Estás seguro de eliminar "${itemName}"?`)) {
+        return;
+    }
+    try {
+        await db.collection('productosYServicios').doc(itemId).delete();
+        mostrarMensaje(`✅ "${itemName}" eliminado con éxito.`);
+        cargarProductosServicios();
+        cargarDashboardData();
+    } catch (error) {
+        console.error("Error al eliminar producto/servicio:", error);
+        mostrarMensaje("❌ Hubo un error al eliminar el producto/servicio. Por favor, inténtalo de nuevo.", 'bg-red-500');
+    }
+}
+
+// *** FUNCIÓN CORREGIDA: limpiarFormularioProductoServicio ***
+// Restaura la acción del botón de guardar
+function limpiarFormularioProductoServicio() {
+    idProductoServicioEnEdicion = null;
+    document.getElementById('nombreProducto').value = '';
+    document.getElementById('tipoProducto').value = 'producto';
+    document.getElementById('precioProducto').value = '';
+    document.getElementById('stockProducto').value = '0';
+    toggleStockInput();
+    document.getElementById('fechaVencimientoProducto').value = '';
+    document.getElementById('formProductoServicioTitle').textContent = 'Gestión de Productos y Servicios';
+    
+    // Restaura el botón a su estado original de "guardar"
+    const btnGuardarProducto = document.getElementById('guardarProductoBtn');
+    btnGuardarProducto.textContent = '💾 Guardar Producto/Servicio';
+    btnGuardarProducto.onclick = guardarProductoServicio; // Restaura la acción
+    
+    document.getElementById('nombreProducto').focus();
+}
+
+            function cargarOpcionesDeProductosEnVentas() {
+    const selectVentaProducto = document.getElementById('productoVenta');
+    
+    // Limpia las opciones existentes
+    selectVentaProducto.innerHTML = '<option value="">-- Seleccione un Producto/Servicio --</option>';
+    
+    todosLosProductosYServicios.forEach(producto => {
+        const option = document.createElement('option');
+        option.value = producto.id;
+        option.textContent = producto.nombre;
+        selectVentaProducto.appendChild(option);
+    });
+}
+
+        // Función para renderizar la tabla de consulta de productos
+function renderizarProductosConsulta(productos) {
+    const tableBody = document.getElementById('listaProductosConsultaTableBody');
+    tableBody.innerHTML = '';
+    
+    productos.forEach(producto => {
+        // Encontrar la fecha de vencimiento más lejana para este producto
+        const comprasDelProducto = todasLasCompras.filter(c => c.productoId === producto.id);
+        
+        let fechaVencimientoMasLejana = 'N/A';
+        if (comprasDelProducto.length > 0) {
+            // Ordena las compras por fecha de vencimiento y toma la última
+            comprasDelProducto.sort((a, b) => new Date(a.fechaVencimiento) - new Date(b.fechaVencimiento));
+            const ultimaCompra = comprasDelProducto[comprasDelProducto.length - 1];
+            fechaVencimientoMasLejana = ultimaCompra.fechaVencimiento;
+        }
+
+        tableBody.innerHTML += `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">${producto.nombre}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${producto.stock || 0}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${fechaVencimientoMasLejana}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <button onclick="verDetallesLote('${producto.id}', '${producto.nombre}')" class="text-blue-600 hover:text-blue-900 font-bold">Ver Lotes</button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+// Función para abrir el modal y mostrar los detalles del lote
+function verDetallesLote(productoId, nombreProducto) {
+    const loteModal = document.getElementById('loteModal');
+    const loteDetallesTableBody = document.getElementById('loteDetallesTableBody');
+    const loteProductoNombre = document.getElementById('loteProductoNombre');
+
+    loteProductoNombre.textContent = `Producto: ${nombreProducto}`;
+    loteDetallesTableBody.innerHTML = '';
+
+    const comprasDelProducto = todasLasCompras.filter(c => c.productoId === productoId);
+    
+    if (comprasDelProducto.length > 0) {
+        comprasDelProducto.forEach(compra => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">${compra.numeroFactura || 'N/A'}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${compra.cantidad || 0}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${compra.fechaVencimiento || 'N/A'}</td>
+            `;
+            loteDetallesTableBody.appendChild(row);
+        });
+    } else {
+        loteDetallesTableBody.innerHTML = `<tr><td colspan="3" class="px-6 py-4 text-center">No se encontraron lotes para este producto.</td></tr>`;
+    }
+
+    loteModal.classList.remove('hidden');
+}
+
+// Event listener para el botón de cerrar el modal
+document.getElementById('cerrarLoteModal').addEventListener('click', () => {
+    document.getElementById('loteModal').classList.add('hidden');
+});
+
+// Event listener para la búsqueda en la tabla de productos
+document.getElementById('filtroProducto').addEventListener('input', (e) => {
+    const searchText = e.target.value.toLowerCase();
+    const productosFiltrados = todosLosProductosYServicios.filter(p => p.nombre.toLowerCase().includes(searchText));
+    renderizarProductosConsulta(productosFiltrados);
+});
+
+// Asegúrate de llamar a esta función al inicio de la carga de la página
+// para que el rol de vendedor pueda ver la opción.
+function controlarMenuPorRol() {
+    const menuItemsAdmin = ['menu-dashboard', 'menu-facturas', 'menu-clientes', 'menu-productos', 'menu-compras', 'menu-usuarios'];
+    const menuItemsVendedor = ['menu-nueva-venta', 'menu-facturas', 'menu-consulta-productos'];
+
+    if (usuarioActual.rol === 'superusuario') {
+        menuItemsAdmin.concat(menuItemsVendedor).forEach(itemId => {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.remove('hidden');
             }
         });
+        return;
+    }
+    
+    if (usuarioActual.rol === 'admin') {
+        menuItemsAdmin.forEach(itemId => {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.remove('hidden');
+            }
+        });
+    } else { // Vendedor
+        menuItemsAdmin.forEach(itemId => {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.add('hidden');
+            }
+        });
+        menuItemsVendedor.forEach(itemId => {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.classList.remove('hidden');
+            }
+        });
+    }
+}
+
+        // ---------------------------------------------
+        // FUNCIONES DE GESTIÓN DE COMPRAS
+        // ---------------------------------------------
+
+        async function cargarCompras() {
+            try {
+                const snapshot = await db.collection('compras').orderBy('fecha', 'desc').get();
+                todasLasCompras = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                filtrarCompras();
+            } catch (error) {
+                console.error("Error al cargar las compras:", error);
+            }
+        }
+
+        function filtrarCompras() {
+            const filtroAnio = document.getElementById('filtroComprasAnio').value;
+            const filtroMes = document.getElementById('filtroComprasMes').value;
+            
+            let comprasFiltradas = todasLasCompras;
+
+            if (filtroAnio) {
+                comprasFiltradas = comprasFiltradas.filter(compra => new Date(compra.fecha).getFullYear() === parseInt(filtroAnio));
+            }
+            
+            if (filtroMes) {
+                comprasFiltradas = comprasFiltradas.filter(compra => (new Date(compra.fecha).getMonth() + 1) === parseInt(filtroMes));
+            }
+            
+            renderizarCompras(comprasFiltradas);
+        }
+
+
+      function renderizarCompras(compras) {
+    const tableBody = document.getElementById('listaComprasTableBody');
+    tableBody.innerHTML = ''; // Limpia la tabla
+    
+    let totalInversion = 0;
+    
+    compras.forEach(compra => {
+        const costo = parseFloat(compra.costo) || 0;
+        const total = parseFloat(compra.totalCompra) || (compra.cantidad * costo) || 0;
+        
+        totalInversion += total;
+        
+        const row = document.createElement('tr');
+        row.className = "hover:bg-gray-50";
+
+        const accionesHtml = (usuarioActual.rol === 'superusuario' || usuarioActual.rol === 'admin') ? `
+            <button class="text-blue-500 hover:text-blue-700 font-bold px-2 edit-btn" data-id="${compra.id}">✏️</button>
+            <button class="text-red-500 hover:text-red-700 font-bold px-2 delete-btn" data-id="${compra.id}">🗑️</button>
+        ` : 'N/A';
+        
+        row.innerHTML = `
+            <td class="px-3 py-2 border-b border-gray-200">${compra.numeroFactura || 'N/A'}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${compra.nombreProducto || 'N/A'}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-center">${compra.cantidad || 'N/A'}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-right">$${costo.toFixed(2)}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-right">$${total.toFixed(2)}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${compra.fecha || 'N/A'}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${compra.usuario || 'N/A'}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-right">${accionesHtml}</td>
+        `;
+        tableBody.appendChild(row);
+
+        // Agrega event listeners a los nuevos botones
+        if (usuarioActual.rol === 'superusuario' || usuarioActual.rol === 'admin') {
+            row.querySelector('.edit-btn').addEventListener('click', () => editarCompra(compra.id));
+            row.querySelector('.delete-btn').addEventListener('click', () => eliminarCompra(compra.id));
+        }
+    });
+    
+    // Actualiza el pie de página
+    const summaryFooter = document.getElementById('comprasSummaryFooter');
+    if (summaryFooter) {
+        summaryFooter.innerHTML = `
+            <tr class="bg-gray-50 font-semibold">
+                <td colspan="4" class="text-right px-3 py-2 border-t border-gray-200 text-gray-800">Total de Inversión:</td>
+                <td class="px-3 py-2 border-t border-gray-200 text-right text-gray-800">$${totalInversion.toFixed(2)}</td>
+                <td colspan="3" class="px-3 py-2 border-t border-gray-200"></td>
+            </tr>
+        `;
+    }
+}
+    
+   
+
+        function cargarOpcionesDeProductosEnCompras() {
+            const select = document.getElementById('productoCompra');
+            select.innerHTML = '<option value="">Seleccione un producto</option>';
+            todosLosProductosYServicios.filter(p => p.tipo === 'producto').forEach(p => {
+                select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+            });
+        }
+
+
+// Variable global para almacenar el ID de la compra que se está editando
+let idCompraEnEdicion = null;
+
+async function actualizarCompra() {
+    // Tu función guardarCompra ya tiene la lógica para manejar el ID de edición
+    await guardarCompra();
+
+    // Al finalizar la actualización, restaura el botón a su estado original
+    const btnGuardarCompra = document.getElementById('btnGuardarCompra');
+    btnGuardarCompra.textContent = '💾 Registrar Compra';
+    btnGuardarCompra.onclick = guardarCompra; // Restaura la acción para nuevas compras
+}
+
+function limpiarFormularioCompra() {
+    document.getElementById('formCompra').reset();
+    document.getElementById('usuarioCompra').value = usuarioActual.nombre;
+    idCompraEnEdicion = null;
+    const btnGuardarCompra = document.getElementById('btnGuardarCompra');
+    btnGuardarCompra.textContent = '💾 Registrar Compra';
+    btnGuardarCompra.onclick = guardarCompra;
+}
+
+async function eliminarCompra(id) {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta compra?')) {
+        return;
+    }
+    try {
+        const compraRef = db.collection('compras').doc(id);
+        const compraDoc = await compraRef.get();
+        const compraData = compraDoc.data();
+        
+        // Disminuir el stock del producto
+        const productoRef = db.collection('productosYServicios').doc(compraData.productoId);
+        const productoDoc = await productoRef.get();
+        const productoStockActual = productoDoc.data().stock;
+        
+        await productoRef.update({
+            stock: productoStockActual - compraData.cantidad
+        });
+        
+        // Eliminar la compra
+        await compraRef.delete();
+        
+        mostrarMensaje('✅ Compra eliminada con éxito y stock actualizado.');
+        cargarCompras();
+        cargarProductosServicios();
+    } catch (error) {
+        console.error("Error al eliminar la compra:", error);
+        mostrarMensaje('❌ Error al eliminar la compra.', 'bg-red-500');
+    }
+}
+
+// Variable global para rastrear el ID del documento en edición
+
+async function editarCompra(id) {
+    try {
+        const doc = await db.collection('compras').doc(id).get();
+        const compra = doc.data();
+
+        // Asigna los valores al formulario
+        document.getElementById('fechaCompra').value = compra.fecha;
+        document.getElementById('productoCompra').value = compra.productoId;
+        document.getElementById('cantidadCompra').value = compra.cantidad;
+        document.getElementById('costoCompra').value = compra.costo;
+        document.getElementById('fechaVencimientoCompra').value = compra.fechaVencimiento || '';
+        document.getElementById('numeroFacturaCompra').value = compra.numeroFactura || '';
+
+        // Cambia el texto del botón y la acción que ejecuta
+        const btnGuardarCompra = document.getElementById('btnGuardarCompra');
+        if (btnGuardarCompra) {
+            btnGuardarCompra.textContent = '📝 Actualizar Compra';
+            btnGuardarCompra.onclick = actualizarCompra; // <--- Línea CLAVE para el flujo de actualización
+        }
+
+        idCompraEnEdicion = id;
+        mostrarSeccion('gestionComprasSection');
+        mostrarMensaje('✏️ Ahora puedes editar los detalles de la compra en el formulario.');
+
+    } catch (error) {
+        console.error("Error al cargar datos para edición:", error);
+        mostrarMensaje('❌ Error al cargar los datos de la compra.', 'bg-red-500');
+    }
+}
+
+// Actualiza tu función guardarCompra para manejar la edición
+// La variable global para el usuario que está usando la aplicación
+//let usuarioActual = JSON.parse(localStorage.getItem('usuarioActual'));
+
+async function guardarCompra() {
+    const fechaCompra = document.getElementById('fechaCompra').value;
+    const productoId = document.getElementById('productoCompra').value;
+    const cantidad = parseInt(document.getElementById('cantidadCompra').value);
+    const costo = parseFloat(document.getElementById('costoCompra').value);
+    const fechaVencimiento = document.getElementById('fechaVencimientoCompra').value;
+    const numeroFactura = document.getElementById('numeroFacturaCompra').value;
+    const totalCompra = cantidad * costo;
+
+    if (!fechaCompra || !productoId || isNaN(cantidad) || cantidad <= 0 || isNaN(costo) || costo < 0) {
+        mostrarMensaje('❌ Por favor, complete todos los campos de la compra correctamente.', 'bg-red-500');
+        return;
+    }
+
+    try {
+        const usuario = usuarioActual.nombre; // Obtiene el nombre del usuario logueado
+        const producto = todosLosProductosYServicios.find(p => p.id === productoId);
+        
+        if (idCompraEnEdicion) {
+            // Lógica para editar una compra
+            const compraOriginalDoc = await db.collection('compras').doc(idCompraEnEdicion).get();
+            const compraOriginal = compraOriginalDoc.data();
+            
+            // Revertir el stock original si se cambió el producto
+            if (compraOriginal.productoId !== productoId) {
+                await db.collection('productosYServicios').doc(compraOriginal.productoId).update({
+                    stock: firebase.firestore.FieldValue.increment(-compraOriginal.cantidad)
+                });
+                await db.collection('productosYServicios').doc(productoId).update({
+                    stock: firebase.firestore.FieldValue.increment(cantidad)
+                });
+            } else {
+                const diferenciaCantidad = cantidad - compraOriginal.cantidad;
+                await db.collection('productosYServicios').doc(productoId).update({
+                    stock: firebase.firestore.FieldValue.increment(diferenciaCantidad)
+                });
+            }
+
+            // Actualiza el documento de compra, incluyendo el usuario actual
+            await db.collection('compras').doc(idCompraEnEdicion).update({
+                fecha: fechaCompra,
+                productoId,
+                nombreProducto: producto.nombre,
+                cantidad,
+                costo,
+                totalCompra,
+                fechaVencimiento,
+                numeroFactura,
+                usuario: usuario // Asegura que el campo "usuario" se actualice
+            });
+
+            mostrarMensaje('✅ Compra actualizada y stock ajustado.');
+            document.getElementById('btnGuardarCompra').textContent = '💾 Registrar Compra';
+            idCompraEnEdicion = null;
+
+        } else {
+            // Lógica para una nueva compra
+            await db.collection('compras').add({
+                fecha: fechaCompra,
+                productoId,
+                nombreProducto: producto.nombre,
+                cantidad,
+                costo,
+                totalCompra,
+                fechaVencimiento,
+                usuario: usuario, // Guarda el usuario actual
+                numeroFactura,
+                fechaRegistro: new Date()
+            });
+
+            const nuevoStock = producto.stock + cantidad;
+            await db.collection('productosYServicios').doc(productoId).update({
+                stock: nuevoStock
+            });
+            mostrarMensaje('✅ Compra registrada y stock actualizado con éxito.');
+        }
+
+        // Se limpia el formulario
+        document.getElementById('formCompra').reset();
+        // Se vuelve a llenar el campo "registrado por" con el nombre del usuario
+        document.getElementById('usuarioCompra').value = usuario;
+
+        cargarCompras();
+        cargarProductosServicios();
+    } catch (error) {
+        console.error("Error al guardar/actualizar la compra:", error);
+        mostrarMensaje('❌ Ocurrió un error al procesar la compra.', 'bg-red-500');
+    }
+    
+}
+
+
+        
+        // ---------------------------------------------
+        // FUNCIONES DEL DASHBOARD
+        // ---------------------------------------------
+        async function cargarDashboardData() {
+            try {
+                // Productos con mayor stock
+                const productosConStock = todosLosProductosYServicios.filter(p => p.tipo === 'producto').sort((a, b) => b.stock - a.stock).slice(0, 5);
+                const topStockList = document.getElementById('topStockProductsList');
+                topStockList.innerHTML = productosConStock.length > 0 ? productosConStock.map(p => `<li>${p.nombre} (${p.stock} uds)</li>`).join('') : '<li>No hay productos con stock.</li>';
+                
+                // Productos por vencer
+                const today = new Date();
+                const expiringProducts = todosLosProductosYServicios.filter(p => {
+                    if (p.fechaVencimiento) {
+                        const vencimiento = new Date(p.fechaVencimiento);
+                        const diffTime = vencimiento.getTime() - today.getTime();
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        return diffDays <= 30 && diffDays >= 0;
+                    }
+                    return false;
+                });
+                const expiringList = document.getElementById('expiringProductsList');
+                expiringList.innerHTML = expiringProducts.length > 0 ? expiringProducts.map(p => `<li>${p.nombre} (Vence en ${Math.ceil((new Date(p.fechaVencimiento).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))} días)</li>`).join('') : '<li>No hay productos próximos a vencer.</li>';
+
+                // Productos más vendidos
+                const ventasPorProducto = {};
+                const ventasPorVendedor = {};
+                const facturasSnapshot = await db.collection('facturas').get();
+                facturasSnapshot.forEach(doc => {
+                    const venta = doc.data();
+                    venta.items.forEach(item => {
+                        ventasPorProducto[item.descripcion] = (ventasPorProducto[item.descripcion] || 0) + item.cantidad;
+                    });
+                    ventasPorVendedor[venta.vendedor] = (ventasPorVendedor[venta.vendedor] || 0) + venta.total;
+                });
+
+                const sortedProducts = Object.entries(ventasPorProducto).sort(([, a], [, b]) => b - a).slice(0, 5);
+                const topSellingList = document.getElementById('topSellingProductsList');
+                topSellingList.innerHTML = sortedProducts.length > 0 ? sortedProducts.map(([producto, cantidad]) => `<li>${producto}: ${cantidad} unidades</li>`).join('') : '<li>No hay ventas registradas.</li>';
+
+                const sortedUsers = Object.entries(ventasPorVendedor).sort(([, a], [, b]) => b - a).slice(0, 5);
+                const topSellingUsersList = document.getElementById('topSellingUsersList');
+                topSellingUsersList.innerHTML = sortedUsers.length > 0 ? sortedUsers.map(([usuario, total]) => `<li>${usuario}: $${total.toFixed(2)}</li>`).join('') : '<li>No hay ventas registradas.</li>';
+
+            } catch (error) {
+                console.error("Error al cargar datos del dashboard:", error);
+                mostrarMensaje('❌ Error al cargar los datos del dashboard.', 'bg-red-500');
+            }
+        }
+
+        // Cargar años para los filtros
+        function cargarAniosFiltros() {
+            const anios = new Set();
+            todasLasFacturas.forEach(f => anios.add(f.fechaCreacion.toDate().getFullYear()));
+            todasLasCompras.forEach(c => anios.add(new Date(c.fecha).getFullYear()));
+
+            const filtroVentasAnio = document.getElementById('filtroVentasAnio');
+            const filtroComprasAnio = document.getElementById('filtroComprasAnio');
+            filtroVentasAnio.innerHTML = '<option value="">Todos</option>';
+            filtroComprasAnio.innerHTML = '<option value="">Todos</option>';
+
+            const sortedAnios = Array.from(anios).sort((a, b) => b - a);
+            sortedAnios.forEach(anio => {
+                filtroVentasAnio.innerHTML += `<option value="${anio}">${anio}</option>`;
+                filtroComprasAnio.innerHTML += `<option value="${anio}">${anio}</option>`;
+            });
+        }
+
+        async function cargarDatosIniciales() {
+            await Promise.all([
+                cargarFacturas(),
+                cargarClientes(),
+                cargarProductosServicios(),
+                cargarCompras()
+            ]);
+            cargarAniosFiltros();
+            cargarDashboardData();
+        }
+
+             // Event listener para el botón de login
+            const loginButton = document.getElementById('loginButton');
+            if (loginButton) {
+                loginButton.addEventListener('click', () => {
+                    login();
+                });
+            }
+        document.getElementById('descripcion').addEventListener('input', function() {
+            const input = this.value.toLowerCase();
+            const sugerenciasUl = document.getElementById('sugerencias');
+            if (input.length > 0) {
+                const sugerencias = todosLosProductosYServicios.filter(p => p.nombre.toLowerCase().includes(input));
+                sugerenciasUl.innerHTML = '';
+                sugerencias.forEach(sug => {
+                    const li = document.createElement('li');
+                    li.textContent = sug.nombre;
+                    li.classList.add('px-4', 'py-2', 'cursor-pointer', 'hover:bg-gray-100');
+                    li.addEventListener('click', () => {
+                        document.getElementById('descripcion').value = sug.nombre;
+                        document.getElementById('precio').value = sug.precio;
+                        sugerenciasUl.classList.add('hidden');
+                    });
+                    sugerenciasUl.appendChild(li);
+                });
+                sugerenciasUl.classList.remove('hidden');
+            } else {
+                sugerenciasUl.classList.add('hidden');
+            }
+        });
+        
+        document.addEventListener('click', function(event) {
+            const sugerenciasUl = document.getElementById('sugerencias');
+            const descripcionInput = document.getElementById('descripcion');
+            if (!sugerenciasUl.contains(event.target) && event.target !== descripcionInput) {
+                sugerenciasUl.classList.add('hidden');
+            }
+        });
+
+    // Lógica para mostrar las secciones al hacer clic en el menú
+    document.getElementById('menu-dashboard').addEventListener('click', () => {
+        mostrarSeccion('dashboardSection');
+    });
+    document.getElementById('menu-nueva-venta').addEventListener('click', () => {
+        mostrarSeccion('nuevaVentaSection');
+    });
+    document.getElementById('menu-facturas').addEventListener('click', () => {
+        mostrarSeccion('gestionFacturasSection');
+    });
+    document.getElementById('menu-clientes').addEventListener('click', () => {
+        mostrarSeccion('gestionClientesSection');
+    });
+    document.getElementById('menu-productos').addEventListener('click', () => {
+        mostrarSeccion('gestionProductosSection');
+    });
+    document.getElementById('menu-compras').addEventListener('click', () => {
+        mostrarSeccion('gestionComprasSection');
+    });
+    document.getElementById('menu-consulta-productos').addEventListener('click', () => {
+        mostrarSeccion('consultaProductosSection');
+    });
+
+
+    
+});
     </script>
 </body>
 </html>
