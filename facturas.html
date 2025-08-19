@@ -860,6 +860,63 @@ function controlarMenuPorRol() {
             return paddedCounter + year;
         }
 
+// 🔹 Primero define funciones auxiliares
+async function descontarStockPorLotes(productoId, cantidadVendida) {
+    const lotesSnap = await db.collection("productosYServicios")
+        .doc(productoId)
+        .collection("lotes")
+        .orderBy("fechaVencimiento", "asc")
+        .get();
+
+    let restante = cantidadVendida;
+
+    for (const docLote of lotesSnap.docs) {
+        if (restante <= 0) break;
+
+        const loteData = docLote.data();
+        const stockDisponible = loteData.stock || 0;
+
+        if (stockDisponible > 0) {
+            const descontar = Math.min(stockDisponible, restante);
+
+            await docLote.ref.update({
+                stock: stockDisponible - descontar
+            });
+
+            restante -= descontar;
+        }
+    }
+
+    // 🔄 Recalcular stock total y vencimiento más próximo
+    await recalcularProducto(productoId);
+}
+
+async function recalcularProducto(productoId) {
+    const lotesSnap = await db.collection("productosYServicios")
+        .doc(productoId)
+        .collection("lotes")
+        .get();
+
+    let totalStock = 0;
+    let fechaMin = null;
+
+    lotesSnap.forEach(loteDoc => {
+        const lote = loteDoc.data();
+        totalStock += lote.stock || 0;
+
+        if (lote.stock > 0 && lote.fechaVencimiento) {
+            if (!fechaMin || new Date(lote.fechaVencimiento) < new Date(fechaMin)) {
+                fechaMin = lote.fechaVencimiento;
+            }
+        }
+    });
+
+    await db.collection("productosYServicios").doc(productoId).update({
+        stock: totalStock,
+        fechaVencimiento: fechaMin || null
+    });
+}
+        
 async function guardarFactura() {
     const cedulaCliente = document.getElementById('cedulaCliente').value;
     const nombreCliente = document.getElementById('nombreCliente').value;
@@ -936,61 +993,7 @@ async function guardarFactura() {
 }
 
 
-        async function descontarStockPorLotes(productoId, cantidadVendida) {
-    const lotesSnap = await db.collection("productosYServicios")
-        .doc(productoId)
-        .collection("lotes")
-        .orderBy("fechaVencimiento", "asc")
-        .get();
-
-    let restante = cantidadVendida;
-
-    for (const docLote of lotesSnap.docs) {
-        if (restante <= 0) break;
-
-        const loteData = docLote.data();
-        const stockDisponible = loteData.stock || 0;
-
-        if (stockDisponible > 0) {
-            const descontar = Math.min(stockDisponible, restante);
-
-            await docLote.ref.update({
-                stock: stockDisponible - descontar
-            });
-
-            restante -= descontar;
-        }
-    }
-
-    // Recalcular stock total y vencimiento más próximo
-    await recalcularProducto(productoId);
-}
-
-async function recalcularProducto(productoId) {
-    const lotesSnap = await db.collection("productosYServicios")
-        .doc(productoId)
-        .collection("lotes")
-        .get();
-
-    let totalStock = 0;
-    let fechaMin = null;
-
-    lotesSnap.forEach(loteDoc => {
-        const lote = loteDoc.data();
-        totalStock += lote.stock || 0;
-
-        if (lote.stock > 0 && lote.fechaVencimiento) {
-            if (!fechaMin || new Date(lote.fechaVencimiento) < new Date(fechaMin)) {
-                fechaMin = lote.fechaVencimiento;
-            }
-        }
-    });
-
-    await db.collection("productosYServicios").doc(productoId).update({
-        stock: totalStock,
-        fechaVencimiento: fechaMin || null
-    });
-}
+      
 
 
 
