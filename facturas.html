@@ -881,7 +881,7 @@ async function guardarFactura() {
         if (estado === 'Facturado' && (!todaLaInformacionFacturaEnEdicion || !todaLaInformacionFacturaEnEdicion.numeroFactura)) {
             const counter = await generarNumeroFactura();
             numeroFactura = formatFacturaNumber(counter);
-        } else if (todaLaInformacionFacturaEnEdicion && todaLaInformacionFacturaEnEdicion.numeroFactura) {
+        } else if (todaLaInformacionFacturaEnEdicion?.numeroFactura) {
             numeroFactura = todaLaInformacionFacturaEnEdicion.numeroFactura;
         }
 
@@ -911,22 +911,17 @@ async function guardarFactura() {
             mostrarMensaje('✅ Venta guardada con éxito.');
         }
 
-        // 🔽 Aquí reducimos el stock SOLO si la factura está facturada
+        // 🔽 Descontar stock por lotes (FIFO) si está facturado
         if (estado === "Facturado") {
             for (let item of items) {
-                // Busca el producto por nombre (mejor si usas un ID único en el futuro)
                 const productoSnap = await db.collection("productosYServicios")
                     .where("nombre", "==", item.descripcion)
                     .where("tipo", "==", "producto")
                     .get();
 
-                productoSnap.forEach(async (docProd) => {
-                    const productoData = docProd.data();
-                    const nuevoStock = (productoData.stock || 0) - item.cantidad;
-                    await db.collection("productosYServicios").doc(docProd.id).update({
-                        stock: nuevoStock < 0 ? 0 : nuevoStock
-                    });
-                });
+                for (const docProd of productoSnap.docs) {
+                    await descontarStockPorLotes(docProd.id, item.cantidad);
+                }
             }
         }
 
@@ -939,6 +934,7 @@ async function guardarFactura() {
         mostrarMensaje('❌ Ocurrió un error al intentar guardar la venta.', 'bg-red-500');
     }
 }
+
 
 
         async function cargarFacturas() {
@@ -1638,48 +1634,16 @@ async function guardarCompra() {
     }
 
     try {
-        const usuario = usuarioActual.nombre; // Obtiene el nombre del usuario logueado
+        const usuario = usuarioActual.nombre; // Usuario logueado
         const producto = todosLosProductosYServicios.find(p => p.id === productoId);
-        
+
         if (idCompraEnEdicion) {
-            // Lógica para editar una compra
-            const compraOriginalDoc = await db.collection('compras').doc(idCompraEnEdicion).get();
-            const compraOriginal = compraOriginalDoc.data();
-            
-            // Revertir el stock original si se cambió el producto
-            if (compraOriginal.productoId !== productoId) {
-                await db.collection('productosYServicios').doc(compraOriginal.productoId).update({
-                    stock: firebase.firestore.FieldValue.increment(-compraOriginal.cantidad)
-                });
-                await db.collection('productosYServicios').doc(productoId).update({
-                    stock: firebase.firestore.FieldValue.increment(cantidad)
-                });
-            } else {
-                const diferenciaCantidad = cantidad - compraOriginal.cantidad;
-                await db.collection('productosYServicios').doc(productoId).update({
-                    stock: firebase.firestore.FieldValue.increment(diferenciaCantidad)
-                });
-            }
-
-            // Actualiza el documento de compra, incluyendo el usuario actual
-            await db.collection('compras').doc(idCompraEnEdicion).update({
-                fecha: fechaCompra,
-                productoId,
-                nombreProducto: producto.nombre,
-                cantidad,
-                costo,
-                totalCompra,
-                fechaVencimiento,
-                numeroFactura,
-                usuario: usuario // Asegura que el campo "usuario" se actualice
-            });
-
-            mostrarMensaje('✅ Compra actualizada y stock ajustado.');
-            document.getElementById('btnGuardarCompra').textContent = '💾 Registrar Compra';
-            idCompraEnEdicion = null;
-
+            // 🚨 Si necesitas edición de compras, tendrías que revertir también los lotes,
+            // pero lo más seguro es NO permitir editar compras ya registradas (recomendación FIFO).
+            mostrarMensaje('⚠️ Edición de compras no recomendada cuando se maneja por lotes.', 'bg-yellow-500');
+            return;
         } else {
-            // Lógica para una nueva compra
+            // 🔹 1. Registrar la compra en la colección de compras
             await db.collection('compras').add({
                 fecha: fechaCompra,
                 productoId,
@@ -1688,29 +1652,70 @@ async function guardarCompra() {
                 costo,
                 totalCompra,
                 fechaVencimiento,
-                usuario: usuario, // Guarda el usuario actual
+                usuario,
                 numeroFactura,
                 fechaRegistro: new Date()
             });
 
-            const nuevoStock = producto.stock + cantidad;
-            await db.collection('productosYServicios').doc(productoId).update({
-                stock: nuevoStock
-            });
-            mostrarMensaje('✅ Compra registrada y stock actualizado con éxito.');
+            // 🔹 2. Crear un nuevo lote en el producto
+            const loteId = `lote_${Date.now()}`;
+            await db.collection("productosYServicios")
+                .doc(productoId)
+                .collection("lotes")
+                .doc(loteId)
+                .set({
+                    lote: loteId,
+                    stock: cantidad,
+                    fechaVencimiento: fechaVencimiento || null,
+                    costo,
+                    fechaCompra,
+                    usuario
+                });
+
+            // 🔹 3. Recalcular stock total y fecha más próxima
+            await recalcularProducto(productoId);
+
+            mostrarMensaje('✅ Compra registrada, lote creado y stock actualizado con éxito.');
         }
 
-        // Se limpia el formulario
+        // Reset formulario
         document.getElementById('formCompra').reset();
-        // Se vuelve a llenar el campo "registrado por" con el nombre del usuario
         document.getElementById('usuarioCompra').value = usuario;
 
         cargarCompras();
         cargarProductosServicios();
+
     } catch (error) {
         console.error("Error al guardar/actualizar la compra:", error);
         mostrarMensaje('❌ Ocurrió un error al procesar la compra.', 'bg-red-500');
     }
+}
+
+
+        async function recalcularProducto(productoId) {
+    const lotesSnap = await db.collection("productosYServicios")
+        .doc(productoId)
+        .collection("lotes")
+        .get();
+
+    let totalStock = 0;
+    let fechaMin = null;
+
+    lotesSnap.forEach(loteDoc => {
+        const lote = loteDoc.data();
+        totalStock += lote.stock || 0;
+
+        if (lote.stock > 0 && lote.fechaVencimiento) {
+            if (!fechaMin || new Date(lote.fechaVencimiento) < new Date(fechaMin)) {
+                fechaMin = lote.fechaVencimiento;
+            }
+        }
+    });
+
+    await db.collection("productosYServicios").doc(productoId).update({
+        stock: totalStock,
+        fechaVencimiento: fechaMin || null
+    });
 }
 
 
