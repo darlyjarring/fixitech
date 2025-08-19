@@ -985,6 +985,7 @@ async function guardarFactura() {
         limpiarFormularioFactura();
         cargarFacturas();
         cargarDashboardData();
+        cargarProductosServicios();  // 👈 agrega esta línea
 
     } catch (error) {
         console.error("Error al guardar la factura:", error);
