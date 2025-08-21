@@ -606,47 +606,60 @@
 
  let productos = []; // Variable global para almacenar los productos
 
-async function cargarProductosConsulta() {
-    try {
-        const snapshot = await db.collection('productosYServicios').get();
-        productos = [];
+function renderizarProductosConsulta(productosFiltrados) {
+    const tableBody = document.getElementById('listaProductosConsultaTableBody');
+    tableBody.innerHTML = '';
 
-        for (const doc of snapshot.docs) {
-            let data = { id: doc.id, ...doc.data() };
+    if (productosFiltrados.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td colspan="4" class="px-3 py-2 text-center text-gray-500">No hay productos registrados.</td>`;
+        tableBody.appendChild(row);
+        return;
+    }
 
-            // Buscar lotes
-            const lotesSnap = await db.collection('productosYServicios')
-                .doc(doc.id)
-                .collection('lotes')
-                .orderBy('fechaVencimiento', 'asc')
-                .get();
+    const hoy = new Date();
 
-            let stockTotal = 0;
-            let fechaMin = null;
-            lotesSnap.forEach(loteDoc => {
-                const lote = loteDoc.data();
-                stockTotal += lote.stock || 0;
+    productosFiltrados.forEach(producto => {
+        const fila = document.createElement('tr');
+        fila.classList.add("hover:bg-gray-50");
 
-                if (lote.stock > 0 && lote.fechaVencimiento) {
-                    if (!fechaMin || new Date(lote.fechaVencimiento) < new Date(fechaMin)) {
-                        fechaMin = lote.fechaVencimiento;
-                    }
-                }
-            });
+        // Validar fecha de vencimiento
+        let fechaVencimientoTxt = "N/A";
+        let claseColor = "";
+        if (producto.fechaVencimiento) {
+            const fecha = new Date(producto.fechaVencimiento);
+            fechaVencimientoTxt = fecha.toLocaleDateString();
 
-            data.stock = stockTotal;
-            data.fechaVencimiento = fechaMin;
-
-            productos.push(data);
+            const diffDias = Math.floor((fecha - hoy) / (1000 * 60 * 60 * 24));
+            if (diffDias < 0) claseColor = "bg-red-300";          // vencido
+            else if (diffDias <= 7) claseColor = "bg-red-200";    // vence pronto
+            else if (diffDias <= 30) claseColor = "bg-yellow-200"; // dentro de 30 días
+            else claseColor = "bg-green-100";                     // seguro
         }
 
-        renderizarProductosConsulta(productos);
-    } catch (error) {
-        console.error("Error al cargar productos para consulta:", error);
-        mostrarMensaje('❌ Error al cargar los productos.', 'bg-red-500');
-    }
+        fila.innerHTML = `
+            <td class="px-3 py-2 border-b border-gray-200 font-semibold">${producto.nombre || "-"}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${producto.stock || 0}</td>
+            <td class="px-3 py-2 border-b border-gray-200 ${claseColor}">${fechaVencimientoTxt}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-center">
+                <button onclick="mostrarLotesProducto('${producto.id}')" 
+                    class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                    🔽 Ver Lotes
+                </button>
+            </td>
+        `;
+
+        tableBody.appendChild(fila);
+
+        // contenedor para los lotes
+        const filaLotes = document.createElement('tr');
+        filaLotes.innerHTML = `<td colspan="4" id="lotes-${producto.id}" class="hidden bg-gray-50"></td>`;
+        tableBody.appendChild(filaLotes);
+    });
 }
 
+
+        
 
 
 function renderizarProductosConsulta(productosFiltrados) {
