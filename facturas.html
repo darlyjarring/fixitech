@@ -729,19 +729,17 @@ function renderizarProductosConsulta(productosFiltrados) {
 
         
 
-        function filtrarProductosConsulta() {
-            const nombreFiltro = document.getElementById('filtroProducto').value.toLowerCase();
-            const fechaFiltro = document.getElementById('filtroVencimiento').value;
+// 🔍 Nuevo filtro sin producto.lote (porque los lotes están aparte)
+function filtrarProductosConsulta() {
+    const nombreFiltro = document.getElementById('filtroProducto').value.toLowerCase();
+    const fechaFiltro = document.getElementById('filtroVencimiento').value;
 
-            const productosFiltrados = productos.filter(producto => {
-                const nombreLoteCoincide = producto.nombre.toLowerCase().includes(nombreFiltro) || 
-                                           (producto.lote && producto.lote.toLowerCase().includes(nombreFiltro));
-                const fechaCoincide = !fechaFiltro || 
-                                      (producto.fechaVencimiento && producto.fechaVencimiento === fechaFiltro);
-                return nombreLoteCoincide && fechaCoincide;
-            });
-            renderizarProductosConsulta(productosFiltrados);
-        }
+    const productosFiltrados = productos.filter(producto => {
+        const nombreCoincide = producto.nombre?.toLowerCase().includes(nombreFiltro);
+        const fechaCoincide = !fechaFiltro ||
+            (producto.fechaVencimiento && producto.fechaVencimiento === fechaFiltro);
+        return nombreCoincide && fechaCoincide;
+    });
         
 //-------------------------
 
