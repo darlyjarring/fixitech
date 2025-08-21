@@ -659,46 +659,7 @@ function renderizarProductosConsulta(productosFiltrados) {
 }
 
 
-        
 
-
-function renderizarProductosConsulta(productosFiltrados) {
-    const tableBody = document.getElementById('listaProductosConsultaTableBody');
-    tableBody.innerHTML = '';
-
-    if (productosFiltrados.length === 0) {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td colspan="5" class="px-3 py-2 text-center text-gray-500">No hay productos que coincidan con la búsqueda.</td>`;
-        tableBody.appendChild(row);
-        return;
-    }
-
-    productosFiltrados.forEach(producto => {
-        const fila = document.createElement('tr');
-        fila.classList.add("hover:bg-gray-50");
-
-        // Fecha de vencimiento próxima
-        const fechaVencimiento = producto.fechaVencimiento ? new Date(producto.fechaVencimiento).toLocaleDateString() : 'N/A';
-
-        fila.innerHTML = `
-            <td class="px-3 py-2 border-b border-gray-200 font-semibold">${producto.nombre}</td>
-            <td class="px-3 py-2 border-b border-gray-200">${producto.stock || '0'}</td>
-            <td class="px-3 py-2 border-b border-gray-200">${fechaVencimiento}</td>
-            <td class="px-3 py-2 border-b border-gray-200 text-center">
-                <button class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-                    onclick="mostrarLotesProducto('${producto.id}')">
-                    🔽 Ver Lotes
-                </button>
-            </td>
-        `;
-        tableBody.appendChild(fila);
-
-        // Contenedor donde se mostrarán los lotes (al presionar Ver Lotes)
-        const filaLotes = document.createElement('tr');
-        filaLotes.innerHTML = `<td colspan="4" id="lotes-${producto.id}" class="hidden bg-gray-50"></td>`;
-        tableBody.appendChild(filaLotes);
-    });
-}
 
         async function mostrarLotesProducto(productoId) {
     const contenedor = document.getElementById(`lotes-${productoId}`);
