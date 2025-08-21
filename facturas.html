@@ -617,34 +617,113 @@
             }
         }
 
-        function renderizarProductosConsulta(productosFiltrados) {
-            const tableBody = document.getElementById('listaProductosConsultaTableBody');
-            tableBody.innerHTML = '';
 
-            if (productosFiltrados.length === 0) {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td colspan="4" class="px-3 py-2 text-center text-gray-500">No hay productos que coincidan con la búsqueda.</td>`;
-                tableBody.appendChild(row);
-                return;
-            }
+function renderizarProductosConsulta(productosFiltrados) {
+    const tableBody = document.getElementById('listaProductosConsultaTableBody');
+    tableBody.innerHTML = '';
 
-            productosFiltrados.forEach(producto => {
-                const fila = document.createElement('tr');
-                fila.classList.add("hover:bg-gray-50");
-                
-                // Formatear la fecha si existe
-                const fechaVencimiento = producto.fechaVencimiento ? new Date(producto.fechaVencimiento).toLocaleDateString() : 'N/A';
+    if (productosFiltrados.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td colspan="5" class="px-3 py-2 text-center text-gray-500">No hay productos que coincidan con la búsqueda.</td>`;
+        tableBody.appendChild(row);
+        return;
+    }
 
-                fila.innerHTML = `
-                    <td class="px-3 py-2 border-b border-gray-200">${producto.nombre}</td>
-                    <td class="px-3 py-2 border-b border-gray-200">${producto.lote || 'N/A'}</td>
-                    <td class="px-3 py-2 border-b border-gray-200">${producto.stock || '0'}</td>
-                    <td class="px-3 py-2 border-b border-gray-200">${fechaVencimiento}</td>
-                `;
-                tableBody.appendChild(fila);
-            });
+    productosFiltrados.forEach(producto => {
+        const fila = document.createElement('tr');
+        fila.classList.add("hover:bg-gray-50");
+
+        // Fecha de vencimiento próxima
+        const fechaVencimiento = producto.fechaVencimiento ? new Date(producto.fechaVencimiento).toLocaleDateString() : 'N/A';
+
+        fila.innerHTML = `
+            <td class="px-3 py-2 border-b border-gray-200 font-semibold">${producto.nombre}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${producto.stock || '0'}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${fechaVencimiento}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-center">
+                <button class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                    onclick="mostrarLotesProducto('${producto.id}')">
+                    🔽 Ver Lotes
+                </button>
+            </td>
+        `;
+        tableBody.appendChild(fila);
+
+        // Contenedor donde se mostrarán los lotes (al presionar Ver Lotes)
+        const filaLotes = document.createElement('tr');
+        filaLotes.innerHTML = `<td colspan="4" id="lotes-${producto.id}" class="hidden bg-gray-50"></td>`;
+        tableBody.appendChild(filaLotes);
+    });
+}
+
+        async function mostrarLotesProducto(productoId) {
+    const contenedor = document.getElementById(`lotes-${productoId}`);
+
+    if (!contenedor.classList.contains("hidden")) {
+        contenedor.classList.add("hidden"); // Ocultar si ya está abierto
+        contenedor.innerHTML = "";
+        return;
+    }
+
+    // Consultar lotes del producto
+    const lotesSnap = await db.collection("productosYServicios")
+        .doc(productoId)
+        .collection("lotes")
+        .orderBy("fechaVencimiento", "asc")
+        .get();
+
+    if (lotesSnap.empty) {
+        contenedor.innerHTML = `<div class="p-2 text-gray-500 italic">No hay lotes registrados para este producto.</div>`;
+        contenedor.classList.remove("hidden");
+        return;
+    }
+
+    let html = `
+        <table class="w-full border border-gray-300 mt-2 text-sm">
+            <thead class="bg-gray-200">
+                <tr>
+                    <th class="border px-2 py-1">Lote</th>
+                    <th class="border px-2 py-1">Cant. Inicial</th>
+                    <th class="border px-2 py-1">Stock</th>
+                    <th class="border px-2 py-1">Vencimiento</th>
+                    <th class="border px-2 py-1">Costo</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    const hoy = new Date();
+
+    lotesSnap.forEach(doc => {
+        const lote = doc.data();
+        let claseColor = "bg-green-100"; // por defecto verde
+        if (lote.fechaVencimiento) {
+            const fecha = new Date(lote.fechaVencimiento);
+            const diffDias = Math.floor((fecha - hoy) / (1000 * 60 * 60 * 24));
+            if (diffDias < 0) claseColor = "bg-red-300"; // vencido
+            else if (diffDias <= 7) claseColor = "bg-red-200"; // vence pronto
+            else if (diffDias <= 30) claseColor = "bg-yellow-200"; // dentro de 30 días
         }
+
+        html += `
+            <tr class="${claseColor}">
+                <td class="border px-2 py-1">${lote.lote || "-"}</td>
+                <td class="border px-2 py-1">${lote.cantidadInicial || 0}</td>
+                <td class="border px-2 py-1">${lote.stock || 0}</td>
+                <td class="border px-2 py-1">${lote.fechaVencimiento ? new Date(lote.fechaVencimiento).toLocaleDateString() : "-"}</td>
+                <td class="border px-2 py-1">${lote.costo?.toFixed(2) || "-"}</td>
+            </tr>
+        `;
+    });
+
+    html += `</tbody></table>`;
+    contenedor.innerHTML = html;
+    contenedor.classList.remove("hidden");
+}
+
+
         
+
         function filtrarProductosConsulta() {
             const nombreFiltro = document.getElementById('filtroProducto').value.toLowerCase();
             const fechaFiltro = document.getElementById('filtroVencimiento').value;
