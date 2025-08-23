@@ -771,7 +771,19 @@ async function mostrarLotesProducto(productoId) {
     contenedor.classList.remove("hidden");
 }
 
+function filtrarProductosConsulta() {
+    const nombreFiltro = document.getElementById('filtroProducto').value.toLowerCase();
+    const fechaFiltro = document.getElementById('filtroVencimiento').value;
 
+    const productosFiltrados = productos.filter(producto => {
+        const nombreCoincide = producto.nombre?.toLowerCase().includes(nombreFiltro);
+        const fechaCoincide = !fechaFiltro ||
+            (producto.fechaVencimiento && producto.fechaVencimiento === fechaFiltro);
+        return nombreCoincide && fechaCoincide;
+    });
+
+    renderizarProductosConsulta(productosFiltrados); // 👈 te faltaba también usar el resultado
+} // 👈 cierre de la función
         
 //-------------------------
 
