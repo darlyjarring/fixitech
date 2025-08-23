@@ -614,7 +614,10 @@
         for (const doc of snapshot.docs) {
             let data = { id: doc.id, ...doc.data() };
 
-            // Buscar lotes para este producto
+            // 🔹 asegurarnos que tenga nombre
+            data.nombre = data.nombre || "(Sin nombre)";
+
+            // Buscar lotes de este producto
             const lotesSnap = await db.collection('productosYServicios')
                 .doc(doc.id)
                 .collection('lotes')
@@ -623,6 +626,7 @@
 
             let stockTotal = 0;
             let fechaMin = null;
+
             lotesSnap.forEach(loteDoc => {
                 const lote = loteDoc.data();
                 stockTotal += lote.stock || 0;
@@ -634,13 +638,14 @@
                 }
             });
 
+            // 🔹 Guardamos stock y fecha mínima
             data.stock = stockTotal;
             data.fechaVencimiento = fechaMin;
 
             productos.push(data);
         }
 
-        console.log("Productos procesados:", productos);
+        console.log("📦 Productos procesados:", productos); // 👈 Ver en consola
         renderizarProductosConsulta(productos);
     } catch (error) {
         console.error("Error al cargar productos para consulta:", error);
