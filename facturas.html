@@ -609,10 +609,38 @@
         async function cargarProductosConsulta() {
     try {
         const snapshot = await db.collection('productosYServicios').get();
-        productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        productos = [];
 
-        console.log("Productos cargados:", productos); // 👈 para revisar en consola
+        for (const doc of snapshot.docs) {
+            let data = { id: doc.id, ...doc.data() };
 
+            // Buscar lotes para este producto
+            const lotesSnap = await db.collection('productosYServicios')
+                .doc(doc.id)
+                .collection('lotes')
+                .orderBy('fechaVencimiento', 'asc')
+                .get();
+
+            let stockTotal = 0;
+            let fechaMin = null;
+            lotesSnap.forEach(loteDoc => {
+                const lote = loteDoc.data();
+                stockTotal += lote.stock || 0;
+
+                if (lote.stock > 0 && lote.fechaVencimiento) {
+                    if (!fechaMin || new Date(lote.fechaVencimiento) < new Date(fechaMin)) {
+                        fechaMin = lote.fechaVencimiento;
+                    }
+                }
+            });
+
+            data.stock = stockTotal;
+            data.fechaVencimiento = fechaMin;
+
+            productos.push(data);
+        }
+
+        console.log("Productos procesados:", productos);
         renderizarProductosConsulta(productos);
     } catch (error) {
         console.error("Error al cargar productos para consulta:", error);
