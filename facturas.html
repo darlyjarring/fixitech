@@ -606,18 +606,18 @@
 
  let productos = []; // Variable global para almacenar los productos
 
-    async function cargarProductosConsulta() {
+async function cargarProductosConsulta() {
     try {
-        const snapshot = await db.collection('productosYServicios').get();
+        const snapshot = await db.collection('productosYServicios')
+            .where("tipo", "==", "producto") // 🔹 solo productos, no servicios
+            .get();
         productos = [];
 
         for (const doc of snapshot.docs) {
             let data = { id: doc.id, ...doc.data() };
-
-            // 🔹 asegurarnos que tenga nombre
             data.nombre = data.nombre || "(Sin nombre)";
 
-            // Buscar lotes de este producto
+            // Buscar lotes del producto
             const lotesSnap = await db.collection('productosYServicios')
                 .doc(doc.id)
                 .collection('lotes')
@@ -638,14 +638,12 @@
                 }
             });
 
-            // 🔹 Guardamos stock y fecha mínima
             data.stock = stockTotal;
             data.fechaVencimiento = fechaMin;
-
             productos.push(data);
         }
 
-        console.log("📦 Productos procesados:", productos); // 👈 Ver en consola
+        console.log("📦 Productos procesados:", productos);
         renderizarProductosConsulta(productos);
     } catch (error) {
         console.error("Error al cargar productos para consulta:", error);
@@ -653,14 +651,13 @@
     }
 }
 
-
 function renderizarProductosConsulta(productosFiltrados) {
     const tableBody = document.getElementById('listaProductosConsultaTableBody');
     tableBody.innerHTML = '';
 
     if (productosFiltrados.length === 0) {
         const row = document.createElement('tr');
-        row.innerHTML = `<td colspan="4" class="px-3 py-2 text-center text-gray-500">No hay productos registrados.</td>`;
+        row.innerHTML = `<td colspan="5" class="px-3 py-2 text-center text-gray-500">No hay productos registrados.</td>`;
         tableBody.appendChild(row);
         return;
     }
@@ -686,7 +683,8 @@ function renderizarProductosConsulta(productosFiltrados) {
         }
 
         fila.innerHTML = `
-            <td class="px-3 py-2 border-b border-gray-200 font-semibold">${producto.nombre || "-"}</td>
+            <td class="px-3 py-2 border-b border-gray-200 font-semibold">${producto.nombre}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${producto.tipo || "-"}</td>
             <td class="px-3 py-2 border-b border-gray-200">${producto.stock || 0}</td>
             <td class="px-3 py-2 border-b border-gray-200 ${claseColor}">${fechaVencimientoTxt}</td>
             <td class="px-3 py-2 border-b border-gray-200 text-center">
@@ -701,24 +699,20 @@ function renderizarProductosConsulta(productosFiltrados) {
 
         // contenedor para los lotes
         const filaLotes = document.createElement('tr');
-        filaLotes.innerHTML = `<td colspan="4" id="lotes-${producto.id}" class="hidden bg-gray-50"></td>`;
+        filaLotes.innerHTML = `<td colspan="5" id="lotes-${producto.id}" class="hidden bg-gray-50"></td>`;
         tableBody.appendChild(filaLotes);
     });
 }
 
-
-
-
-        async function mostrarLotesProducto(productoId) {
+async function mostrarLotesProducto(productoId) {
     const contenedor = document.getElementById(`lotes-${productoId}`);
 
     if (!contenedor.classList.contains("hidden")) {
-        contenedor.classList.add("hidden"); // Ocultar si ya está abierto
+        contenedor.classList.add("hidden");
         contenedor.innerHTML = "";
         return;
     }
 
-    // Consultar lotes del producto
     const lotesSnap = await db.collection("productosYServicios")
         .doc(productoId)
         .collection("lotes")
@@ -738,7 +732,8 @@ function renderizarProductosConsulta(productosFiltrados) {
                     <th class="border px-2 py-1">Lote</th>
                     <th class="border px-2 py-1">Cant. Inicial</th>
                     <th class="border px-2 py-1">Stock</th>
-                    <th class="border px-2 py-1">Vencimiento</th>
+                    <th class="border px-2 py-1">Fecha Compra</th>
+                    <th class="border px-2 py-1">Fecha Vencimiento</th>
                     <th class="border px-2 py-1">Costo</th>
                 </tr>
             </thead>
@@ -749,13 +744,14 @@ function renderizarProductosConsulta(productosFiltrados) {
 
     lotesSnap.forEach(doc => {
         const lote = doc.data();
-        let claseColor = "bg-green-100"; // por defecto verde
+        let claseColor = "bg-green-100";
+
         if (lote.fechaVencimiento) {
             const fecha = new Date(lote.fechaVencimiento);
             const diffDias = Math.floor((fecha - hoy) / (1000 * 60 * 60 * 24));
-            if (diffDias < 0) claseColor = "bg-red-300"; // vencido
-            else if (diffDias <= 7) claseColor = "bg-red-200"; // vence pronto
-            else if (diffDias <= 30) claseColor = "bg-yellow-200"; // dentro de 30 días
+            if (diffDias < 0) claseColor = "bg-red-300";
+            else if (diffDias <= 7) claseColor = "bg-red-200";
+            else if (diffDias <= 30) claseColor = "bg-yellow-200";
         }
 
         html += `
@@ -763,6 +759,7 @@ function renderizarProductosConsulta(productosFiltrados) {
                 <td class="border px-2 py-1">${lote.lote || "-"}</td>
                 <td class="border px-2 py-1">${lote.cantidadInicial || 0}</td>
                 <td class="border px-2 py-1">${lote.stock || 0}</td>
+                <td class="border px-2 py-1">${lote.fechaCompra ? new Date(lote.fechaCompra).toLocaleDateString() : "-"}</td>
                 <td class="border px-2 py-1">${lote.fechaVencimiento ? new Date(lote.fechaVencimiento).toLocaleDateString() : "-"}</td>
                 <td class="border px-2 py-1">${lote.costo?.toFixed(2) || "-"}</td>
             </tr>
@@ -776,19 +773,6 @@ function renderizarProductosConsulta(productosFiltrados) {
 
 
         
-
-// 🔍 Nuevo filtro sin producto.lote (porque los lotes están aparte)
-function filtrarProductosConsulta() {
-    const nombreFiltro = document.getElementById('filtroProducto').value.toLowerCase();
-    const fechaFiltro = document.getElementById('filtroVencimiento').value;
-
-    const productosFiltrados = productos.filter(producto => {
-        const nombreCoincide = producto.nombre?.toLowerCase().includes(nombreFiltro);
-        const fechaCoincide = !fechaFiltro ||
-            (producto.fechaVencimiento && producto.fechaVencimiento === fechaFiltro);
-        return nombreCoincide && fechaCoincide;
-    });
- } // 👈 cierre de la función       
 //-------------------------
 
 
