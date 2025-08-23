@@ -606,6 +606,21 @@
 
  let productos = []; // Variable global para almacenar los productos
 
+        async function cargarProductosConsulta() {
+    try {
+        const snapshot = await db.collection('productosYServicios').get();
+        productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        console.log("Productos cargados:", productos); // 👈 para revisar en consola
+
+        renderizarProductosConsulta(productos);
+    } catch (error) {
+        console.error("Error al cargar productos para consulta:", error);
+        mostrarMensaje('❌ Error al cargar los productos.', 'bg-red-500');
+    }
+}
+
+
 function renderizarProductosConsulta(productosFiltrados) {
     const tableBody = document.getElementById('listaProductosConsultaTableBody');
     tableBody.innerHTML = '';
