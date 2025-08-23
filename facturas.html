@@ -606,7 +606,7 @@
 
  let productos = []; // Variable global para almacenar los productos
 
-        async function cargarProductosConsulta() {
+    async function cargarProductosConsulta() {
     try {
         const snapshot = await db.collection('productosYServicios').get();
         productos = [];
@@ -783,7 +783,7 @@ function filtrarProductosConsulta() {
             (producto.fechaVencimiento && producto.fechaVencimiento === fechaFiltro);
         return nombreCoincide && fechaCoincide;
     });
-        
+ } // 👈 cierre de la función       
 //-------------------------
 
 
