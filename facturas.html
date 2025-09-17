@@ -247,10 +247,10 @@
             </div>
         </div>
 
-        <div id="gestionFacturasSection" class="hidden bg-white rounded-lg shadow-md p-6">
+       <div id="gestionFacturasSection" class="hidden bg-white rounded-lg shadow-md p-6">
             <h2 class="text-2xl font-semibold mb-6 text-gray-800">Gestión de Ventas</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
                 <div>
                     <label for="filtroVentasAnio" class="block text-sm font-medium text-gray-700">Año</label>
                     <select id="filtroVentasAnio" onchange="filtrarFacturas()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
@@ -276,6 +276,10 @@
                     </select>
                 </div>
                 <div>
+                    <label for="filtroVentasFecha" class="block text-sm font-medium text-gray-700">Fecha</label>
+                    <input type="date" id="filtroVentasFecha" onchange="filtrarFacturas()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
+                </div>
+                <div>
                     <label for="filtroVentasHoraInicial" class="block text-sm font-medium text-gray-700">Hora Inicial</label>
                     <input type="time" id="filtroVentasHoraInicial" onchange="filtrarFacturas()" class="mt-1 p-2 block w-full border border-gray-300 rounded-md">
                 </div>
@@ -285,6 +289,10 @@
                 </div>
             </div>
 
+            <div class="mb-4 p-4 bg-blue-100 rounded-md">
+                <p class="text-blue-800 font-semibold">Total de Ventas: <span id="totalVentasFiltradas" class="text-xl">$0.00</span></p>
+            </div>
+            
             <div class="bg-gray-50 rounded-lg overflow-hidden">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-200">
@@ -294,12 +302,12 @@
                             <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendedor</th>
                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha y Hora</th>
                             <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="listaFacturasTableBody" class="bg-white divide-y divide-gray-200">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -1135,102 +1143,108 @@ async function guardarFactura() {
             }
         }
 
-        function filtrarFacturas() {
-            const filtroAnio = document.getElementById('filtroVentasAnio').value;
-            const filtroMes = document.getElementById('filtroVentasMes').value;
-            const filtroHoraInicial = document.getElementById('filtroVentasHoraInicial').value;
-            const filtroHoraFinal = document.getElementById('filtroVentasHoraFinal').value;
-            
-            let facturasFiltradas = todasLasFacturas;
+function filtrarFacturas() {
+    const filtroAnio = document.getElementById('filtroVentasAnio').value;
+    const filtroMes = document.getElementById('filtroVentasMes').value;
+    const filtroFecha = document.getElementById('filtroVentasFecha').value;
+    const filtroHoraInicial = document.getElementById('filtroVentasHoraInicial').value;
+    const filtroHoraFinal = document.getElementById('filtroVentasHoraFinal').value;
+    
+    let facturasFiltradas = todasLasFacturas;
 
-            if (filtroAnio) {
-                facturasFiltradas = facturasFiltradas.filter(factura => {
-                    const fecha = factura.fechaCreacion.toDate();
-                    return fecha.getFullYear() === parseInt(filtroAnio);
-                });
-            }
-            
-            if (filtroMes) {
-                facturasFiltradas = facturasFiltradas.filter(factura => {
-                    const fecha = factura.fechaCreacion.toDate();
-                    return (fecha.getMonth() + 1) === parseInt(filtroMes);
-                });
-            }
+    if (filtroAnio) {
+        facturasFiltradas = facturasFiltradas.filter(f => f.fechaCreacion && f.fechaCreacion.toDate().getFullYear().toString() === filtroAnio);
+    }
+    if (filtroMes) {
+        facturasFiltradas = facturasFiltradas.filter(f => f.fechaCreacion && (f.fechaCreacion.toDate().getMonth() + 1).toString() === filtroMes);
+    }
+    if (filtroFecha) {
+        facturasFiltradas = facturasFiltradas.filter(f => {
+            const fechaFactura = new Date(f.fechaCreacion.seconds * 1000).toISOString().slice(0, 10);
+            return fechaFactura === filtroFecha;
+        });
+    }
+    if (filtroHoraInicial && filtroHoraFinal) {
+        facturasFiltradas = facturasFiltradas.filter(f => {
+            const fechaHoraFactura = new Date(f.fechaCreacion.seconds * 1000);
+            const horaFactura = fechaHoraFactura.toTimeString().slice(0, 5);
+            return horaFactura >= filtroHoraInicial && horaFactura <= filtroHoraFinal;
+        });
+    }
 
-            if (filtroHoraInicial && filtroHoraFinal) {
-                facturasFiltradas = facturasFiltradas.filter(factura => {
-                    const fecha = factura.fechaCreacion.toDate();
-                    const hora = fecha.getHours().toString().padStart(2, '0');
-                    const minutos = fecha.getMinutes().toString().padStart(2, '0');
-                    const horaFactura = `${hora}:${minutos}`;
-                    return horaFactura >= filtroHoraInicial && horaFactura <= filtroHoraFinal;
-                });
-            }
+    renderizarFacturas(facturasFiltradas);
+}
 
-            renderizarFacturas(facturasFiltradas);
+function renderizarFacturas(facturasFiltradas) {
+    const tableBody = document.getElementById('listaFacturasTableBody');
+    if (!tableBody) return;
+    tableBody.innerHTML = '';
+    
+    // Calcular y mostrar el total de ventas filtradas
+    const totalVentas = facturasFiltradas.reduce((sum, f) => sum + f.total, 0);
+    const totalElement = document.getElementById('totalVentasFiltradas');
+    if (totalElement) {
+        totalElement.textContent = `$${totalVentas.toFixed(2)}`;
+    }
+
+    facturasFiltradas.forEach(factura => {
+        const data = factura;
+        const fila = document.createElement('tr');
+        fila.classList.add("hover:bg-gray-50");
+
+        const numeroDisplay = data.numeroFactura ? `${data.numeroFactura}` : 'Pendiente';
+        const fechaFactura = data.fechaCreacion && data.fechaCreacion.seconds 
+            ? new Date(data.fechaCreacion.seconds * 1000) 
+            : null;
+        const fechaFormateada = fechaFactura ? fechaFactura.toLocaleDateString() : 'N/A';
+        const horaFormateada = fechaFactura ? fechaFactura.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A';
+        
+        fila.innerHTML = `
+            <td class="px-3 py-2 border-b border-gray-200">${numeroDisplay}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${data.nombreCliente}</td>
+            <td class="px-3 py-2 border-b border-gray-200 text-right">$${data.total.toFixed(2)}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${data.vendedor}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${data.estado}</td>
+            <td class="px-3 py-2 border-b border-gray-200">${fechaFormateada} - ${horaFormateada}</td>
+        `;
+
+        const accionesCell = document.createElement('td');
+        accionesCell.classList.add("px-3", "py-2", "border-b", "border-gray-200", "text-center");
+        
+        const btnVisualizar = document.createElement('button');
+        btnVisualizar.textContent = '🔍';
+        btnVisualizar.classList.add("text-blue-500", "hover:text-blue-700", "font-bold", "px-1");
+        btnVisualizar.onclick = () => verDetalleFactura(factura.id);
+        accionesCell.appendChild(btnVisualizar);
+
+        const btnImprimir = document.createElement('button');
+        btnImprimir.textContent = '🖨️';
+        btnImprimir.classList.add("text-green-500", "hover:text-green-700", "font-bold", "px-1");
+        btnImprimir.onclick = () => imprimirFactura(factura.id);
+        accionesCell.appendChild(btnImprimir);
+
+        if (data.estado === 'En espera' || data.estado === 'Entregado') {
+            const btnEditar = document.createElement('button');
+            btnEditar.textContent = '✏️';
+            btnEditar.classList.add("text-orange-500", "hover:text-orange-700", "font-bold", "px-1");
+            btnEditar.onclick = () => editarFactura(factura.id);
+            accionesCell.appendChild(btnEditar);
+        }
+        
+        if (usuarioActual.rol === 'superusuario' || usuarioActual.rol === 'administrador') {
+            const btnEliminar = document.createElement('button');
+            btnEliminar.textContent = '🗑️';
+            btnEliminar.classList.add("text-red-500", "hover:text-red-700", "font-bold", "px-1");
+            btnEliminar.onclick = () => eliminarFactura(factura.id);
+            accionesCell.appendChild(btnEliminar);
         }
 
-                function renderizarFacturas(facturas) {
-            const tableBody = document.getElementById('listaFacturasTableBody');
-            tableBody.innerHTML = '';
-            
-            facturas.forEach(factura => {
-                const data = factura;
-                const fila = document.createElement('tr');
-                fila.classList.add("hover:bg-gray-50");
-
-                const numeroDisplay = data.numeroFactura ? `${data.numeroFactura}` : 'Pendiente';
-                const fechaFormateada = data.fechaCreacion && data.fechaCreacion.seconds 
-                    ? new Date(data.fechaCreacion.seconds * 1000).toLocaleDateString()
-                    : 'N/A';
-                
-                fila.innerHTML = `
-                    <td class="px-3 py-2 border-b border-gray-200">${numeroDisplay}</td>
-                    <td class="px-3 py-2 border-b border-gray-200">${data.nombreCliente}</td>
-                    <td class="px-3 py-2 border-b border-gray-200 text-right">$${data.total.toFixed(2)}</td>
-                    <td class="px-3 py-2 border-b border-gray-200">${data.vendedor}</td>
-                    <td class="px-3 py-2 border-b border-gray-200">${data.estado}</td>
-                    <td class="px-3 py-2 border-b border-gray-200">${fechaFormateada}</td>
-                `;
-
-                const accionesCell = document.createElement('td');
-                accionesCell.classList.add("px-3", "py-2", "border-b", "border-gray-200", "text-center");
-                
-                const btnVisualizar = document.createElement('button');
-                btnVisualizar.textContent = '🔍';
-                btnVisualizar.classList.add("text-blue-500", "hover:text-blue-700", "font-bold", "px-1");
-                btnVisualizar.onclick = () => verDetalleFactura(factura.id);
-                accionesCell.appendChild(btnVisualizar);
-
-                const btnImprimir = document.createElement('button');
-                btnImprimir.textContent = '🖨️';
-                btnImprimir.classList.add("text-green-500", "hover:text-green-700", "font-bold", "px-1");
-                btnImprimir.onclick = () => imprimirFactura(factura.id);
-                accionesCell.appendChild(btnImprimir);
-
-                // Lógica de edición basada en el estado de la factura
-                if (data.estado === 'En espera' || data.estado === 'Entregado') {
-                    const btnEditar = document.createElement('button');
-                    btnEditar.textContent = '✏️';
-                    btnEditar.classList.add("text-orange-500", "hover:text-orange-700", "font-bold", "px-1");
-                    btnEditar.onclick = () => editarFactura(factura.id);
-                    accionesCell.appendChild(btnEditar);
-                }
-                
-                // Lógica de eliminación basada en el rol del usuario
-                if (usuarioActual.rol === 'superusuario' || usuarioActual.rol === 'admin') {
-                    const btnEliminar = document.createElement('button');
-                    btnEliminar.textContent = '🗑️';
-                    btnEliminar.classList.add("text-red-500", "hover:text-red-700", "font-bold", "px-1");
-                    btnEliminar.onclick = () => eliminarFactura(factura.id);
-                    accionesCell.appendChild(btnEliminar);
-                }
-
-                fila.appendChild(accionesCell);
-                tableBody.appendChild(fila);
-            });
-        }
-
+        fila.appendChild(accionesCell);
+        tableBody.appendChild(fila);
+    });
+    // Llamada a la función que actualiza los años disponibles en el filtro
+    actualizarFiltrosAnio();
+}
         async function editarFactura(facturaId) {
             const facturaDoc = await db.collection('facturas').doc(facturaId).get();
             if (facturaDoc.exists) {
