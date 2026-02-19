@@ -3,84 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fixitech Design Tool</title>
+    <title>Fixitech Designer Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background: #222; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        
-        /* Contenedor del Estado (Proporción 9:16) */
-        #canvas-container {
-            width: 360px;
-            height: 640px;
-            background: #000 url('https://images.unsplash.com/photo-1581092160562-40aa08e78837?q=80&w=2070&auto=format&fit=crop') center/cover;
-            position: relative;
-            border: 2px solid #444;
-            overflow: hidden;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        :root { --primary: #00d4ff; --bg-dark: #1a1a1a; --panel-w: 300px; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #121212; color: white; overflow: hidden; }
+
+        /* Panel Izquierdo (Paleta) */
+        #sidebar {
+            width: var(--panel-w);
+            background: #1e1e1e;
+            padding: 20px;
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
         }
 
-        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); }
-
-        .content { position: relative; z-index: 2; padding: 40px 20px; text-align: center; }
-
-        .logo { font-size: 42px; font-weight: bold; color: #00d4ff; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
+        h1 { font-size: 18px; color: var(--primary); margin: 0; text-align: center; }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 12px; text-transform: uppercase; color: #888; font-weight: bold; }
         
-        h2 { border-bottom: 2px solid #00d4ff; display: inline-block; padding-bottom: 5px; margin-bottom: 30px; }
+        input[type="text"], input[type="file"] {
+            background: #2d2d2d; border: 1px solid #444; color: white; padding: 10px; border-radius: 5px;
+        }
 
-        ul { list-style: none; padding: 0; text-align: left; font-size: 18px; line-height: 2; }
-        ul li::before { content: "• "; color: #00d4ff; font-weight: bold; }
+        .btn-download {
+            background: #25d366; color: white; border: none; padding: 15px; border-radius: 5px;
+            font-weight: bold; cursor: pointer; margin-top: auto; transition: 0.3s;
+        }
+        .btn-download:hover { background: #128c7e; transform: scale(1.02); }
 
-        .footer { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.8); padding: 15px 0; font-size: 14px; text-align: center; border-top: 2px solid #00d4ff; }
+        /* Área de Previsualización (Derecha) */
+        #preview-area {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #121212;
+            overflow-y: auto;
+        }
 
-        /* Controles */
-        .controls { margin-top: 20px; background: #333; padding: 20px; border-radius: 10px; width: 360px; }
-        input, textarea { width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #25d366; border: none; color: white; font-weight: bold; cursor: pointer; border-radius: 5px; }
-        button:hover { background: #128c7e; }
+        /* El Estado de WhatsApp */
+        #canvas-export {
+            width: 360px;
+            height: 640px;
+            background: black;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            background-size: cover;
+            background-position: center;
+            background-image: url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070&auto=format&fit=crop');
+        }
+
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8)); }
+
+        .content { position: relative; z-index: 5; padding: 30px; text-align: center; height: 100%; display: flex; flex-direction: column; }
+
+        #logo-placeholder { max-height: 80px; margin-bottom: 20px; align-self: center; }
+        #logo-img { max-height: 80px; display: none; }
+        #logo-text { font-size: 32px; font-weight: 900; letter-spacing: 2px; color: var(--primary); }
+
+        .title { font-size: 24px; font-weight: bold; margin: 20px 0; border-bottom: 2px solid var(--primary); padding-bottom: 5px; }
+
+        .services-list { text-align: left; font-size: 16px; line-height: 2.2; margin-top: 10px; flex-grow: 1; outline: none; }
+        .services-list div::before { content: "• "; color: var(--primary); font-weight: bold; }
+
+        .footer {
+            margin-top: auto;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            padding-top: 15px;
+            font-size: 13px;
+            color: #ccc;
+        }
     </style>
 </head>
 <body>
 
-    <div id="canvas-container">
-        <div class="overlay"></div>
-        <div class="content">
-            <div class="logo" id="txt-logo">FIXITECH</div>
-            <h2 contenteditable="true">SERVICIO TÉCNICO</h2>
-            <ul id="lista-servicios" contenteditable="true">
-                <li>CAMBIO DE PANTALLAS</li>
-                <li>CAMBIO DE BATERÍAS</li>
-                <li>REPARACIÓN DE PLACA</li>
-                <li>DESBLOQUEO CUENTAS GOOGLE</li>
-                <li>ELIMINACIÓN DE VIRUS</li>
-                <li>RESETEOS POR VIRUS</li>
-            </ul>
+    <aside id="sidebar">
+        <h1>FIXITECH TOOLS</h1>
+        <hr style="border: 0.5px solid #333; width: 100%;">
+        
+        <div class="control-group">
+            <label>1. Logo de Empresa</label>
+            <input type="file" id="upload-logo" accept="image/*" onchange="loadLogo(event)">
+            <input type="text" id="input-logo-name" placeholder="O escribe nombre aquí..." oninput="updateLogoText(this.value)">
         </div>
-        <div class="footer">
-            <div id="txt-footer">inf. 0961187862 - Ing. José Jarrín</div>
-        </div>
-    </div>
 
-    <div class="controls">
-        <label>URL Imagen de Fondo:</label>
-        <input type="text" id="bg-url" placeholder="Pega el link de una imagen">
-        <button onclick="cambiarFondo()">Aplicar Fondo</button>
-        <br><br>
-        <button onclick="descargarImagen()">📥 DESCARGAR PARA WHATSAPP</button>
-    </div>
+        <div class="control-group">
+            <label>2. Fondo (URL Imagen)</label>
+            <input type="text" id="bg-url" placeholder="Pega link de imagen aquí..." onchange="changeBg(this.value)">
+        </div>
+
+        <div class="control-group">
+            <label>3. Info de Contacto</label>
+            <input type="text" id="input-footer" value="inf. 0961187862 - Ing. José Jarrín" oninput="updateFooter(this.value)">
+        </div>
+
+        <p style="font-size: 11px; color: #666;">* Haz clic en los textos del diseño para editarlos manualmente.</p>
+
+        <button class="btn-download" onclick="downloadImage()">📥 DESCARGAR DISEÑO</button>
+    </aside>
+
+    <main id="preview-area">
+        <div id="canvas-export">
+            <div class="overlay"></div>
+            <div class="content">
+                <div id="logo-placeholder">
+                    <img id="logo-img" src="" alt="Logo">
+                    <div id="logo-text">FIXITECH</div>
+                </div>
+
+                <div class="title" contenteditable="true">SERVICIO TÉCNICO</div>
+
+                <div class="services-list" contenteditable="true">
+                    <div>CAMBIO DE PANTALLAS</div>
+                    <div>CAMBIO DE BATERÍAS</div>
+                    <div>REPARACIÓN DE PLACA</div>
+                    <div>DESBLOQUEO CUENTAS GOOGLE</div>
+                    <div>ELIMINACIÓN DE VIRUS</div>
+                    <div>RESETEOS POR VIRUS</div>
+                </div>
+
+                <div class="footer" id="display-footer">
+                    inf. 0961187862 - Ing. José Jarrín
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script>
-        function cambiarFondo() {
-            const url = document.getElementById('bg-url').value;
-            if(url) document.getElementById('canvas-container').style.backgroundImage = `url('${url}')`;
+        // Actualizar Texto de Logo
+        function updateLogoText(val) {
+            document.getElementById('logo-text').innerText = val;
+            document.getElementById('logo-text').style.display = 'block';
+            document.getElementById('logo-img').style.display = 'none';
         }
 
-        function descargarImagen() {
-            html2canvas(document.querySelector("#canvas-container"), {
+        // Cargar Imagen de Logo
+        function loadLogo(event) {
+            const reader = new FileReader();
+            reader.onload = function(){
+                const output = document.getElementById('logo-img');
+                output.src = reader.result;
+                output.style.display = 'block';
+                document.getElementById('logo-text').style.display = 'none';
+            };
+            reader.readAsDataURL(event.target.files[0]);
+        }
+
+        // Cambiar Fondo
+        function changeBg(url) {
+            document.getElementById('canvas-export').style.backgroundImage = `url('${url}')`;
+        }
+
+        // Actualizar Footer
+        function updateFooter(val) {
+            document.getElementById('display-footer').innerText = val;
+        }
+
+        // Descarga de Imagen Profesional
+        function downloadImage() {
+            const element = document.getElementById("canvas-export");
+            html2canvas(element, {
                 useCORS: true,
-                allowTaint: true
+                scale: 2 // Alta calidad
             }).then(canvas => {
-                let link = document.createElement('a');
-                link.download = 'Estado-Fixitech.png';
+                const link = document.createElement('a');
+                link.download = 'Estado_Fixitech_Pro.png';
                 link.href = canvas.toDataURL("image/png");
                 link.click();
             });
