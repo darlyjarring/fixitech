@@ -2,56 +2,48 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fixitech Studio Pro</title>
+    <title>Fixitech Designer Ultra</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        :root { --primary: #00d4ff; --panel-bg: #252526; }
+        :root { --primary: #00d4ff; --panel: #252526; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #121212; color: white; overflow: hidden; }
 
-        /* PALETA IZQUIERDA */
+        /* PANEL IZQUIERDO */
         #palette {
-            width: 320px; background: var(--panel-bg); padding: 20px; border-right: 1px solid #333;
-            display: flex; flex-direction: column; gap: 15px; overflow-y: auto; z-index: 100;
+            width: 350px; background: var(--panel); padding: 20px; border-right: 1px solid #333;
+            display: flex; flex-direction: column; gap: 10px; overflow-y: auto;
         }
 
-        h2 { font-size: 16px; color: var(--primary); margin: 0 0 10px 0; border-bottom: 1px solid #444; padding-bottom: 5px; }
-        .control-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
-        label { font-size: 11px; color: #aaa; text-transform: uppercase; }
+        h2 { font-size: 18px; color: var(--primary); margin: 0 0 10px 0; text-align: center; }
+        .group { background: #333; padding: 10px; border-radius: 5px; margin-bottom: 5px; }
+        label { font-size: 11px; color: #aaa; display: block; margin-bottom: 5px; }
         
         input, select, button {
-            background: #333; border: 1px solid #555; color: white; padding: 8px; border-radius: 4px; outline: none;
+            width: 100%; background: #444; border: 1px solid #555; color: white; 
+            padding: 8px; border-radius: 4px; margin-bottom: 10px; box-sizing: border-box;
         }
 
-        button { cursor: pointer; font-weight: bold; transition: 0.2s; }
-        button:hover { background: #444; border-color: var(--primary); }
-        .btn-main { background: #25d366; color: black; border: none; padding: 12px; margin-top: 10px; }
+        button { cursor: pointer; font-weight: bold; background: #444; }
+        button:hover { background: #555; border-color: var(--primary); }
+        .btn-save { background: #25d366; color: black; font-size: 16px; padding: 15px; border: none; }
 
         /* AREA DE DISEÑO */
-        #workspace { flex-grow: 1; display: flex; justify-content: center; align-items: center; position: relative; }
+        #workspace { flex-grow: 1; display: flex; justify-content: center; align-items: center; background: #1e1e1e; }
 
-        /* LIENZO DE WHATSAPP (9:16) */
         #canvas {
             width: 360px; height: 640px; background: black; position: relative;
             background-size: cover; background-position: center; overflow: hidden;
-            box-shadow: 0 0 30px rgba(0,0,0,0.7);
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
         }
 
-        /* ELEMENTOS MOVILES */
         .draggable {
-            position: absolute; cursor: move; user-select: none; padding: 5px;
-            display: inline-block; white-space: pre-wrap;
+            position: absolute; cursor: move; user-select: none;
+            display: inline-block; padding: 5px; outline: none;
         }
-        .draggable:hover { outline: 1px dashed var(--primary); }
-        .draggable:active { outline: 2px solid var(--primary); }
+        
+        .selected { border: 2px dashed var(--primary) !important; }
 
-        img.draggable { max-width: 150px; height: auto; }
-
-        /* FUENTES */
-        .f-sans { font-family: sans-serif; }
-        .f-serif { font-family: serif; }
-        .f-mono { font-family: monospace; }
-        .f-impact { font-family: Impact, sans-serif; }
+        img.draggable { width: 100px; height: auto; }
     </style>
 </head>
 <body>
@@ -59,161 +51,127 @@
     <aside id="palette">
         <h2>ESTUDIO FIXITECH</h2>
         
-        <div class="control-group">
-            <label>1. Fondo (Imagen URL)</label>
-            <input type="text" id="bgInput" placeholder="URL de la imagen..." onchange="setBg(this.value)">
+        <div class="group">
+            <label>FONDO (URL)</label>
+            <input type="text" placeholder="Pega URL de imagen..." onchange="document.getElementById('canvas').style.backgroundImage=`url('${this.value}')` text">
         </div>
 
-        <div class="control-group">
-            <label>2. Añadir Imagen / Logo</label>
-            <input type="file" accept="image/*" onchange="addImage(event)">
+        <div class="group">
+            <label>AGREGAR ELEMENTOS</label>
+            <button onclick="addText()">+ Agregar Texto</button>
+            <input type="file" id="fileImg" accept="image/*" style="display:none" onchange="uploadImg(event)">
+            <button onclick="document.getElementById('fileImg').click()">+ Subir Logo/Imagen</button>
         </div>
 
-        <div class="control-group">
-            <label>3. Edición de Texto Seleccionado</label>
-            <label>Color:</label>
-            <input type="color" id="textColor" oninput="updateStyle('color', this.value)">
-            <label>Tamaño (px):</label>
-            <input type="number" id="textSize" value="20" oninput="updateStyle('fontSize', this.value + 'px')">
-            <label>Fuente:</label>
-            <select id="textFont" onchange="updateStyle('fontFamily', this.value)">
-                <option value="sans-serif">Normal (Arial)</option>
-                <option value="Impact">Impact (Fuerte)</option>
-                <option value="serif">Elegante</option>
-                <option value="monospace">Técnica</option>
-            </select>
+        <div id="controls" class="group" style="display:none;">
+            <label>EDICIÓN DE SELECCIONADO</label>
+            
+            <label>Tamaño / Ancho:</label>
+            <input type="range" min="10" max="500" value="20" oninput="updateProp('size', this.value)">
+            
+            <label>Color de Texto:</label>
+            <input type="color" oninput="updateProp('color', this.value)">
+            
+            <label>Sombra (0 a 20px):</label>
+            <input type="range" min="0" max="20" value="0" oninput="updateProp('shadow', this.value)">
+            
+            <label>Borde/Filo (0 a 5px):</label>
+            <input type="range" min="0" max="5" step="0.5" value="0" oninput="updateProp('stroke', this.value)">
+            
+            <button onclick="deleteEl()" style="background:#aa3333; border:none;">Eliminar</button>
         </div>
 
-        <div class="control-group">
-            <label>4. Acciones</label>
-            <button onclick="addText()">+ Añadir Nuevo Texto</button>
-            <button onclick="deleteElement()" style="color: #ff5555;">Eliminar Seleccionado</button>
-        </div>
-
-        <button class="btn-main" onclick="saveDesign()">📥 DESCARGAR PARA WHATSAPP</button>
-        <p style="font-size: 10px; color: #777;">Tip: Arrastra los elementos con el mouse para posicionarlos.</p>
+        <button class="btn-save" onclick="save()">📥 DESCARGAR ESTADO</button>
     </aside>
 
     <main id="workspace">
-        <div id="canvas" style="background-image: url('https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?q=80&w=2069&auto=format&fit=crop');">
-            <div class="draggable f-impact" style="top:50px; left:100px; font-size: 30px; color: #00d4ff;" onmousedown="selectEl(this)">FIXITECH</div>
-            <div class="draggable" style="top:120px; left:40px; font-size: 22px; color: white; border-bottom: 2px solid #00d4ff;" onmousedown="selectEl(this)">SERVICIO TÉCNICO</div>
-            <div class="draggable" style="top:200px; left:40px; font-size: 16px; color: white;" onmousedown="selectEl(this)">
-• CAMBIO DE PANTALLAS
-• CAMBIO DE BATERÍAS
-• REPARACIÓN DE PLACA
-• CUENTAS GOOGLE
-• RESETEOS
-            </div>
-            <div class="draggable" style="top:580px; left:40px; font-size: 14px; color: #ccc;" onmousedown="selectEl(this)">inf. 0961187862 - Ing. José Jarrín</div>
+        <div id="canvas">
+            <div class="draggable" style="top:50px; left:80px; font-size:40px; color:#00d4ff; font-weight:bold;">FIXITECH</div>
+            <div class="draggable" style="top:150px; left:20px; font-size:20px; color:white;">SERVICIO TÉCNICO</div>
         </div>
     </main>
 
     <script>
-        let selectedElement = null;
+        let selected = null;
 
-        // Selección de elementos
-        function selectEl(el) {
-            selectedElement = el;
-            // Cargar valores actuales en la paleta
-            document.getElementById('textSize').value = parseInt(window.getComputedStyle(el).fontSize);
-            if (el.tagName !== 'IMG') el.contentEditable = true;
-        }
-
-        // Actualizar estilo
-        function updateStyle(prop, val) {
-            if (selectedElement) {
-                selectedElement.style[prop] = val;
-            }
-        }
-
-        // Añadir Texto
         function addText() {
             const div = document.createElement('div');
             div.className = 'draggable';
-            div.innerText = 'Nuevo Texto (Click para editar)';
-            div.style.top = '50%';
-            div.style.left = '50%';
-            div.style.fontSize = '20px';
-            div.style.color = 'white';
-            div.onmousedown = function() { selectEl(this); };
+            div.innerHTML = 'Nuevo Texto';
+            div.style.left = '50px'; div.style.top = '200px';
+            div.style.fontSize = '20px'; div.style.color = 'white';
+            initElement(div);
             document.getElementById('canvas').appendChild(div);
-            makeDraggable(div);
         }
 
-        // Añadir Imagen
-        function addImage(event) {
+        function uploadImg(e) {
             const reader = new FileReader();
             reader.onload = function() {
                 const img = document.createElement('img');
                 img.src = reader.result;
                 img.className = 'draggable';
-                img.style.top = '10px';
-                img.style.left = '10px';
-                img.onmousedown = function() { selectEl(this); };
+                img.style.left = '50px'; img.style.top = '50px';
+                initElement(img);
                 document.getElementById('canvas').appendChild(img);
-                makeDraggable(img);
-            };
-            reader.readAsDataURL(event.target.files[0]);
+            }
+            reader.readAsDataURL(e.target.files[0]);
         }
 
-        // Eliminar
-        function deleteElement() {
-            if (selectedElement) {
-                selectedElement.remove();
-                selectedElement = null;
-            }
+        function initElement(el) {
+            el.addEventListener('mousedown', function(e) {
+                if(selected) selected.classList.remove('selected');
+                selected = el;
+                selected.classList.add('selected');
+                document.getElementById('controls').style.display = 'block';
+                
+                // Arrastre
+                let shiftX = e.clientX - el.getBoundingClientRect().left;
+                let shiftY = e.clientY - el.getBoundingClientRect().top;
+
+                function moveAt(pageX, pageY) {
+                    let rect = document.getElementById('canvas').getBoundingClientRect();
+                    el.style.left = (pageX - rect.left - shiftX) + 'px';
+                    el.style.top = (pageY - rect.top - shiftY) + 'px';
+                }
+
+                function onMouseMove(e) { moveAt(e.pageX, e.pageY); }
+                document.addEventListener('mousemove', onMouseMove);
+                document.onmouseup = function() {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.onmouseup = null;
+                };
+            });
+
+            el.addEventListener('dblclick', function() {
+                if(el.tagName !== 'IMG') el.contentEditable = true; el.focus();
+            });
         }
 
-        // Fondo
-        function setBg(url) {
-            document.getElementById('canvas').style.backgroundImage = `url('${url}')`;
+        function updateProp(prop, val) {
+            if(!selected) return;
+            if(prop === 'size') {
+                if(selected.tagName === 'IMG') selected.style.width = val + 'px';
+                else selected.style.fontSize = val + 'px';
+            }
+            if(prop === 'color') selected.style.color = val;
+            if(prop === 'shadow') selected.style.textShadow = `${val}px ${val}px 10px rgba(0,0,0,0.8)`;
+            if(prop === 'stroke') selected.style.webkitTextStroke = `${val}px black`;
         }
 
-        // Lógica de Arrastre (Drag and Drop)
-        function makeDraggable(el) {
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-            el.onmousedown = dragMouseDown;
+        function deleteEl() { selected.remove(); selected = null; document.getElementById('controls').style.display = 'none'; }
 
-            function dragMouseDown(e) {
-                e.preventDefault();
-                selectEl(el);
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                document.onmouseup = closeDragElement;
-                document.onmousemove = elementDrag;
-            }
-
-            function elementDrag(e) {
-                e.preventDefault();
-                pos1 = pos3 - e.clientX;
-                pos2 = pos4 - e.clientY;
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                el.style.top = (el.offsetTop - pos2) + "px";
-                el.style.left = (el.offsetLeft - pos1) + "px";
-            }
-
-            function closeDragElement() {
-                document.onmouseup = null;
-                document.onmousemove = null;
-            }
-        }
-
-        // Aplicar arrastre a elementos iniciales
-        document.querySelectorAll('.draggable').forEach(makeDraggable);
-
-        // Guardar Imagen
-        function saveDesign() {
-            // Deseleccionar para que no salga el borde en la foto
-            const canvas = document.getElementById('canvas');
-            html2canvas(canvas, { useCORS: true, scale: 2 }).then(canvasImg => {
+        function save() {
+            if(selected) selected.classList.remove('selected');
+            html2canvas(document.getElementById('canvas'), {useCORS: true}).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'Estado_Fixitech_Custom.png';
-                link.href = canvasImg.toDataURL("image/png");
+                link.download = 'estado_fixitech.png';
+                link.href = canvas.toDataURL();
                 link.click();
             });
         }
+
+        // Inicializar los que ya están
+        document.querySelectorAll('.draggable').forEach(initElement);
     </script>
 </body>
 </html>
